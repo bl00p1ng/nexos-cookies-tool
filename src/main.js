@@ -3,6 +3,8 @@
 import { Command } from 'commander';
 import AdsPowerManager from './core/adspower/AdsPowerManager.js';
 import DatabaseManager from './core/database/DatabaseManager.js';
+import ConfigManager from './core/config/ConfigManager.js';
+import NavigationController from './core/navigation/NavigationController.js';
 
 const program = new Command();
 
@@ -11,8 +13,10 @@ const program = new Command();
  */
 class LoadTestCLI {
     constructor() {
+        this.configManager = new ConfigManager();
         this.adsPowerManager = new AdsPowerManager();
         this.databaseManager = new DatabaseManager();
+        this.navigationController = null; // Se inicializa después de cargar config
     }
 
     /**
@@ -21,8 +25,17 @@ class LoadTestCLI {
      */
     async initialize() {
         try {
+            // Cargar configuración
+            await this.configManager.loadConfig();
+            
             // Inicializar base de datos
             await this.databaseManager.initialize();
+            
+            // Inicializar controlador de navegación
+            this.navigationController = new NavigationController(
+                this.databaseManager, 
+                this.configManager
+            );
             
             this.setupCommands();
             
@@ -82,6 +95,26 @@ class LoadTestCLI {
             .argument('<profileId>', 'ID del perfil a detener')
             .action(async (profileId) => {
                 await this.stopProfile(profileId);
+            });
+
+        // Comando para probar detección de cookies en un sitio
+        program
+            .command('test-cookies')
+            .description('Prueba la detección de cookies en un sitio específico')
+            .argument('<profileId>', 'ID del perfil a usar')
+            .option('-u, --url <url>', 'URL específica a probar (opcional)')
+            .action(async (profileId, options) => {
+                await this.testCookieDetection(profileId, options.url);
+            });
+
+        // Comando para iniciar navegación automatizada
+        program
+            .command('start-navigation')
+            .description('Inicia navegación automatizada para recolectar cookies')
+            .argument('<profileId>', 'ID del perfil a usar')
+            .option('-c, --cookies <number>', 'Cantidad objetivo de cookies', '2500')
+            .action(async (profileId, options) => {
+                await this.startAutomaticNavigation(profileId, parseInt(options.cookies));
             });
 
         // Comando para obtener sitios web aleatorios de la DB
@@ -213,6 +246,118 @@ class LoadTestCLI {
             console.log('✅ Perfil detenido correctamente');
         } catch (error) {
             console.error('Error deteniendo perfil:', error.message);
+        }
+    }
+
+    /**
+     * Prueba detección de cookies en un sitio
+     * @param {string} profileId - ID del perfil a usar
+     * @param {string} url - URL específica a probar (opcional)
+     */
+    async testCookieDetection(profileId, url = null) {
+        let browserInstance = null;
+        
+        try {
+            console.log(`🧪 Probando detección de cookies con perfil ${profileId}`);
+            
+            // Iniciar perfil
+            browserInstance = await this.adsPowerManager.startProfile(profileId);
+            const { page } = browserInstance;
+            
+            // Obtener sitio a probar
+            let testSite;
+            if (url) {
+                testSite = { url, domain: new URL(url).hostname };
+                console.log(`Probando URL específica: ${url}`);
+            } else {
+                testSite = await this.databaseManager.getRandomWebsite();
+                console.log(`Probando sitio aleatorio: ${testSite.domain}`);
+            }
+            
+            // Contar cookies iniciales
+            const initialCookies = await this.navigationController.cookieDetector.getCookieCount(page);
+            console.log(`Cookies iniciales: ${initialCookies}`);
+            
+            // Navegar al sitio
+            console.log(`\n📱 Navegando a: ${testSite.url}`);
+            await page.goto(testSite.url, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 30000 
+            });
+            
+            // Probar detección de cookies
+            const cookieResult = await this.navigationController.cookieDetector.acceptCookies(page);
+            
+            // Contar cookies finales
+            const finalCookies = await this.navigationController.cookieDetector.getCookieCount(page);
+            const cookiesGained = finalCookies - initialCookies;
+            
+            console.log('\n📊 Resultados:');
+            console.log(`   Éxito: ${cookieResult.success ? '✅' : '❌'}`);
+            console.log(`   Método: ${cookieResult.method || 'N/A'}`);
+            console.log(`   Botón encontrado: ${cookieResult.buttonText || 'N/A'}`);
+            console.log(`   Intentos: ${cookieResult.attempts || 0}`);
+            console.log(`   Cookies ganadas: ${cookiesGained}`);
+            
+            if (!cookieResult.success) {
+                console.log(`   Razón: ${cookieResult.reason}`);
+            }
+
+        } catch (error) {
+            console.error('Error en prueba de detección:', error.message);
+        } finally {
+            if (browserInstance) {
+                await this.adsPowerManager.stopProfile(profileId);
+            }
+        }
+    }
+
+    /**
+     * Inicia navegación automatizada
+     * @param {string} profileId - ID del perfil a usar
+     * @param {number} targetCookies - Cantidad objetivo de cookies
+     */
+    async startAutomaticNavigation(profileId, targetCookies) {
+        let browserInstance = null;
+        
+        try {
+            console.log(`🚀 Iniciando navegación automatizada con perfil ${profileId}`);
+            console.log(`🎯 Objetivo: ${targetCookies} cookies`);
+            
+            // Iniciar perfil
+            browserInstance = await this.adsPowerManager.startProfile(profileId);
+            
+            // Configurar manejo de interrupción
+            let interrupted = false;
+            process.on('SIGINT', () => {
+                console.log('\n⏹️  Interrupción solicitada. Finalizando sesión...');
+                interrupted = true;
+            });
+            
+            // Iniciar sesión de navegación
+            const sessionResult = await this.navigationController.startNavigationSession(
+                browserInstance, 
+                targetCookies
+            );
+            
+            if (!interrupted) {
+                console.log('\n🏁 Sesión completada:');
+                console.log(`   ✅ Éxito: ${sessionResult.success}`);
+                console.log(`   🍪 Cookies recolectadas: ${sessionResult.cookiesCollected}`);
+                console.log(`   🎯 Objetivo alcanzado: ${sessionResult.targetReached ? 'Sí' : 'No'}`);
+                console.log(`   📊 Sitios visitados: ${sessionResult.stats.sitesVisited}`);
+                console.log(`   ✅ Avisos aceptados: ${sessionResult.stats.cookiesAccepted}`);
+                console.log(`   ❌ Errores: ${sessionResult.stats.errors}`);
+                console.log(`   ⏱️  Duración: ${Math.round(sessionResult.duration / 1000)}s`);
+            }
+
+        } catch (error) {
+            console.error('Error en navegación automatizada:', error.message);
+        } finally {
+            if (browserInstance) {
+                console.log('\n🧹 Cerrando perfil...');
+                await this.adsPowerManager.stopProfile(profileId);
+            }
         }
     }
 
