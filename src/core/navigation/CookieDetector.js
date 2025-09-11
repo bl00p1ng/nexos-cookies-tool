@@ -15,80 +15,140 @@ class CookieDetector {
         return {
             selectors: {
                 highPriority: [
-                    // IDs comunes
-                    '#cookie-notice',
-                    '#cookie-consent',
-                    '#cookie-banner',
-                    '#gdpr',
-                    '#gdpr-consent',
-                    '#cookie-popup',
-                    '#privacy-popup',
+                    // IDs comunes más específicos
+                    '#cookie-notice', '#cookie-consent', '#cookie-banner', '#gdpr', '#gdpr-consent',
+                    '#cookie-popup', '#privacy-popup', '#cookieNotice', '#cookieConsent',
+                    '#CookieConsent', '#cookieBanner', '#cookie-dialog', '#privacy-notice',
+                    '#cookieBar', '#cookie-bar', '#privacy-bar', '#cookieModal', '#cookie-modal',
+                    '#onetrust-banner-sdk', '#cookieChoiceInfo', '#cookie-choice-info',
                     
-                    // Clases comunes
-                    '.cookie-notice',
-                    '.cookie-consent',
-                    '.cookie-banner',
-                    '.gdpr-banner',
-                    '.cc-banner',
-                    '.cookiebar',
-                    '.cookie-overlay',
+                    // Clases comunes ampliadas
+                    '.cookie-notice', '.cookie-consent', '.cookie-banner', '.gdpr-banner',
+                    '.cc-banner', '.cookiebar', '.cookie-overlay', '.privacy-notice',
+                    '.cookie-notification', '.cookie-warning', '.privacy-alert',
+                    '.consent-banner', '.consent-notice', '.consent-bar', '.gdpr-notice',
+                    '.cookie-compliance', '.privacy-compliance', '.cookie-policy-banner',
+                    '.onetrust-banner', '.consent-manager', '.cookie-acceptance',
+                    '.privacy-banner', '.cookie-container', '.consent-container',
+                    '.cookie-wrapper', '.privacy-wrapper', '.consent-wrapper',
+                    '.cookie-message', '.privacy-message', '.consent-message',
                     
-                    // Atributos de datos
-                    '[data-cookie-banner]',
-                    '[data-gdpr]',
-                    '[data-consent]',
-                    '[aria-label*="cookie"]',
-                    '[aria-label*="privacy"]'
+                    // Atributos de datos expandidos
+                    '[data-cookie-banner]', '[data-gdpr]', '[data-consent]', '[data-privacy]',
+                    '[data-cookie-notice]', '[data-cookie-bar]', '[data-onetrust]',
+                    '[data-cookienotice]', '[data-cookie-consent]', '[data-privacy-notice]',
+                    '[aria-label*="cookie"]', '[aria-label*="privacy"]', '[aria-label*="consent"]',
+                    '[aria-describedby*="cookie"]', '[aria-describedby*="privacy"]',
+                    
+                    // Selectores por atributos role
+                    '[role="dialog"][aria-label*="cookie"]', '[role="dialog"][aria-label*="privacy"]',
+                    '[role="banner"][class*="cookie"]', '[role="banner"][class*="privacy"]',
+                    '[role="alertdialog"][class*="cookie"]', '[role="region"][class*="cookie"]'
                 ],
                 
                 acceptButtons: [
-                    // Por ID
-                    '#accept-cookies',
-                    '#accept-all',
-                    '#allow-cookies',
-                    '#agree',
-                    '#consent-accept',
+                    // IDs específicos de aceptación
+                    '#accept-cookies', '#accept-all', '#allow-cookies', '#agree', '#consent-accept',
+                    '#acceptAll', '#accept_all', '#acceptCookies', '#accept_cookies',
+                    '#allowAll', '#allow_all', '#agreeAll', '#agree_all', '#btnAccept',
+                    '#btn-accept', '#accept-btn', '#acceptButton', '#accept-button',
+                    '#onetrust-accept-btn-handler', '#hs-eu-confirmation-button',
                     
-                    // Por clase con palabras clave
-                    'button[class*="accept"]',
-                    'button[class*="agree"]',
-                    'button[class*="allow"]',
-                    'button[class*="consent"]',
-                    'a[class*="accept"]',
-                    'div[class*="accept"][role="button"]'
+                    // Clases de botones de aceptación
+                    '.accept-cookies', '.accept-all', '.allow-cookies', '.agree-cookies',
+                    '.consent-accept', '.btn-accept', '.button-accept', '.accept-btn',
+                    '.accept-button', '.cookie-accept', '.privacy-accept', '.gdpr-accept',
+                    '.consent-agree', '.cookie-agree', '.privacy-agree', '.allow-all',
+                    '.accept-terms', '.agree-terms', '.consent-ok', '.cookie-ok',
+                    
+                    // Selectores por atributos específicos
+                    'button[class*="accept"]', 'button[class*="agree"]', 'button[class*="allow"]',
+                    'button[class*="consent"]', 'button[class*="ok"]', 'button[class*="yes"]',
+                    'a[class*="accept"]', 'a[class*="agree"]', 'a[class*="allow"]',
+                    'div[class*="accept"][role="button"]', 'div[class*="agree"][role="button"]',
+                    'span[class*="accept"][role="button"]', '[data-accept]', '[data-consent="accept"]',
+                    
+                    // Selectores por ID que contengan palabras clave
+                    '[id*="accept"]', '[id*="agree"]', '[id*="allow"]', '[id*="consent"]',
+                    '[id*="ok"][class*="cookie"]', '[id*="yes"][class*="cookie"]',
+                    
+                    // Selectores por texto específico en atributos
+                    '[aria-label*="accept"]', '[aria-label*="agree"]', '[aria-label*="allow"]',
+                    '[title*="accept"]', '[title*="agree"]', '[title*="allow"]',
+                    '[alt*="accept"]', '[alt*="agree"]', '[alt*="allow"]'
                 ]
             },
             
             textPatterns: {
                 bannerIndicators: [
-                    /cookie/i,
-                    /privacy/i,
-                    /gdpr/i,
-                    /consent/i,
-                    /data protection/i,
-                    /utilizamos cookies/i,
-                    /we use cookies/i,
-                    /this site uses cookies/i,
-                    /acepta.*cookies/i,
-                    /accept.*cookies/i
+                    // Inglés
+                    /cookie/i, /privacy/i, /gdpr/i, /consent/i, /data protection/i,
+                    /we use cookies/i, /this site uses cookies/i, /cookies help us/i,
+                    /by continuing/i, /by using this site/i, /cookie policy/i,
+                    /privacy policy/i, /data processing/i, /personal data/i,
+                    
+                    // Español
+                    /utilizamos cookies/i, /usamos cookies/i, /este sitio usa cookies/i,
+                    /acepta.*cookies/i, /aceptar.*cookies/i, /política de cookies/i,
+                    /política de privacidad/i, /tratamiento de datos/i, /datos personales/i,
+                    /al continuar/i, /al usar este sitio/i,
+                    
+                    // Francés
+                    /nous utilisons des cookies/i, /ce site utilise des cookies/i,
+                    /politique de cookies/i, /politique de confidentialité/i,
+                    
+                    // Alemán  
+                    /wir verwenden cookies/i, /diese website verwendet cookies/i,
+                    /cookie-richtlinie/i, /datenschutz/i,
+                    
+                    // Italiano
+                    /utilizziamo cookie/i, /questo sito utilizza cookie/i,
+                    /politica dei cookie/i, /privacy/i
                 ],
                 
                 acceptTexts: [
-                    /^accept$/i,
-                    /^agree$/i,
-                    /^allow$/i,
-                    /accept all/i,
-                    /accept cookies/i,
-                    /agree & proceed/i,
-                    /got it/i,
-                    /i agree/i,
-                    /i accept/i,
-                    /continue/i,
-                    /ok/i,
-                    /aceptar todo/i,
-                    /aceptar/i,
-                    /acepto/i,
-                    /de acuerdo/i
+                    // Inglés - exactos
+                    /^accept$/i, /^agree$/i, /^allow$/i, /^ok$/i, /^yes$/i, /^continue$/i,
+                    /^got it$/i, /^understood$/i, /^proceed$/i,
+                    
+                    // Inglés - frases
+                    /accept all/i, /accept cookies/i, /accept all cookies/i, /allow all/i,
+                    /allow cookies/i, /allow all cookies/i, /agree.*cookies/i, /i agree/i,
+                    /i accept/i, /i understand/i, /agree.*continue/i, /accept.*continue/i,
+                    /yes.*accept/i, /yes.*agree/i, /ok.*accept/i, /accept.*terms/i,
+                    /agree.*terms/i, /accept.*privacy/i, /agree.*privacy/i,
+                    
+                    // Español
+                    /^aceptar$/i, /^acepto$/i, /^de acuerdo$/i, /^entendido$/i, /^continuar$/i,
+                    /^sí$/i, /^vale$/i, /^ok$/i, /aceptar todo/i, /aceptar cookies/i,
+                    /aceptar todas/i, /acepto todo/i, /acepto cookies/i, /acepto todas/i,
+                    /permitir todo/i, /permitir cookies/i, /estoy de acuerdo/i,
+                    /acepto.*términos/i, /acepto.*privacidad/i, /acepto.*política/i,
+                    
+                    // Francés
+                    /^accepter$/i, /^d'accord$/i, /^continuer$/i, /^oui$/i, /^ok$/i,
+                    /accepter tout/i, /accepter.*cookies/i, /j'accepte/i, /je suis d'accord/i,
+                    
+                    // Alemán
+                    /^akzeptieren$/i, /^einverstanden$/i, /^weiter$/i, /^ja$/i, /^ok$/i,
+                    /alle akzeptieren/i, /cookies akzeptieren/i, /ich stimme zu/i,
+                    
+                    // Italiano
+                    /^accetta$/i, /^accetto$/i, /^d'accordo$/i, /^continua$/i, /^sì$/i,
+                    /accetta tutto/i, /accetta.*cookie/i, /sono d'accordo/i,
+                    
+                    // Patrones visuales (botones sin texto claro)
+                    /✓/i, /✗/i, /×/i, /check/i, /cross/i
+                ],
+                
+                rejectTexts: [
+                    // Palabras que indican rechazo (para evitar)
+                    /reject/i, /decline/i, /deny/i, /refuse/i, /manage/i, /settings/i,
+                    /customize/i, /preferences/i, /options/i, /configure/i, /cancel/i,
+                    /close/i, /necessary only/i, /essential only/i, /rechazar/i, /denegar/i,
+                    /configurar/i, /personalizar/i, /gestionar/i, /solo esenciales/i,
+                    /solo necesarias/i, /refuser/i, /gérer/i, /personnaliser/i,
+                    /ablehnen/i, /verwalten/i, /anpassen/i, /rifiuta/i, /gestisci/i
                 ]
             }
         };
@@ -101,9 +161,9 @@ class CookieDetector {
      */
     async detectCookieOverlay(page) {
         try {
-            // Esperar a que la página cargue completamente
-            await page.waitForLoadState('networkidle', { timeout: 10000 });
-            await this.sleep(2000); // Muchos banners aparecen con delay
+            // Esperar a que la página cargue - timeout más corto
+            await page.waitForLoadState('domcontentloaded', { timeout: 5000 });
+            await this.sleep(1500); // Reducir tiempo de espera
 
             // Buscar elementos con z-index alto (típico de overlays)
             const overlayElements = await page.evaluate(() => {
@@ -113,21 +173,26 @@ class CookieDetector {
                         const style = window.getComputedStyle(el);
                         const zIndex = parseInt(style.zIndex) || 0;
                         const position = style.position;
+                        const display = style.display;
+                        const visibility = style.visibility;
                         
-                        // Overlays típicamente tienen z-index > 1000 y position fixed/absolute
-                        return zIndex > 1000 &&
+                        // Overlays típicamente tienen z-index > 999 y position fixed/absolute
+                        return zIndex > 999 &&
                                (position === 'fixed' || position === 'absolute') &&
-                               el.offsetWidth > 200 && // Mínimo ancho
-                               el.offsetHeight > 50;   // Mínimo alto
+                               display !== 'none' &&
+                               visibility !== 'hidden' &&
+                               el.offsetWidth > 100 && // Reducir mínimo ancho
+                               el.offsetHeight > 30;   // Reducir mínimo alto
                     })
                     .map(el => ({
                         tag: el.tagName,
                         classes: el.className,
                         id: el.id,
-                        text: el.innerText?.substring(0, 200),
-                        html: el.innerHTML?.substring(0, 500),
-                        zIndex: window.getComputedStyle(el).zIndex
-                    }));
+                        text: el.innerText?.substring(0, 300),
+                        zIndex: window.getComputedStyle(el).zIndex,
+                        hasButtons: el.querySelectorAll('button, a, [role="button"]').length
+                    }))
+                    .filter(el => el.hasButtons > 0); // Solo elementos con botones
             });
 
             return overlayElements;
@@ -190,7 +255,7 @@ class CookieDetector {
             }
 
             // Buscar botones dentro del banner
-            const buttons = await cookieBanner.element.$$('button, a, div[role="button"], input[type="button"]');
+            const buttons = await cookieBanner.element.$$('button, a, div[role="button"], input[type="button"], span[role="button"]');
             
             let bestButton = null;
             let highestScore = 0;
@@ -200,28 +265,40 @@ class CookieDetector {
                     const isVisible = await button.isVisible();
                     if (!isVisible) continue;
 
-                    const text = await button.innerText();
+                    const text = (await button.innerText()).trim();
                     const classes = await button.getAttribute('class') || '';
                     const id = await button.getAttribute('id') || '';
+                    const ariaLabel = await button.getAttribute('aria-label') || '';
+                    const title = await button.getAttribute('title') || '';
                     
-                    // Sistema de puntuación basado en probabilidad
+                    // Sistema de puntuación mejorado
                     let score = 0;
                     
-                    // Textos positivos
-                    if (/accept|agree|allow|consent|ok|continue/i.test(text)) score += 10;
-                    if (/all|todo/i.test(text)) score += 5;
+                    // Textos de aceptación positivos
+                    const positiveMatch = this.cookiePatterns.textPatterns.acceptTexts.some(
+                        pattern => pattern.test(text) || pattern.test(ariaLabel) || pattern.test(title)
+                    );
+                    if (positiveMatch) score += 15;
                     
-                    // Clases e IDs positivos
-                    if (/accept|agree|allow|consent/i.test(classes + id)) score += 8;
+                    // Patrones en clases e IDs
+                    if (/accept|agree|allow|consent|ok|yes/i.test(classes + id)) score += 10;
                     
                     // Textos negativos (evitar)
-                    if (/reject|decline|deny|manage|settings|customize/i.test(text)) score -= 20;
-                    if (/necessary|essential/i.test(text)) score -= 10;
+                    const negativeMatch = this.cookiePatterns.textPatterns.rejectTexts.some(
+                        pattern => pattern.test(text) || pattern.test(ariaLabel) || pattern.test(title)
+                    );
+                    if (negativeMatch) score -= 25;
                     
                     // Longitud de texto apropiada
-                    if (text.length > 3 && text.length < 30) score += 3;
+                    if (text.length > 0 && text.length < 50) score += 3;
+                    if (text.length > 0 && text.length < 20) score += 2; // Bonus para textos cortos
                     
-                    if (score > highestScore && score > 5) {
+                    // Posición del botón (los primeros suelen ser de aceptación)
+                    const buttonIndex = buttons.indexOf(button);
+                    if (buttonIndex === 0) score += 5;
+                    if (buttonIndex === 1) score += 3;
+                    
+                    if (score > highestScore && score > 8) {
                         highestScore = score;
                         bestButton = {
                             element: button,
@@ -254,14 +331,21 @@ class CookieDetector {
                 try {
                     const element = await page.$(selector);
                     if (element && await element.isVisible()) {
-                        const text = await element.innerText();
+                        const text = (await element.innerText()).trim();
+                        const ariaLabel = await element.getAttribute('aria-label') || '';
+                        const title = await element.getAttribute('title') || '';
                         
                         // Verificar que es realmente un botón de aceptación
                         const isAcceptButton = this.cookiePatterns.textPatterns.acceptTexts.some(
-                            pattern => pattern.test(text)
+                            pattern => pattern.test(text) || pattern.test(ariaLabel) || pattern.test(title)
                         );
                         
-                        if (isAcceptButton || text.length < 20) { // Botones cortos suelen ser de aceptación
+                        // Verificar que no es un botón de rechazo
+                        const isRejectButton = this.cookiePatterns.textPatterns.rejectTexts.some(
+                            pattern => pattern.test(text) || pattern.test(ariaLabel) || pattern.test(title)
+                        );
+                        
+                        if ((isAcceptButton || text.length < 20) && !isRejectButton) {
                             return {
                                 element,
                                 selector,
@@ -284,62 +368,108 @@ class CookieDetector {
     }
 
     /**
-     * Busca botón de aceptación por análisis de texto
+     * Busca botón de aceptación por análisis de texto - CORREGIDO
      * @param {Object} page - Instancia de página de Playwright
      * @returns {Promise<Object|null>} Botón encontrado o null
      */
     async findAcceptButtonByText(page) {
         try {
-            const textButton = await page.evaluate((patterns) => {
-                const allButtons = document.querySelectorAll('button, a, div[role="button"], input[type="button"]');
-                let bestMatch = null;
-                let highestScore = 0;
+            // Obtener todos los botones candidatos con información
+            const buttonCandidates = await page.evaluate((acceptPatterns, rejectPatterns) => {
+                const allButtons = document.querySelectorAll('button, a, div[role="button"], input[type="button"], span[role="button"]');
+                const candidates = [];
 
-                allButtons.forEach(btn => {
+                allButtons.forEach((btn, index) => {
                     const text = btn.innerText?.trim() || '';
+                    const ariaLabel = btn.getAttribute('aria-label') || '';
+                    const title = btn.getAttribute('title') || '';
                     const isVisible = btn.offsetWidth > 0 && btn.offsetHeight > 0;
                     
-                    if (!isVisible || text.length > 50) return; // Evitar textos muy largos
+                    if (!isVisible || text.length > 100) return; // Evitar textos muy largos
 
                     let score = 0;
                     
-                    // Verificar patrones de texto
-                    patterns.forEach(pattern => {
+                    // Verificar patrones de aceptación
+                    const hasAcceptPattern = acceptPatterns.some(pattern => {
                         const regex = new RegExp(pattern.source, pattern.flags);
-                        if (regex.test(text)) {
-                            score += 10;
-                            
-                            // Bonus por textos exactos cortos
-                            if (text.length < 20) score += 5;
-                            
-                            // Bonus por estar en un contexto de cookies
-                            const parent = btn.closest('[class*="cookie"], [id*="cookie"], [class*="gdpr"], [data-consent]');
-                            if (parent) score += 10;
-                        }
+                        return regex.test(text) || regex.test(ariaLabel) || regex.test(title);
                     });
-
-                    if (score > highestScore && score > 5) {
-                        highestScore = score;
-                        bestMatch = {
-                            element: btn,
-                            text: text,
-                            score: score
-                        };
+                    
+                    if (hasAcceptPattern) {
+                        score += 15;
+                        
+                        // Bonus por textos exactos cortos
+                        if (text.length < 20) score += 5;
+                        
+                        // Bonus por estar en un contexto de cookies
+                        const parent = btn.closest('[class*="cookie"], [id*="cookie"], [class*="gdpr"], [data-consent], [class*="privacy"]');
+                        if (parent) score += 10;
+                        
+                        // Verificar que no es un botón de rechazo
+                        const hasRejectPattern = rejectPatterns.some(pattern => {
+                            const regex = new RegExp(pattern.source, pattern.flags);
+                            return regex.test(text) || regex.test(ariaLabel) || regex.test(title);
+                        });
+                        
+                        if (hasRejectPattern) score -= 20;
+                        
+                        if (score > 5) {
+                            candidates.push({
+                                text: text,
+                                ariaLabel: ariaLabel,
+                                title: title,
+                                score: score,
+                                index: index,
+                                tagName: btn.tagName,
+                                id: btn.id,
+                                className: btn.className
+                            });
+                        }
                     }
                 });
 
-                return bestMatch;
-            }, this.cookiePatterns.textPatterns.acceptTexts.map(r => ({ source: r.source, flags: r.flags })));
+                // Retornar el mejor candidato
+                return candidates.sort((a, b) => b.score - a.score)[0] || null;
+            }, 
+            this.cookiePatterns.textPatterns.acceptTexts.map(r => ({ source: r.source, flags: r.flags })),
+            this.cookiePatterns.textPatterns.rejectTexts.map(r => ({ source: r.source, flags: r.flags }))
+            );
 
-            if (textButton) {
-                // Recrear el elemento en el contexto de Playwright
-                const element = await page.evaluateHandle(el => el, textButton.element);
-                return {
-                    element,
-                    text: textButton.text,
-                    score: textButton.score,
-                    method: 'text-analysis'
-                };
+            if (buttonCandidates) {
+                // Encontrar el elemento real usando un selector más específico
+                let element = null;
+                
+                // Intentar por ID primero si existe
+                if (buttonCandidates.id) {
+                    element = await page.$(`#${buttonCandidates.id}`);
+                }
+                
+                // Si no se encontró por ID, buscar por texto y tag
+                if (!element) {
+                    const selector = `${buttonCandidates.tagName.toLowerCase()}:has-text("${buttonCandidates.text}")`;
+                    try {
+                        element = await page.$(selector);
+                    } catch (error) {
+                        // Si has-text no funciona, usar un approach diferente
+                        const elements = await page.$$(buttonCandidates.tagName.toLowerCase());
+                        for (const el of elements) {
+                            const elText = await el.innerText();
+                            if (elText.trim() === buttonCandidates.text) {
+                                element = el;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (element && await element.isVisible()) {
+                    return {
+                        element,
+                        text: buttonCandidates.text,
+                        score: buttonCandidates.score,
+                        method: 'text-analysis'
+                    };
+                }
             }
 
             return null;
@@ -350,7 +480,72 @@ class CookieDetector {
     }
 
     /**
-     * Flujo completo de detección y aceptación de cookies
+     * Realiza clic en un botón de forma robusta
+     * @param {Object} page - Instancia de página de Playwright
+     * @param {Object} button - Objeto del botón a hacer clic
+     * @returns {Promise<boolean>} Éxito del clic
+     */
+    async clickButtonRobust(page, button) {
+        try {
+            const { element } = button;
+            
+            // Verificar que el elemento sigue siendo válido
+            if (!element) {
+                console.log('   ⚠️  Elemento no válido para clic');
+                return false;
+            }
+
+            // Verificar que el elemento es visible
+            const isVisible = await element.isVisible();
+            if (!isVisible) {
+                console.log('   ⚠️  Elemento no visible para clic');
+                return false;
+            }
+
+            // Scroll al elemento si es necesario
+            try {
+                await element.scrollIntoViewIfNeeded();
+                await this.sleep(500);
+            } catch (scrollError) {
+                console.log('   ⚠️  No se pudo hacer scroll al elemento');
+            }
+
+            // Intentar clic normal primero
+            try {
+                await element.click({ timeout: 5000 });
+                console.log('   ✅ Clic normal exitoso');
+                return true;
+            } catch (clickError) {
+                console.log('   ⚠️  Clic normal falló, intentando clic forzado');
+            }
+
+            // Intentar clic forzado
+            try {
+                await element.click({ force: true, timeout: 5000 });
+                console.log('   ✅ Clic forzado exitoso');
+                return true;
+            } catch (forceClickError) {
+                console.log('   ⚠️  Clic forzado falló, intentando JavaScript');
+            }
+
+            // Intentar clic con JavaScript como último recurso
+            try {
+                await element.evaluate(el => el.click());
+                console.log('   ✅ Clic JavaScript exitoso');
+                return true;
+            } catch (jsClickError) {
+                console.log('   ❌ Todos los métodos de clic fallaron');
+                return false;
+            }
+
+        } catch (error) {
+            console.error('   ❌ Error en clic robusto:', error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Flujo completo de detección y aceptación de cookies - MEJORADO
      * @param {Object} page - Instancia de página de Playwright
      * @returns {Promise<Object>} Resultado de la operación
      */
@@ -377,54 +572,51 @@ class CookieDetector {
                     console.log(`   Banner encontrado: ${cookieBanner.method}`);
                 }
 
-                // ESTRATEGIA 3: Buscar botón de aceptación
+                // ESTRATEGIA 3: Buscar botón de aceptación (múltiples estrategias)
                 let acceptButton = null;
+                const strategies = [
+                    () => cookieBanner ? this.findAcceptButtonInBanner(page, cookieBanner) : null,
+                    () => this.findAcceptButtonBySelectors(page),
+                    () => this.findAcceptButtonByText(page)
+                ];
 
-                // Primero buscar dentro del banner si existe
-                if (cookieBanner) {
-                    acceptButton = await this.findAcceptButtonInBanner(page, cookieBanner);
-                }
-
-                // Si no se encontró, buscar globalmente
-                if (!acceptButton) {
-                    acceptButton = await this.findAcceptButtonBySelectors(page);
-                }
-
-                // Como último recurso, buscar por análisis de texto
-                if (!acceptButton) {
-                    acceptButton = await this.findAcceptButtonByText(page);
+                for (const strategy of strategies) {
+                    if (!acceptButton) {
+                        acceptButton = await strategy();
+                        if (acceptButton) break;
+                    }
                 }
 
                 if (acceptButton) {
                     console.log(`   Botón encontrado: "${acceptButton.text}" (${acceptButton.method})`);
                     
                     // Simular comportamiento humano antes del clic
-                    await this.humanLikeDelay(500, 1500);
+                    await this.humanLikeDelay(300, 1000);
                     
-                    // Hacer clic en el botón
-                    await acceptButton.element.click();
-                    console.log('   ✅ Clic realizado en botón de aceptación');
-
-                    // Verificar que el banner desapareció
-                    await this.sleep(1000);
-                    const bannersAfter = await this.detectCookieOverlay(page);
+                    // Hacer clic robusto en el botón
+                    const clickSuccess = await this.clickButtonRobust(page, acceptButton);
                     
-                    if (bannersAfter.length < overlays.length || !cookieBanner) {
-                        return {
-                            success: true,
-                            method: acceptButton.method,
-                            attempts: attempts,
-                            buttonText: acceptButton.text
-                        };
+                    if (clickSuccess) {
+                        // Verificar que el banner desapareció
+                        await this.sleep(1000);
+                        const bannersAfter = await this.detectCookieOverlay(page);
+                        
+                        if (bannersAfter.length < overlays.length || !cookieBanner) {
+                            return {
+                                success: true,
+                                method: acceptButton.method,
+                                attempts: attempts,
+                                buttonText: acceptButton.text
+                            };
+                        } else {
+                            console.log('   ⚠️  Banner no desapareció después del clic');
+                        }
                     }
                 }
 
-                // Si es el primer intento y no se encontró nada, esperar más tiempo
-                if (attempts === 1) {
-                    console.log('   Esperando más tiempo para que aparezcan banners...');
-                    await this.sleep(3000);
-                } else {
-                    await this.sleep(1000);
+                // Esperar entre intentos
+                if (attempts < maxAttempts) {
+                    await this.sleep(attempts === 1 ? 2000 : 1000);
                 }
 
             } catch (error) {
