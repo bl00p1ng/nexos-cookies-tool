@@ -115,7 +115,7 @@ El sistema crea automáticamente un archivo de configuración en `config/config.
 ```json
 {
     "adspower": {
-        "baseUrl": "http://local.adspower.com:50325/api/v1",
+        "baseUrl": "http://local.adspower.net:50325/api/v1",
         "timeout": 30000,
         "retryAttempts": 3
     },

@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
  */
 class AdsPowerManager {
     constructor() {
-        this.baseUrl = 'http://local.adspower.com:50325/api/v1';
+        this.baseUrl = 'http://local.adspower.net:50325/api/v1';
         this.activeBrowsers = new Map();
     }
 
@@ -16,7 +16,7 @@ class AdsPowerManager {
      */
     async checkAdsPowerStatus() {
         try {
-            const response = await fetch(`${this.baseUrl}/status`);
+            const response = await fetch(`${this.baseUrl}/browser/active`);
             return response.ok;
         } catch (error) {
             console.error('Error verificando estado de Ads Power:', error.message);
