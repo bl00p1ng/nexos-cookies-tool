@@ -198,3 +198,6 @@ dist
 ## DB
 
 data/
+
+# Config
+config/
