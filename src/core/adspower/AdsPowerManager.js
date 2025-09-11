@@ -30,7 +30,7 @@ class AdsPowerManager {
      */
     async getAvailableProfiles() {
         try {
-            const response = await fetch(`${this.baseUrl}/browser/list`);
+            const response = await fetch(`${this.baseUrl}/user/list`);
             const data = await response.json();
             
             if (data.code !== 0) {
@@ -147,7 +147,7 @@ class AdsPowerManager {
      */
     async getProfileInfo(profileId) {
         try {
-            const response = await fetch(`${this.baseUrl}/browser/info?user_id=${profileId}`);
+            const response = await fetch(`${this.baseUrl}/user/list?user_id=${profileId}`);
             const data = await response.json();
             
             if (data.code !== 0) {
