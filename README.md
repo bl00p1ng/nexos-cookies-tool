@@ -42,6 +42,19 @@ npm run start check-adspower
 
 ### Comandos Disponibles
 
+**Nota**: Todos los comandos con npm requieren `--` antes del comando para separar los argumentos de npm de los de la aplicación.
+
+#### Ejecución Alternativa
+Si prefieres evitar el `--`, puedes ejecutar directamente con Node.js:
+```bash
+node src/main.js  [argumentos]
+```
+
+Por ejemplo:
+```bash
+node src/main.js start-navigation k14a49x1 --cookies 100
+```
+
 #### Verificar Estado de Ads Power
 ```bash
 npm start check-adspower
@@ -56,19 +69,19 @@ Muestra todos los perfiles configurados en Ads Power.
 
 #### Obtener Información de Perfil
 ```bash
-npm start profile-info <profileId>
+npm start profile-info 
 ```
 Obtiene información detallada de un perfil específico.
 
 #### Iniciar Perfil
 ```bash
-npm start start-profile <profileId>
+npm start start-profile 
 ```
 Inicia un perfil específico de Ads Power y conecta Playwright.
 
 #### Detener Perfil
 ```bash
-npm start stop-profile <profileId>
+npm start stop-profile 
 ```
 Detiene un perfil específico.
 
@@ -108,14 +121,33 @@ config/
 └── config.json                   # Archivo de configuración (se crea automáticamente)
 ```
 
-## Configuración
+## 📂 **Carga Masiva de Sitios Web**
+
+### **Estructura del CSV**
+El archivo CSV debe tener exactamente estas columnas:
+```csv
+url,domain,category,status
+https://www.example.com,example.com,news,active
+https://www.bbc.com,bbc.com,news,active
+```
+
+### **Campos Obligatorios:**
+- **url**: URL completa (ej: `https://www.example.com`)
+- **domain**: Solo dominio (ej: `example.com`) 
+- **category**: `news`, `ecommerce`, `tech`, `blog`, `social`, `reference`, `entertainment`, `finance`, `sports`, `general`
+- **status**: `active` o `inactive`
+
+### **Comandos de CSV:**
+1. **Generar ejemplo**: `npm start -- generate-csv-example`
+2. **Cargar sitios**: `npm start -- load-csv archivo.csv`
+3. **Sobrescribir DB**: `npm start -- load-csv archivo.csv --overwrite`
 
 El sistema crea automáticamente un archivo de configuración en `config/config.json` con valores por defecto:
 
 ```json
 {
     "adspower": {
-        "baseUrl": "http://local.adspower.net:50325/api/v1",
+        "baseUrl": "http://local.adspower.com:50325/api/v1",
         "timeout": 30000,
         "retryAttempts": 3
     },
@@ -183,8 +215,9 @@ El código está organizado siguiendo:
 - [x] Integración con Ads Power
 - [x] Gestión de base de datos
 - [x] CLI básica
-- [ ] Detección de cookies
-- [ ] Navegación automatizada
+- [x] Detección inteligente de cookies
+- [x] Navegación automatizada
+- [x] Aceptación automática de avisos de cookies
 
 ### Sprints Futuros
 - [ ] Simulación de comportamiento humano
@@ -213,7 +246,3 @@ Para reportar problemas o solicitar funcionalidades:
 1. Verificar que se cumplan todos los requisitos previos
 2. Revisar la sección de troubleshooting
 3. Ejecutar `npm start db-stats` para verificar el estado del sistema
-
-## Licencia
-
-Este proyecto está destinado para pruebas de carga legítimas y preparación de infraestructura para picos de tráfico.
