@@ -13,6 +13,7 @@
   "type": "module",
   "dependencies": {
     "commander": "^14.0.0",
+    "csv-parse": "^6.1.0",
     "playwright": "^1.55.0",
     "sqlite3": "^5.1.7"
   }
