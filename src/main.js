@@ -20,68 +20,6 @@ class LoadTestCLI {
     }
 
     /**
-     * Carga sitios web desde CSV
-     * @param {string} csvFile - Ruta al archivo CSV
-     * @param {Object} options - Opciones de carga
-     */
-    async loadSitesFromCsv(csvFile, options) {
-        try {
-            const loadOptions = {
-                overwrite: options.overwrite || false,
-                skipDuplicates: !options.allowDuplicates,
-                validateUrls: !options.skipValidation,
-                batchSize: parseInt(options.batchSize) || 100
-            };
-
-            console.log(`📂 Cargando sitios desde CSV: ${csvFile}`);
-            console.log('⚙️  Opciones:', JSON.stringify(loadOptions, null, 2));
-
-            const result = await this.csvLoader.loadSitesFromCsv(csvFile, loadOptions);
-
-            if (result.success) {
-                console.log('\n🎉 ¡Carga completada exitosamente!');
-                console.log(`📊 Resumen: ${result.stats.inserted} insertados, ${result.stats.updated} actualizados`);
-                
-                // Mostrar nuevas estadísticas de la base de datos
-                await this.showDatabaseStats();
-            }
-
-        } catch (error) {
-            console.error('❌ Error cargando CSV:', error.message);
-            
-            // Sugerencias de solución
-            console.log('\n💡 Sugerencias:');
-            console.log('   • Verifica que el archivo CSV existe');
-            console.log('   • Asegúrate de que el CSV tenga las columnas: url,domain,category,status');
-            console.log('   • Usa --skip-validation si hay problemas con URLs');
-            console.log('   • Genera un ejemplo con: npm start -- generate-csv-example');
-        }
-    }
-
-    /**
-     * Genera CSV de ejemplo
-     * @param {string} outputPath - Ruta donde guardar
-     */
-    async generateCsvExample(outputPath) {
-        try {
-            console.log(`📝 Generando CSV de ejemplo en: ${outputPath}`);
-            await this.csvLoader.generateExampleCsv(outputPath);
-            
-            console.log('\n📋 Estructura del CSV:');
-            console.log('   • url: URL completa (ej: https://www.example.com)');
-            console.log('   • domain: Solo dominio (ej: example.com)');
-            console.log('   • category: news,ecommerce,tech,blog,social,reference,entertainment,finance,sports,general');
-            console.log('   • status: active o inactive');
-            
-            console.log('\n🚀 Para cargar el CSV usa:');
-            console.log(`   npm start -- load-csv ${outputPath}`);
-            
-        } catch (error) {
-            console.error('Error generando CSV de ejemplo:', error.message);
-        }
-    }
-
-    /**
      * Inicializa la aplicación y configura los comandos CLI
      * @returns {Promise<void>}
      */
@@ -157,6 +95,20 @@ class LoadTestCLI {
             .argument('<profileId>', 'ID del perfil a detener')
             .action(async (profileId) => {
                 await this.stopProfile(profileId);
+            });
+
+
+        // Comando para cargar sitios web desde CSV
+        program
+            .command('load-csv')
+            .description('Carga sitios web desde un archivo CSV')
+            .argument('<csvFile>', 'Ruta al archivo CSV')
+            .option('-o, --overwrite', 'Sobrescribe sitios existentes', false)
+            .option('-a, --allow-duplicates', 'Permite URLs duplicadas', false)
+            .option('-s, --skip-validation', 'Omite validación de URLs', false)
+            .option('-b, --batch-size <number>', 'Tamaño del lote para inserciones', '100')
+            .action(async (csvFile, options) => {
+                await this.loadSitesFromCsv(csvFile, options);
             });
 
         // Comando para probar detección de cookies en un sitio
@@ -312,7 +264,69 @@ class LoadTestCLI {
     }
 
     /**
-     * NUEVA FUNCIONALIDAD: Prueba detección de cookies en un sitio
+     * Carga sitios web desde CSV
+     * @param {string} csvFile - Ruta al archivo CSV
+     * @param {Object} options - Opciones de carga
+     */
+    async loadSitesFromCsv(csvFile, options) {
+        try {
+            const loadOptions = {
+                overwrite: options.overwrite || false,
+                skipDuplicates: !options.allowDuplicates,
+                validateUrls: !options.skipValidation,
+                batchSize: parseInt(options.batchSize) || 100
+            };
+
+            console.log(`📂 Cargando sitios desde CSV: ${csvFile}`);
+            console.log('⚙️  Opciones:', JSON.stringify(loadOptions, null, 2));
+
+            const result = await this.csvLoader.loadSitesFromCsv(csvFile, loadOptions);
+
+            if (result.success) {
+                console.log('\n🎉 ¡Carga completada exitosamente!');
+                console.log(`📊 Resumen: ${result.stats.inserted} insertados, ${result.stats.updated} actualizados`);
+                
+                // Mostrar nuevas estadísticas de la base de datos
+                await this.showDatabaseStats();
+            }
+
+        } catch (error) {
+            console.error('❌ Error cargando CSV:', error.message);
+            
+            // Sugerencias de solución
+            console.log('\n💡 Sugerencias:');
+            console.log('   • Verifica que el archivo CSV existe');
+            console.log('   • Asegúrate de que el CSV tenga las columnas: url,domain,category,status');
+            console.log('   • Usa --skip-validation si hay problemas con URLs');
+            console.log('   • Genera un ejemplo con: npm start -- generate-csv-example');
+        }
+    }
+
+    /**
+     * Genera CSV de ejemplo
+     * @param {string} outputPath - Ruta donde guardar
+     */
+    async generateCsvExample(outputPath) {
+        try {
+            console.log(`📝 Generando CSV de ejemplo en: ${outputPath}`);
+            await this.csvLoader.generateExampleCsv(outputPath);
+            
+            console.log('\n📋 Estructura del CSV:');
+            console.log('   • url: URL completa (ej: https://www.example.com)');
+            console.log('   • domain: Solo dominio (ej: example.com)');
+            console.log('   • category: news,ecommerce,tech,blog,social,reference,entertainment,finance,sports,general');
+            console.log('   • status: active o inactive');
+            
+            console.log('\n🚀 Para cargar el CSV usa:');
+            console.log(`   npm start -- load-csv ${outputPath}`);
+            
+        } catch (error) {
+            console.error('Error generando CSV de ejemplo:', error.message);
+        }
+    }
+
+    /**
+     * Prueba detección de cookies en un sitio
      * @param {string} profileId - ID del perfil a usar
      * @param {string} url - URL específica a probar (opcional)
      */
