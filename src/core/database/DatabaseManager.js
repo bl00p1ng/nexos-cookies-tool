@@ -223,25 +223,14 @@ class DatabaseManager {
             // Sitios de noticias
             { url: 'https://www.bbc.com', domain: 'bbc.com', category: 'news' },
             { url: 'https://www.cnn.com', domain: 'cnn.com', category: 'news' },
-            { url: 'https://www.reuters.com', domain: 'reuters.com', category: 'news' },
             { url: 'https://www.theguardian.com', domain: 'theguardian.com', category: 'news' },
             
             // Sitios de e-commerce
-            { url: 'https://www.amazon.com', domain: 'amazon.com', category: 'ecommerce' },
-            { url: 'https://www.ebay.com', domain: 'ebay.com', category: 'ecommerce' },
             { url: 'https://www.walmart.com', domain: 'walmart.com', category: 'ecommerce' },
             
-            // Sitios de tecnología
-            { url: 'https://www.techcrunch.com', domain: 'techcrunch.com', category: 'tech' },
-            { url: 'https://www.wired.com', domain: 'wired.com', category: 'tech' },
-            { url: 'https://www.theverge.com', domain: 'theverge.com', category: 'tech' },
             
             // Sitios generales
-            { url: 'https://www.wikipedia.org', domain: 'wikipedia.org', category: 'reference' },
-            { url: 'https://www.reddit.com', domain: 'reddit.com', category: 'social' },
-            { url: 'https://www.medium.com', domain: 'medium.com', category: 'blog' },
             { url: 'https://www.stackoverflow.com', domain: 'stackoverflow.com', category: 'tech' },
-            { url: 'https://www.github.com', domain: 'github.com', category: 'tech' }
         ];
 
         for (const site of initialWebsites) {
