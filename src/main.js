@@ -5,6 +5,7 @@ import AdsPowerManager from './core/adspower/AdsPowerManager.js';
 import DatabaseManager from './core/database/DatabaseManager.js';
 import ConfigManager from './core/config/ConfigManager.js';
 import NavigationController from './core/navigation/NavigationController.js';
+import CsvLoader from './core/database/CsvLoader.js';
 
 const program = new Command();
 
@@ -16,6 +17,7 @@ class LoadTestCLI {
         this.configManager = new ConfigManager();
         this.adsPowerManager = new AdsPowerManager();
         this.databaseManager = new DatabaseManager();
+        this.csvLoader = new CsvLoader(this.databaseManager);
         this.navigationController = null; // Se inicializa después de cargar config
     }
 
