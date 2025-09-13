@@ -11,6 +11,7 @@ const program = new Command();
 
 /**
  * Aplicación principal CLI para el sistema de pruebas de carga web
+ * Soporta múltiples perfiles simultáneos
  */
 class LoadTestCLI {
     constructor() {
@@ -19,6 +20,9 @@ class LoadTestCLI {
         this.databaseManager = new DatabaseManager();
         this.csvLoader = new CsvLoader(this.databaseManager);
         this.navigationController = null; // Se inicializa después de cargar config
+        
+        // Hacer AdsPowerManager accesible globalmente para NavigationController
+        global.adsPowerManager = this.adsPowerManager;
     }
 
     /**
@@ -99,6 +103,16 @@ class LoadTestCLI {
                 await this.stopProfile(profileId);
             });
 
+        // Comando para iniciar navegación
+        program
+            .command('start-navigation')
+            .description('Inicia navegación automatizada para recolectar cookies')
+            .argument('<profileIds>', 'ID(s) de perfiles separados por comas (ej: profile1,profile2,profile3)')
+            .option('-c, --cookies <number>', 'Cantidad objetivo de cookies por perfil', '2500')
+            .option('--validate-profiles', 'Validar que todos los perfiles existen antes de iniciar', false)
+            .action(async (profileIds, options) => {
+                await this.startMultipleNavigation(profileIds, options);
+            });
 
         // Comando para cargar sitios web desde CSV
         program
@@ -121,16 +135,6 @@ class LoadTestCLI {
             .option('-u, --url <url>', 'URL específica a probar (opcional)')
             .action(async (profileId, options) => {
                 await this.testCookieDetection(profileId, options.url);
-            });
-
-        // Comando para iniciar navegación automatizada
-        program
-            .command('start-navigation')
-            .description('Inicia navegación automatizada para recolectar cookies')
-            .argument('<profileId>', 'ID del perfil a usar')
-            .option('-c, --cookies <number>', 'Cantidad objetivo de cookies', '2500')
-            .action(async (profileId, options) => {
-                await this.startAutomaticNavigation(profileId, parseInt(options.cookies));
             });
 
         // Comando para obtener sitios web aleatorios de la DB
@@ -158,6 +162,189 @@ class LoadTestCLI {
                 await this.cleanup();
             });
     }
+
+    /**
+     * Inicia navegación con múltiples perfiles
+     * @param {string} profileIdsString - IDs separados por comas
+     * @param {Object} options - Opciones del comando
+     */
+    async startMultipleNavigation(profileIdsString, options) {
+        try {
+            // Parsear IDs de perfiles
+            const profileIds = this.parseProfileIds(profileIdsString);
+            const targetCookies = parseInt(options.cookies);
+            
+            console.log('🚀 INICIANDO NAVEGACIÓN MÚLTIPLE');
+            console.log('═'.repeat(50));
+            console.log(`📋 Perfiles: ${profileIds.length}`);
+            console.log(`🎯 Objetivo por perfil: ${targetCookies} cookies`);
+            console.log(`📊 Total objetivo: ${targetCookies * profileIds.length} cookies`);
+            
+            // Validar perfiles si se solicita
+            if (options.validateProfiles) {
+                await this.validateProfiles(profileIds);
+            }
+            
+            // Configurar manejo graceful de interrupción
+            this.setupGracefulShutdown();
+            
+            // Verificar recursos del sistema
+            this.checkSystemResources(profileIds.length);
+            
+            console.log('\n⏳ Iniciando sesiones...');
+            
+            // Llamar al NavigationController para manejar múltiples sesiones
+            const results = await this.navigationController.startMultipleNavigationSessions(
+                profileIds, 
+                targetCookies
+            );
+            
+            // Mostrar resumen final
+            this.showExecutionSummary(results);
+            
+            return results;
+            
+        } catch (error) {
+            console.error('❌ Error en navegación múltiple:', error.message);
+            
+            // Intentar cleanup en caso de error
+            try {
+                await this.cleanup();
+            } catch (cleanupError) {
+                console.error('Error en cleanup:', cleanupError.message);
+            }
+            
+            process.exit(1);
+        }
+    }
+
+    /**
+     * Parsea string de IDs a array, removiendo espacios y duplicados
+     * @param {string} profileIdsString - IDs separados por comas
+     * @returns {Array<string>} Array de IDs únicos
+     */
+    parseProfileIds(profileIdsString) {
+        if (!profileIdsString || profileIdsString.trim() === '') {
+            throw new Error('Debe proporcionar al menos un ID de perfil');
+        }
+        
+        const profileIds = profileIdsString
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+        
+        // Remover duplicados
+        const uniqueIds = [...new Set(profileIds)];
+        
+        if (uniqueIds.length === 0) {
+            throw new Error('No se encontraron IDs válidos de perfiles');
+        }
+        
+        if (uniqueIds.length > 10) {
+            console.warn('⚠️  Advertencia: Usar más de 10 perfiles puede consumir recursos excesivos');
+        }
+        
+        return uniqueIds;
+    }
+
+    /**
+     * Valida que todos los perfiles existen en AdsPower
+     * @param {Array<string>} profileIds - IDs de perfiles a validar
+     */
+    async validateProfiles(profileIds) {
+        console.log('🔍 Validando perfiles...');
+        
+        try {
+            const availableProfiles = await this.adsPowerManager.getAvailableProfiles();
+            const availableIds = availableProfiles.map(p => p.user_id || p.serial_number);
+            
+            const invalidProfiles = profileIds.filter(id => !availableIds.includes(id));
+            
+            if (invalidProfiles.length > 0) {
+                console.error(`❌ Perfiles no encontrados: ${invalidProfiles.join(', ')}`);
+                console.log('\n📋 Perfiles disponibles:');
+                availableProfiles.forEach(profile => {
+                    console.log(`   • ${profile.user_id || profile.serial_number} - ${profile.name || 'Sin nombre'}`);
+                });
+                throw new Error('Algunos perfiles no existen en AdsPower');
+            }
+            
+            console.log('✅ Todos los perfiles son válidos');
+            
+        } catch (error) {
+            if (error.message.includes('no existen')) {
+                throw error;
+            }
+            console.warn('⚠️  No se pudo validar perfiles, continuando...', error.message);
+        }
+    }
+
+    /**
+     * Verifica recursos del sistema y muestra advertencias
+     * @param {number} profileCount - Cantidad de perfiles a ejecutar
+     */
+    checkSystemResources(profileCount) {
+        const estimatedRAM = profileCount * 300; // 300MB por perfil según specs
+        
+        console.log('\n💻 VERIFICACIÓN DE RECURSOS:');
+        console.log(`   📊 Perfiles: ${profileCount}`);
+        console.log(`   🧠 RAM estimada: ~${estimatedRAM}MB`);
+        
+        if (estimatedRAM > 2000) {
+            console.warn('⚠️  ADVERTENCIA: Alto consumo de RAM estimado');
+            console.log('   💡 Recomendación: Monitorear uso de memoria durante ejecución');
+        }
+        
+        if (profileCount > 5) {
+            console.warn('⚠️  ADVERTENCIA: Más de 5 perfiles simultáneos');
+            console.log('   💡 Recomendación: Verificar que el hardware puede manejar la carga');
+        }
+    }
+
+    /**
+     * Configura manejo graceful de interrupción (Ctrl+C)
+     */
+    setupGracefulShutdown() {
+        const gracefulShutdown = async () => {
+            console.log('\n\n🛑 INTERRUPCIÓN DETECTADA');
+            console.log('⏳ Deteniendo sesiones activas...');
+            
+            try {
+                await this.cleanup();
+                console.log('✅ Cleanup completado');
+                process.exit(0);
+            } catch (error) {
+                console.error('❌ Error en shutdown:', error.message);
+                process.exit(1);
+            }
+        };
+        
+        process.on('SIGINT', gracefulShutdown);
+        process.on('SIGTERM', gracefulShutdown);
+    }
+
+    /**
+     * Muestra resumen de ejecución
+     * @param {Object} results - Resultados de la navegación
+     */
+    showExecutionSummary(results) {
+        console.log('\n🎊 EJECUCIÓN COMPLETADA');
+        console.log('═'.repeat(60));
+        console.log(`⏱️  Tiempo total: ${(results.duration / 1000 / 60).toFixed(1)} minutos`);
+        console.log(`🍪 Cookies por minuto: ${(results.totalCookiesCollected / (results.duration / 1000 / 60)).toFixed(0)}`);
+        console.log(`🌐 Sitios por minuto: ${(results.totalSitesVisited / (results.duration / 1000 / 60)).toFixed(1)}`);
+        console.log(`📈 Eficiencia: ${results.successRate.toFixed(1)}% de perfiles exitosos`);
+        console.log('═'.repeat(60));
+        
+        if (results.successRate < 100) {
+            console.log('\n💡 SUGERENCIAS:');
+            console.log('   • Verificar conectividad de red');
+            console.log('   • Revisar que AdsPower esté funcionando correctamente');
+            console.log('   • Considerar reducir número de perfiles simultáneos');
+        }
+    }
+
+    // ===== MÉTODOS EXISTENTES (sin cambios) =====
 
     /**
      * Verifica el estado de Ads Power
@@ -391,55 +578,6 @@ class LoadTestCLI {
     }
 
     /**
-     * NUEVA FUNCIONALIDAD: Inicia navegación automatizada
-     * @param {string} profileId - ID del perfil a usar
-     * @param {number} targetCookies - Cantidad objetivo de cookies
-     */
-    async startAutomaticNavigation(profileId, targetCookies) {
-        let browserInstance = null;
-        
-        try {
-            console.log(`🚀 Iniciando navegación automatizada con perfil ${profileId}`);
-            console.log(`🎯 Objetivo: ${targetCookies} cookies`);
-            
-            // Iniciar perfil
-            browserInstance = await this.adsPowerManager.startProfile(profileId);
-            
-            // Configurar manejo de interrupción
-            let interrupted = false;
-            process.on('SIGINT', () => {
-                console.log('\n⏹️  Interrupción solicitada. Finalizando sesión...');
-                interrupted = true;
-            });
-            
-            // Iniciar sesión de navegación
-            const sessionResult = await this.navigationController.startNavigationSession(
-                browserInstance, 
-                targetCookies
-            );
-            
-            if (!interrupted) {
-                console.log('\n🏁 Sesión completada:');
-                console.log(`   ✅ Éxito: ${sessionResult.success}`);
-                console.log(`   🍪 Cookies recolectadas: ${sessionResult.cookiesCollected}`);
-                console.log(`   🎯 Objetivo alcanzado: ${sessionResult.targetReached ? 'Sí' : 'No'}`);
-                console.log(`   📊 Sitios visitados: ${sessionResult.stats.sitesVisited}`);
-                console.log(`   ✅ Avisos aceptados: ${sessionResult.stats.cookiesAccepted}`);
-                console.log(`   ❌ Errores: ${sessionResult.stats.errors}`);
-                console.log(`   ⏱️  Duración: ${Math.round(sessionResult.duration / 1000)}s`);
-            }
-
-        } catch (error) {
-            console.error('Error en navegación automatizada:', error.message);
-        } finally {
-            if (browserInstance) {
-                console.log('\n🧹 Cerrando perfil...');
-                await this.adsPowerManager.stopProfile(profileId);
-            }
-        }
-    }
-
-    /**
      * Obtiene sitios web aleatorios de la base de datos
      * @param {number} count - Cantidad de sitios a obtener
      */
@@ -452,12 +590,12 @@ class LoadTestCLI {
                 console.log('No se encontraron sitios web en la base de datos');
                 return;
             }
-
-            console.log(`\nSitios web obtenidos (${websites.length}):`);
-            console.log('─'.repeat(80));
             
-            websites.forEach((site, index) => {
-                console.log(`${index + 1}. ${site.url}`);
+            console.log(`\nSitios web aleatorios (${websites.length}):`);
+            console.log('─'.repeat(40));
+            
+            websites.forEach(site => {
+                console.log(`URL: ${site.url}`);
                 console.log(`   Dominio: ${site.domain}`);
                 console.log(`   Categoría: ${site.category}`);
                 console.log(`   Visitas: ${site.visit_count}`);
