@@ -1,4 +1,5 @@
 import CookieDetector from './CookieDetector.js';
+import HumanBehaviorSimulator from './HumanBehaviorSimulator.js';
 
 /**
  * Controlador principal de navegación
@@ -10,6 +11,7 @@ class NavigationController {
         this.databaseManager = databaseManager;
         this.configManager = configManager;
         this.cookieDetector = new CookieDetector();
+        this.humanBehaviorSimulator = new HumanBehaviorSimulator();
         this.activeSessions = new Map();
         this.globalStats = {
             totalSessions: 0,
@@ -52,7 +54,8 @@ class NavigationController {
                         success: false,
                         error: error.message,
                         cookiesCollected: 0,
-                        sitesVisited: 0
+                        sitesVisited: 0,
+                        duration: 0
                     };
                 })
         );
@@ -80,123 +83,257 @@ class NavigationController {
     }
 
     /**
-     * Inicia una sesión de navegación individual
+     * Inicia una sesión de navegación individual con comportamiento humano
      * @param {string} profileId - ID del perfil
      * @param {number} targetCookies - Cantidad objetivo de cookies
      * @returns {Promise<Object>} Resultado de la sesión
      */
     async startSingleNavigationSession(profileId, targetCookies) {
         const sessionId = `session_${profileId}_${Date.now()}`;
+        const startTime = Date.now();
         
         console.log(`🔄 [${profileId}] Iniciando sesión...`);
         
         const sessionStats = {
-            profileId,
             sessionId,
+            profileId,
+            startTime: new Date(startTime),
+            endTime: null,
             targetCookies,
             cookiesCollected: 0,
             sitesVisited: 0,
-            startTime: new Date(),
-            visitedUrls: new Set(),
-            errors: 0,
+            totalInteractions: 0,
+            humanBehaviorScore: 0,
+            success: false,
+            error: null,
             currentSite: null
         };
-        
+
+        // Registrar sesión activa
         this.activeSessions.set(profileId, sessionStats);
-        
+
         let browserInstance = null;
-        
+
         try {
-            // Iniciar perfil de AdsPower
-            browserInstance = await this.initializeProfile(profileId);
-            const { page } = browserInstance;
-            
-            // Obtener cookies iniciales
-            const initialCookies = await this.cookieDetector.getCookieCount(page);
-            sessionStats.cookiesCollected = initialCookies;
-            
-            console.log(`📊 [${profileId}] Cookies iniciales: ${initialCookies}`);
-            
             // Registrar sesión en base de datos
             await this.registerSession(sessionStats);
+
+            // Iniciar navegador usando AdsPowerManager global
+            browserInstance = await this.startProfile(profileId);
+            const { page } = browserInstance;
             
-            // Bucle principal de navegación
-            let attempts = 0;
-            const maxAttempts = 100; // Límite de seguridad
-            
-            while (sessionStats.cookiesCollected < targetCookies && attempts < maxAttempts) {
-                attempts++;
+            console.log(`✅ [${profileId}] Navegador iniciado`);
+
+            // Obtener sitios web para navegar
+            const websites = await this.databaseManager.getRandomWebsites(100);
+            if (websites.length === 0) {
+                throw new Error('No hay sitios web disponibles en la base de datos');
+            }
+
+            console.log(`📂 [${profileId}] ${websites.length} sitios disponibles`);
+
+            // Calcular tiempo mínimo (1 hora para 2500 cookies)
+            const minimumTime = this.calculateMinimumNavigationTime(targetCookies);
+            console.log(`⏱️ [${profileId}] Tiempo mínimo: ${Math.round(minimumTime/60000)} minutos`);
+
+            // Navegar por sitios hasta alcanzar objetivo
+            let siteIndex = 0;
+            const endTime = startTime + minimumTime;
+
+            while (sessionStats.cookiesCollected < targetCookies && 
+                   Date.now() < endTime && 
+                   siteIndex < websites.length) {
+                
+                const website = websites[siteIndex];
+                sessionStats.currentSite = website.domain;
+                
+                console.log(`\n🌐 [${profileId}] Sitio ${siteIndex + 1}: ${website.domain}`);
                 
                 try {
-                    // Obtener sitio web aleatorio no visitado
-                    const excludedUrls = Array.from(sessionStats.visitedUrls);
-                    const website = await this.databaseManager.getRandomWebsite(excludedUrls);
-                    
-                    if (!website) {
-                        console.log(`⚠️ [${profileId}] No hay más sitios disponibles`);
-                        break;
-                    }
-                    
-                    sessionStats.currentSite = website.domain;
-                    console.log(`🌐 [${profileId}] Navegando a: ${website.domain}`);
-                    
-                    // Navegar al sitio y procesar cookies
-                    const siteResult = await this.processSiteVisit(page, website, sessionStats);
-                    
+                    // Procesar sitio con comportamiento humano
+                    const siteResult = await this.processSiteWithHumanBehavior(
+                        page, 
+                        website, 
+                        sessionStats
+                    );
+
                     // Actualizar estadísticas
-                    sessionStats.cookiesCollected = siteResult.cookiesAfter;
+                    sessionStats.cookiesCollected += siteResult.cookiesGained;
                     sessionStats.sitesVisited++;
-                    sessionStats.visitedUrls.add(website.url);
-                    
+                    sessionStats.totalInteractions += siteResult.interactions || 0;
+                    sessionStats.humanBehaviorScore += siteResult.humanScore || 0;
+
                     // Registrar visita en base de datos
                     await this.registerSiteVisit(sessionStats, website, siteResult);
-                    
-                    // Mostrar progreso individual
-                    const progress = Math.min((sessionStats.cookiesCollected / targetCookies) * 100, 100);
-                    console.log(`📈 [${profileId}] Progreso: ${sessionStats.cookiesCollected}/${targetCookies} cookies (${progress.toFixed(1)}%)`);
-                    
-                    // Pequeña pausa entre sitios (comportamiento humano)
-                    await this.sleep(this.randomBetween(2000, 5000));
-                    
+
+                    console.log(`📈 [${profileId}] +${siteResult.cookiesGained} cookies (Total: ${sessionStats.cookiesCollected}/${targetCookies})`);
+
+                    // Pausa entre sitios para parecer humano
+                    const pauseTime = this.randomBetween(3000, 8000);
+                    await this.sleep(pauseTime);
+
                 } catch (siteError) {
-                    console.error(`❌ [${profileId}] Error en sitio:`, siteError.message);
-                    sessionStats.errors++;
-                    
-                    // Continuar con siguiente sitio
-                    await this.sleep(1000);
+                    console.warn(`⚠️ [${profileId}] Error en ${website.domain}: ${siteError.message}`);
                 }
+
+                siteIndex++;
             }
-            
-            // Marcar sesión como completada
+
+            // Completar sesión
             sessionStats.endTime = new Date();
+            sessionStats.success = true;
+            sessionStats.humanBehaviorScore = Math.round(
+                sessionStats.humanBehaviorScore / Math.max(sessionStats.sitesVisited, 1)
+            );
+
             await this.completeSession(sessionStats);
-            
-            console.log(`✅ [${profileId}] Sesión completada: ${sessionStats.cookiesCollected} cookies`);
-            
+
+            const totalTime = sessionStats.endTime - sessionStats.startTime;
+            console.log(`\n✅ [${profileId}] Sesión completada:`);
+            console.log(`   🍪 Cookies: ${sessionStats.cookiesCollected}/${targetCookies}`);
+            console.log(`   🌐 Sitios: ${sessionStats.sitesVisited}`);
+            console.log(`   ⏱️ Tiempo: ${Math.round(totalTime/60000)} minutos`);
+            console.log(`   🎭 Puntuación humana: ${sessionStats.humanBehaviorScore}/100`);
+
             return {
                 profileId,
                 success: true,
                 cookiesCollected: sessionStats.cookiesCollected,
                 sitesVisited: sessionStats.sitesVisited,
-                duration: sessionStats.endTime - sessionStats.startTime,
+                totalInteractions: sessionStats.totalInteractions,
+                humanBehaviorScore: sessionStats.humanBehaviorScore,
+                duration: totalTime,
                 targetReached: sessionStats.cookiesCollected >= targetCookies
             };
-            
+
         } catch (error) {
-            console.error(`❌ [${profileId}] Error en sesión:`, error.message);
-            throw error;
+            sessionStats.error = error.message;
+            sessionStats.endTime = new Date();
             
+            console.error(`❌ [${profileId}] Error en sesión: ${error.message}`);
+            
+            return {
+                profileId,
+                success: false,
+                error: error.message,
+                cookiesCollected: sessionStats.cookiesCollected,
+                sitesVisited: sessionStats.sitesVisited,
+                duration: Date.now() - startTime
+            };
+
         } finally {
+            // Limpiar sesión activa
             this.activeSessions.delete(profileId);
             
+            // Cerrar navegador
             if (browserInstance) {
                 try {
                     await this.cleanupProfile(profileId, browserInstance);
+                    console.log(`🧹 [${profileId}] Navegador cerrado`);
                 } catch (cleanupError) {
-                    console.error(`⚠️ [${profileId}] Error en cleanup:`, cleanupError.message);
+                    console.warn(`⚠️ [${profileId}] Error cerrando navegador: ${cleanupError.message}`);
                 }
             }
         }
+    }
+
+    /**
+     * Procesa un sitio web con comportamiento humano realista
+     * @param {Object} page - Página de Playwright
+     * @param {Object} website - Datos del sitio web
+     * @param {Object} sessionStats - Estadísticas de la sesión
+     * @returns {Promise<Object>} Resultado del procesamiento
+     */
+    async processSiteWithHumanBehavior(page, website, sessionStats) {
+        const cookiesBefore = await this.cookieDetector.getCookieCount(page);
+        let visitSuccess = false;
+        let errorMessage = null;
+        let interactions = 0;
+        let humanScore = 0;
+
+        try {
+            // Navegar al sitio
+            await page.goto(website.url, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 30000 
+            });
+
+            // Pequeña pausa inicial
+            await this.sleep(3000);
+
+            // Detectar y aceptar cookies automáticamente
+            const cookieResult = await this.cookieDetector.acceptCookies(page);
+            if (cookieResult.success) {
+                console.log(`🍪 [${sessionStats.profileId}] Cookies aceptadas: ${cookieResult.method}`);
+            }
+
+            // Simular navegación humana en el sitio
+            const navigationResult = await this.humanBehaviorSimulator.simulateHumanNavigation(
+                page, 
+                website, 
+                {
+                    maxTime: this.randomBetween(30000, 120000), // 30-120 segundos por sitio
+                    priority: 'cookies',
+                    targetCookies: sessionStats.targetCookies - sessionStats.cookiesCollected
+                }
+            );
+
+            interactions = navigationResult.interactionsPerformed || 0;
+            humanScore = navigationResult.humanLikeScore || 0;
+            visitSuccess = true;
+
+            console.log(`🎭 [${sessionStats.profileId}] Navegación humana: ${navigationResult.pagesVisited || 1} páginas, ${interactions} interacciones, score ${humanScore}/100`);
+
+        } catch (error) {
+            console.error(`⚠️ [${sessionStats.profileId}] Error en ${website.domain}: ${error.message}`);
+            errorMessage = error.message;
+        }
+
+        const cookiesAfter = await this.cookieDetector.getCookieCount(page);
+        const cookiesGained = cookiesAfter - cookiesBefore;
+
+        return {
+            cookiesBefore,
+            cookiesAfter,
+            cookiesGained,
+            success: visitSuccess,
+            error: errorMessage,
+            interactions,
+            humanScore,
+            duration: 0
+        };
+    }
+
+    /**
+     * Calcula tiempo mínimo de navegación (1 hora para 2500 cookies)
+     * @param {number} targetCookies - Cantidad objetivo de cookies
+     * @returns {number} Tiempo en millisegundos
+     */
+    calculateMinimumNavigationTime(targetCookies) {
+        // Tiempo base: 1 hora para 2500 cookies
+        const baseTime = 60 * 60 * 1000; // 1 hora
+        const baseCookies = 2500;
+        
+        // Escalar proporcionalmente
+        const calculatedTime = (targetCookies / baseCookies) * baseTime;
+        
+        // Mínimo 45 minutos, máximo 3 horas
+        return Math.max(45 * 60 * 1000, Math.min(3 * 60 * 60 * 1000, calculatedTime));
+    }
+
+    /**
+     * Inicia un perfil usando AdsPowerManager global
+     * @param {string} profileId - ID del perfil
+     * @returns {Promise<Object>} Instancia del navegador
+     */
+    async startProfile(profileId) {
+        // Obtener AdsPowerManager desde main.js (se pasa como dependencia)
+        const adsPowerManager = global.adsPowerManager;
+        if (!adsPowerManager) {
+            throw new Error('AdsPowerManager no disponible');
+        }
+        
+        return await adsPowerManager.startProfile(profileId);
     }
 
     /**

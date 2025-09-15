@@ -545,7 +545,7 @@ class CookieDetector {
     }
 
     /**
-     * Flujo completo de detección y aceptación de cookies - MEJORADO
+     * Flujo completo de detección y aceptación de cookies
      * @param {Object} page - Instancia de página de Playwright
      * @returns {Promise<Object>} Resultado de la operación
      */
