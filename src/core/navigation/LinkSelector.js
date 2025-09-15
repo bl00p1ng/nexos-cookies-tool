@@ -586,34 +586,6 @@ class LinkSelector {
     }
 
     /**
-     * Crea selector único para un enlace
-     * @param {Element} link - Elemento del enlace
-     * @param {number} index - Índice del enlace
-     * @returns {string} Selector único
-     */
-    // createLinkSelector(link, index) {
-    //     // Intentar crear selector por atributos únicos
-    //     if (link.id) {
-    //         return `#${link.id}`;
-    //     }
-        
-    //     // Usar href como selector si es único
-    //     const href = link.getAttribute('href');
-    //     if (href) {
-    //         return `a[href="${href}"]`;
-    //     }
-        
-    //     // Usar texto como selector si es suficientemente único
-    //     const text = link.textContent?.trim();
-    //     if (text && text.length > 5 && text.length < 50) {
-    //         return `a:contains("${text.substring(0, 30)}")`;
-    //     }
-        
-    //     // Fallback a selector por índice
-    //     return `a:nth-of-type(${index + 1})`;
-    // }
-
-    /**
      * Registra selección de enlace para análisis
      * @param {Object} selectedLink - Enlace seleccionado
      * @param {number} totalCandidates - Total de candidatos disponibles
