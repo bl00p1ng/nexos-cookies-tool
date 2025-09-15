@@ -1,3 +1,10 @@
+import MouseMovementSimulator from './MouseMovementSimulator.js';
+import ScrollSimulator from './ScrollSimulator.js';
+import TimingManager from './TimingManager.js';
+import NavigationPatternGenerator from './NavigationPatternGenerator.js';
+import ContentAnalyzer from './ContentAnalyzer.js';
+import LinkSelector from './LinkSelector.js';
+
 /**
  * Sistema de simulación de comportamiento humano para navegación web
  * Implementa patrones realistas de interacción para evitar detección como bot
