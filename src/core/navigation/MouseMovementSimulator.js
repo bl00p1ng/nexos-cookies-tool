@@ -15,8 +15,23 @@ class MouseMovementSimulator {
      */
     async performInitialMovements(page) {
         try {
-            // Obtener dimensiones de la ventana
-            const viewport = await page.viewportSize();
+            // Obtener dimensiones de la ventana con fallback
+            let viewport = await page.viewportSize();
+            
+            // Fallback si viewportSize() retorna null
+            if (!viewport) {
+                const dimensions = await page.evaluate(() => ({
+                    width: window.innerWidth || 1200,
+                    height: window.innerHeight || 800
+                }));
+                viewport = dimensions;
+            }
+            
+            // Validar que tenemos dimensiones válidas
+            if (!viewport || !viewport.width || !viewport.height) {
+                console.warn('⚠️ No se pudieron obtener dimensiones del viewport, usando valores por defecto');
+                viewport = { width: 1200, height: 800 };
+            }
             
             // Posición inicial aleatoria
             const startX = Math.random() * viewport.width;
@@ -31,7 +46,11 @@ class MouseMovementSimulator {
             const deltaX = (Math.random() - 0.5) * 100;
             const deltaY = (Math.random() - 0.5) * 100;
             
-            await this.moveNaturally(page, startX + deltaX, startY + deltaY);
+            // Asegurar que el movimiento esté dentro de los límites
+            const newX = Math.max(10, Math.min(viewport.width - 10, startX + deltaX));
+            const newY = Math.max(10, Math.min(viewport.height - 10, startY + deltaY));
+            
+            await this.moveNaturally(page, newX, newY);
             
         } catch (error) {
             console.warn('⚠️ Error en movimientos iniciales del mouse:', error.message);
