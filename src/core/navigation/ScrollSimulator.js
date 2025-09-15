@@ -117,11 +117,20 @@ class ScrollSimulator {
         let actions = 0;
         let totalDistance = 0;
 
-        // Configuración de velocidades
+        // Configuración de velocidades más humanas y lentas
         const speedConfigs = {
-            slow: { stepSize: { min: 50, max: 150 }, delay: { min: 200, max: 500 } },
-            medium: { stepSize: { min: 100, max: 250 }, delay: { min: 100, max: 300 } },
-            fast: { stepSize: { min: 200, max: 400 }, delay: { min: 50, max: 150 } }
+            slow: { 
+                stepSize: { min: 30, max: 80 }, 
+                delay: { min: 400, max: 800 } // Más lento
+            },
+            medium: { 
+                stepSize: { min: 50, max: 120 }, 
+                delay: { min: 300, max: 600 } // Velocidad humana normal
+            },
+            fast: { 
+                stepSize: { min: 80, max: 180 }, 
+                delay: { min: 200, max: 400 } // Aún humano pero más rápido
+            }
         };
 
         const config = speedConfigs[speed] || speedConfigs.medium;
@@ -136,11 +145,11 @@ class ScrollSimulator {
             
             const newPosition = currentPosition + (scrollStep * direction);
 
-            // Realizar scroll
+            // Realizar scroll suave
             await page.evaluate((pos) => {
                 window.scrollTo({
                     top: pos,
-                    behavior: 'auto' // Usamos auto para control manual de velocidad
+                    behavior: 'auto' // Control manual para mejor timing
                 });
             }, newPosition);
 
@@ -148,13 +157,30 @@ class ScrollSimulator {
             totalDistance += scrollStep;
             actions++;
 
-            // Pausa variable entre scrolls
-            const delay = this.randomBetween(config.delay.min, config.delay.max);
-            await this.sleep(delay);
+            // Pausa variable entre scrolls - más humana
+            const baseDelay = this.randomBetween(config.delay.min, config.delay.max);
+            
+            // Agregar variabilidad extra para naturalidad
+            const variabilityFactor = 0.7 + Math.random() * 0.6; // 0.7x a 1.3x
+            const finalDelay = Math.round(baseDelay * variabilityFactor);
+            
+            await this.sleep(finalDelay);
 
-            // Ocasionalmente, hacer una pausa más larga (distracción)
-            if (Math.random() > 0.9) {
-                await this.sleep(this.randomBetween(500, 1500));
+            // Ocasionalmente, hacer una pausa más larga (como si se estuviera leyendo algo interesante)
+            if (Math.random() > 0.85) {
+                const longPause = this.randomBetween(800, 2000);
+                console.log(`   ⏸️ Pausa de lectura: ${longPause}ms`);
+                await this.sleep(longPause);
+            }
+
+            // Muy ocasionalmente, pequeño scroll hacia atrás (como si se hubiera pasado algo)
+            if (Math.random() > 0.95 && actions > 3) {
+                const backScroll = this.randomBetween(20, 50);
+                await page.evaluate((backAmount) => {
+                    window.scrollBy(0, -backAmount);
+                }, backScroll);
+                await this.sleep(this.randomBetween(300, 700));
+                console.log(`   ↩️ Micro-retroceso de ${backScroll}px`);
             }
         }
 
@@ -175,19 +201,32 @@ class ScrollSimulator {
         let actions = 0;
         let totalDistance = 0;
 
-        while (Date.now() - startTime < duration) {
-            // Pequeño scroll aleatorio (simulando ajuste de posición para leer)
-            const microScroll = this.randomBetween(-30, 50); // Principalmente hacia abajo
-            
-            await page.evaluate((delta) => {
-                window.scrollBy(0, delta);
-            }, microScroll);
+        const microScrollInterval = this.randomBetween(3000, 6000); // 3-6 segundos entre micro-scrolls
 
-            totalDistance += Math.abs(microScroll);
+        while (Date.now() - startTime < duration) {
+            // Pequeño scroll aleatorio (simulando ajuste de posición para leer mejor)
+            const microScrollAmount = this.randomBetween(-15, 25); // Movimientos más pequeños
+            
+            await page.evaluate((amount) => {
+                window.scrollBy({
+                    top: amount,
+                    behavior: 'auto'
+                });
+            }, microScrollAmount);
+
+            totalDistance += Math.abs(microScrollAmount);
             actions++;
 
-            // Pausa entre micro-scrolls
-            await this.sleep(this.randomBetween(2000, 5000));
+            this.currentScrollPosition += microScrollAmount;
+
+            // Pausa más larga entre micro-scrolls para ser más realista
+            const pauseTime = this.randomBetween(microScrollInterval * 0.8, microScrollInterval * 1.2);
+            await this.sleep(Math.min(pauseTime, duration - (Date.now() - startTime)));
+
+            // Si queda poco tiempo, salir del loop
+            if (Date.now() - startTime >= duration * 0.9) {
+                break;
+            }
         }
 
         return { actions, distance: totalDistance };
@@ -248,13 +287,19 @@ class ScrollSimulator {
      * @param {Object} page - Página de Playwright
      */
     async performMicroScroll(page) {
-        const scrollDelta = this.randomBetween(-20, 40);
+        const scrollDelta = this.randomBetween(-10, 20);
         
         await page.evaluate((delta) => {
-            window.scrollBy(0, delta);
+            window.scrollBy({
+                top: delta,
+                behavior: 'auto'
+            });
         }, scrollDelta);
 
         this.currentScrollPosition += scrollDelta;
+        
+        // Pequeña pausa después del micro-scroll
+        await this.sleep(this.randomBetween(100, 300));
     }
 
     /**
