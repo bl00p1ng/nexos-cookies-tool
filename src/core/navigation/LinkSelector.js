@@ -41,12 +41,35 @@ class LinkSelector {
                     const isVisible = rect.width > 0 && rect.height > 0;
                     const area = rect.width * rect.height;
                     
+                    // Crear selector único
+                    function createLinkSelector(linkElement, linkIndex) {
+                        // Intentar crear selector por atributos únicos
+                        if (linkElement.id) {
+                            return `#${linkElement.id}`;
+                        }
+                        
+                        // Usar href como selector si es único
+                        const hrefAttr = linkElement.getAttribute('href');
+                        if (hrefAttr) {
+                            return `a[href="${hrefAttr}"]`;
+                        }
+                        
+                        // Usar texto como selector si es suficientemente único
+                        const textContent = linkElement.textContent?.trim();
+                        if (textContent && textContent.length > 5 && textContent.length < 50) {
+                            return `a:contains("${textContent.substring(0, 30)}")`;
+                        }
+                        
+                        // Fallback a selector por índice
+                        return `a:nth-of-type(${linkIndex + 1})`;
+                    }
+                    
                     return {
                         href,
                         text,
                         title,
                         index,
-                        selector: this.createLinkSelector(link, index),
+                        selector: createLinkSelector(link, index),
                         position: {
                             x: rect.x,
                             y: rect.y,
@@ -568,27 +591,27 @@ class LinkSelector {
      * @param {number} index - Índice del enlace
      * @returns {string} Selector único
      */
-    createLinkSelector(link, index) {
-        // Intentar crear selector por atributos únicos
-        if (link.id) {
-            return `#${link.id}`;
-        }
+    // createLinkSelector(link, index) {
+    //     // Intentar crear selector por atributos únicos
+    //     if (link.id) {
+    //         return `#${link.id}`;
+    //     }
         
-        // Usar href como selector si es único
-        const href = link.getAttribute('href');
-        if (href) {
-            return `a[href="${href}"]`;
-        }
+    //     // Usar href como selector si es único
+    //     const href = link.getAttribute('href');
+    //     if (href) {
+    //         return `a[href="${href}"]`;
+    //     }
         
-        // Usar texto como selector si es suficientemente único
-        const text = link.textContent?.trim();
-        if (text && text.length > 5 && text.length < 50) {
-            return `a:contains("${text.substring(0, 30)}")`;
-        }
+    //     // Usar texto como selector si es suficientemente único
+    //     const text = link.textContent?.trim();
+    //     if (text && text.length > 5 && text.length < 50) {
+    //         return `a:contains("${text.substring(0, 30)}")`;
+    //     }
         
-        // Fallback a selector por índice
-        return `a:nth-of-type(${index + 1})`;
-    }
+    //     // Fallback a selector por índice
+    //     return `a:nth-of-type(${index + 1})`;
+    // }
 
     /**
      * Registra selección de enlace para análisis
