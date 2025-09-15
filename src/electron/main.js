@@ -245,7 +245,7 @@ class ElectronApp {
             await this.configManager.loadConfig();
 
             // Inicializar base de datos
-            this.databaseManager = new DatabaseManager(this.configManager);
+            this.databaseManager = new DatabaseManager();
             await this.databaseManager.initialize();
 
             // Inicializar Ads Power Manager
