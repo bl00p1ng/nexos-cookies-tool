@@ -595,10 +595,19 @@ class NavigationController {
 
     /**
      * Crea una barra de progreso visual
+     * @param {number} percentage - Porcentaje de progreso (puede ser negativo)
+     * @param {number} width - Ancho de la barra en caracteres
+     * @returns {string} Barra de progreso visual
      */
     createProgressBar(percentage, width = 20) {
-        const filled = Math.round((percentage / 100) * width);
-        const empty = width - filled;
+        // Validar y normalizar el porcentaje
+        const normalizedPercentage = Math.max(0, Math.min(100, percentage || 0));
+        
+        // Calcular caracteres llenos y vacíos
+        const filled = Math.max(0, Math.round((normalizedPercentage / 100) * width));
+        const empty = Math.max(0, width - filled);
+        
+        // Crear la barra asegurando que no hay valores negativos
         return '█'.repeat(filled) + '░'.repeat(empty);
     }
 
