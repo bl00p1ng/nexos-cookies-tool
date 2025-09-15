@@ -1,0 +1,601 @@
+/* Variables CSS - Paleta de Colores de nexos */
+:root {
+    /* Colores Primarios */
+    --nexos-blue: #2563eb;
+    --nexos-blue-hover: #1d4ed8;
+    --nexos-blue-light: #dbeafe;
+    
+    /* Grises */
+    --nexos-gray-900: #111827;
+    --nexos-gray-800: #1f2937;
+    --nexos-gray-700: #374151;
+    --nexos-gray-600: #4b5563;
+    --nexos-gray-500: #6b7280;
+    --nexos-gray-400: #9ca3af;
+    --nexos-gray-300: #d1d5db;
+    --nexos-gray-200: #e5e7eb;
+    --nexos-gray-100: #f3f4f6;
+    --nexos-gray-50: #f9fafb;
+    
+    /* Blancos */
+    --nexos-white: #ffffff;
+    --nexos-white-alpha: rgba(255, 255, 255, 0.8);
+    
+    /* Estados */
+    --nexos-success: #059669;
+    --nexos-success-light: #d1fae5;
+    --nexos-warning: #d97706;
+    --nexos-warning-light: #fef3c7;
+    --nexos-error: #dc2626;
+    --nexos-error-light: #fee2e2;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Bordes */
+    --border-radius: 8px;
+    --border-radius-sm: 4px;
+    --border-radius-lg: 12px;
+    
+    /* Transiciones */
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Tipografía */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    
+    /* Espaciado */
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --spacing-20: 5rem;
+}
+
+/* Reset y Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    color: var(--nexos-gray-800);
+    background-color: var(--nexos-gray-50);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+}
+
+/* Utilidades de Display */
+.hidden {
+    display: none !important;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.h-full {
+    height: 100%;
+}
+
+/* Botones Base */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    line-height: 1.5;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    user-select: none;
+    white-space: nowrap;
+    background: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn:focus {
+    outline: 2px solid var(--nexos-blue);
+    outline-offset: 2px;
+}
+
+/* Variantes de Botones */
+.btn-primary {
+    background-color: var(--nexos-blue);
+    color: var(--nexos-white);
+    border-color: var(--nexos-blue);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--nexos-blue-hover);
+    border-color: var(--nexos-blue-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background-color: var(--nexos-white);
+    color: var(--nexos-gray-700);
+    border-color: var(--nexos-gray-300);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--nexos-gray-50);
+    border-color: var(--nexos-gray-400);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background-color: var(--nexos-error);
+    color: var(--nexos-white);
+    border-color: var(--nexos-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--nexos-blue);
+    border-color: var(--nexos-blue);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: var(--nexos-blue);
+    color: var(--nexos-white);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--nexos-blue);
+    text-decoration: underline;
+    padding: var(--spacing-1) var(--spacing-2);
+}
+
+.btn-link:hover:not(:disabled) {
+    color: var(--nexos-blue-hover);
+    text-decoration: none;
+}
+
+/* Tamaños de Botones */
+.btn-sm {
+    padding: var(--spacing-1) var(--spacing-3);
+    font-size: var(--font-size-xs);
+}
+
+.btn-lg {
+    padding: var(--spacing-3) var(--spacing-6);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+/* Spinner de Botón */
+.btn-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.btn:not(:disabled) .btn-spinner:not(.hidden) + .btn-text {
+    opacity: 0;
+}
+
+/* Formularios */
+.form-group {
+    margin-bottom: var(--spacing-4);
+}
+
+.form-row {
+    display: flex;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--nexos-gray-700);
+    margin-bottom: var(--spacing-2);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+    width: 100%;
+    padding: var(--spacing-3);
+    font-size: var(--font-size-base);
+    border: 1px solid var(--nexos-gray-300);
+    border-radius: var(--border-radius);
+    background-color: var(--nexos-white);
+    color: var(--nexos-gray-800);
+    transition: var(--transition);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--nexos-blue);
+    box-shadow: 0 0 0 3px var(--nexos-blue-light);
+}
+
+input::placeholder {
+    color: var(--nexos-gray-400);
+}
+
+.form-hint {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--nexos-gray-500);
+    margin-top: var(--spacing-1);
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-6);
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+    width: auto;
+    margin-right: var(--spacing-2);
+}
+
+/* Select personalizado */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Mensajes de Error */
+.error-message {
+    background-color: var(--nexos-error-light);
+    border: 1px solid var(--nexos-error);
+    color: var(--nexos-error);
+    padding: var(--spacing-3);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-2);
+}
+
+/* Cards */
+.card {
+    background-color: var(--nexos-white);
+    border: 1px solid var(--nexos-gray-200);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: var(--spacing-5);
+    border-bottom: 1px solid var(--nexos-gray-200);
+    background-color: var(--nexos-gray-50);
+}
+
+.card-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--nexos-gray-800);
+    margin: 0;
+}
+
+.card-content {
+    padding: var(--spacing-5);
+}
+
+/* Indicadores de Estado */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: var(--spacing-2);
+}
+
+.status-indicator.active {
+    background-color: var(--nexos-success);
+}
+
+.status-indicator.inactive {
+    background-color: var(--nexos-gray-400);
+}
+
+.status-indicator.error {
+    background-color: var(--nexos-error);
+}
+
+.status-indicator.warning {
+    background-color: var(--nexos-warning);
+}
+
+/* Loading Spinners */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--nexos-gray-200);
+    border-top: 4px solid var(--nexos-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-spinner-sm {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--nexos-gray-200);
+    border-top: 2px solid var(--nexos-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Loading Dots */
+.loading-dots {
+    display: flex;
+    gap: var(--spacing-1);
+    justify-content: center;
+    margin: var(--spacing-4) 0;
+}
+
+.loading-dots span {
+    width: 6px;
+    height: 6px;
+    background-color: var(--nexos-blue);
+    border-radius: 50%;
+    animation: loading-dots 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes loading-dots {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: var(--spacing-4);
+    right: var(--spacing-4);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    max-width: 400px;
+}
+
+.toast {
+    background-color: var(--nexos-white);
+    border: 1px solid var(--nexos-gray-200);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-4);
+    animation: toast-enter 0.3s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.toast.success {
+    border-left: 4px solid var(--nexos-success);
+}
+
+.toast.error {
+    border-left: 4px solid var(--nexos-error);
+}
+
+.toast.warning {
+    border-left: 4px solid var(--nexos-warning);
+}
+
+.toast.info {
+    border-left: 4px solid var(--nexos-blue);
+}
+
+.toast-title {
+    font-weight: 600;
+    color: var(--nexos-gray-800);
+    margin-bottom: var(--spacing-1);
+}
+
+.toast-message {
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-600);
+}
+
+.toast-close {
+    position: absolute;
+    top: var(--spacing-2);
+    right: var(--spacing-2);
+    background: none;
+    border: none;
+    color: var(--nexos-gray-400);
+    cursor: pointer;
+    padding: var(--spacing-1);
+    border-radius: var(--border-radius-sm);
+}
+
+.toast-close:hover {
+    color: var(--nexos-gray-600);
+    background-color: var(--nexos-gray-100);
+}
+
+@keyframes toast-enter {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Estados Vacíos */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-12) var(--spacing-8);
+    color: var(--nexos-gray-500);
+}
+
+.empty-state svg {
+    margin-bottom: var(--spacing-4);
+    color: var(--nexos-gray-300);
+}
+
+.empty-state h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--nexos-gray-700);
+    margin-bottom: var(--spacing-2);
+}
+
+.empty-state p {
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-500);
+}
+
+/* Utilidades de Responsive */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-row .form-group {
+        margin-bottom: var(--spacing-4);
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Scrollbars personalizados */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--nexos-gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--nexos-gray-300);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--nexos-gray-400);
+}
+
+/* Transiciones globales */
+* {
+    transition: border-color var(--transition-fast), 
+                box-shadow var(--transition-fast),
+                background-color var(--transition-fast),
+                color var(--transition-fast),
+                transform var(--transition-fast);
+}
