@@ -368,111 +368,64 @@ class CookieDetector {
     }
 
     /**
-     * Busca botón de aceptación por análisis de texto - CORREGIDO
-     * @param {Object} page - Instancia de página de Playwright
-     * @returns {Promise<Object|null>} Botón encontrado o null
+     * Busca botón de aceptación por texto usando patrones conocidos
+     * @param {Object} page - Página de Playwright
+     * @returns {Promise<Object|null>} Información del botón encontrado
      */
     async findAcceptButtonByText(page) {
         try {
-            // Obtener todos los botones candidatos con información
-            const buttonCandidates = await page.evaluate((acceptPatterns, rejectPatterns) => {
-                const allButtons = document.querySelectorAll('button, a, div[role="button"], input[type="button"], span[role="button"]');
-                const candidates = [];
+            return await page.evaluate(() => {
+                const patterns = [
+                    /accept|agree|allow|consent|ok|continue|got it|i understand|yes/i,
+                    /acepto|aceptar|permitir|consentir|entendido|de acuerdo|continuar/i,
+                    /akzeptieren|einverstanden|ja|weiter|verstanden/i,
+                    /accepter|d'accord|continuer|compris|oui/i,
+                    /accetto|accetta|continua|ho capito|si/i,
+                    /✓|✔|accept all|accept cookies|agree all|agree cookies/i,
+                    /aceptar todo|aceptar cookies|acepto todo|acepto cookies/i,
+                    /alle akzeptieren|cookies akzeptieren|ich stimme zu/i,
+                    /accepter tout|accepter des cookies|j'accepte/i
+                ];
 
-                allButtons.forEach((btn, index) => {
+                const allButtons = document.querySelectorAll('button, a, div[role="button"], span[role="button"]');
+                let bestMatch = null;
+                let highestScore = 0;
+
+                allButtons.forEach(btn => {
                     const text = btn.innerText?.trim() || '';
-                    const ariaLabel = btn.getAttribute('aria-label') || '';
-                    const title = btn.getAttribute('title') || '';
                     const isVisible = btn.offsetWidth > 0 && btn.offsetHeight > 0;
-                    
-                    if (!isVisible || text.length > 100) return; // Evitar textos muy largos
+
+                    if (!isVisible || text.length > 50) return; // Evitar textos muy largos
 
                     let score = 0;
-                    
-                    // Verificar patrones de aceptación
-                    const hasAcceptPattern = acceptPatterns.some(pattern => {
-                        const regex = new RegExp(pattern.source, pattern.flags);
-                        return regex.test(text) || regex.test(ariaLabel) || regex.test(title);
-                    });
-                    
-                    if (hasAcceptPattern) {
-                        score += 15;
-                        
-                        // Bonus por textos exactos cortos
-                        if (text.length < 20) score += 5;
-                        
-                        // Bonus por estar en un contexto de cookies
-                        const parent = btn.closest('[class*="cookie"], [id*="cookie"], [class*="gdpr"], [data-consent], [class*="privacy"]');
-                        if (parent) score += 10;
-                        
-                        // Verificar que no es un botón de rechazo
-                        const hasRejectPattern = rejectPatterns.some(pattern => {
-                            const regex = new RegExp(pattern.source, pattern.flags);
-                            return regex.test(text) || regex.test(ariaLabel) || regex.test(title);
-                        });
-                        
-                        if (hasRejectPattern) score -= 20;
-                        
-                        if (score > 5) {
-                            candidates.push({
-                                text: text,
-                                ariaLabel: ariaLabel,
-                                title: title,
-                                score: score,
-                                index: index,
-                                tagName: btn.tagName,
-                                id: btn.id,
-                                className: btn.className
-                            });
+                    patterns.forEach(pattern => {
+                        if (new RegExp(pattern.source, pattern.flags).test(text)) {
+                            score += 10;
+
+                            // Bonus por textos exactos cortos
+                            if (text.length < 20) score += 5;
+
+                            // Bonus por estar en un contexto de cookies
+                            const parent = btn.closest('[class*="cookie"], [id*="cookie"], [class*="gdpr"], [id*="gdpr"]');
+                            if (parent) score += 10;
                         }
+                    });
+
+                    if (score > 5 && score > highestScore) {
+                        bestMatch = {
+                            selector: btn.tagName +
+                                (btn.id ? '#' + btn.id : '') +
+                                (btn.className ? '.' + btn.className.split(' ')[0] : ''),
+                            text: text,
+                            score: score,
+                            method: 'text_pattern'
+                        };
+                        highestScore = score;
                     }
                 });
 
-                // Retornar el mejor candidato
-                return candidates.sort((a, b) => b.score - a.score)[0] || null;
-            }, 
-            this.cookiePatterns.textPatterns.acceptTexts.map(r => ({ source: r.source, flags: r.flags })),
-            this.cookiePatterns.textPatterns.rejectTexts.map(r => ({ source: r.source, flags: r.flags }))
-            );
-
-            if (buttonCandidates) {
-                // Encontrar el elemento real usando un selector más específico
-                let element = null;
-                
-                // Intentar por ID primero si existe
-                if (buttonCandidates.id) {
-                    element = await page.$(`#${buttonCandidates.id}`);
-                }
-                
-                // Si no se encontró por ID, buscar por texto y tag
-                if (!element) {
-                    const selector = `${buttonCandidates.tagName.toLowerCase()}:has-text("${buttonCandidates.text}")`;
-                    try {
-                        element = await page.$(selector);
-                    } catch (error) {
-                        // Si has-text no funciona, usar un approach diferente
-                        const elements = await page.$$(buttonCandidates.tagName.toLowerCase());
-                        for (const el of elements) {
-                            const elText = await el.innerText();
-                            if (elText.trim() === buttonCandidates.text) {
-                                element = el;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (element && await element.isVisible()) {
-                    return {
-                        element,
-                        text: buttonCandidates.text,
-                        score: buttonCandidates.score,
-                        method: 'text-analysis'
-                    };
-                }
-            }
-
-            return null;
+                return bestMatch;
+            });
         } catch (error) {
             console.error('Error buscando botón por texto:', error.message);
             return null;
