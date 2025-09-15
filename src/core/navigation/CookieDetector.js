@@ -600,9 +600,44 @@ class CookieDetector {
      */
     async getCookieCount(page) {
         try {
-            const cookies = await page.context().cookies();
+            // Verificar si la página y el contexto siguen disponibles
+            if (!page) {
+                console.warn('⚠️ Página no disponible para contar cookies');
+                return 0;
+            }
+
+            // Verificar si el navegador no se ha cerrado
+            if (page.isClosed && page.isClosed()) {
+                console.warn('⚠️ Página cerrada, no se pueden contar cookies');
+                return 0;
+            }
+
+            const context = page.context();
+            if (!context) {
+                console.warn('⚠️ Contexto no disponible para contar cookies');
+                return 0;
+            }
+
+            // Intentar obtener cookies con timeout
+            const cookies = await Promise.race([
+                context.cookies(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout obteniendo cookies')), 5000)
+                )
+            ]);
+            
             return cookies.length;
+            
         } catch (error) {
+            // Verificar si el error es por navegador cerrado
+            if (error.message.includes('Target page, context or browser has been closed') ||
+                error.message.includes('Browser has been closed') ||
+                error.message.includes('Target closed') ||
+                error.message.includes('Session closed')) {
+                console.warn('⚠️ Navegador cerrado, no se pueden obtener cookies');
+                return 0;
+            }
+            
             console.error('Error obteniendo cookies:', error.message);
             return 0;
         }
