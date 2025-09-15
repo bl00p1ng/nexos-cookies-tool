@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexos Cookies Tool</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/auth.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+    <!-- Pantalla de Carga Inicial -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Nexos Cookies Tool</h2>
+            <p>Inicializando aplicación...</p>
+        </div>
+    </div>
+
+    <!-- Pantalla de Autenticación -->
+    <div id="auth-screen" class="auth-screen hidden">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="8" fill="#2563eb"/>
+                        <path d="M12 20l6 6 10-10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>Nexos Cookies Tool</h1>
+                <p>Ingresa tu email de suscripción para acceder</p>
+            </div>
+
+            <div class="auth-forms">
+                <!-- Formulario de Email -->
+                <form id="email-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email de suscripción</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="tu@email.com" autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="request-code-btn">
+                        <span class="btn-text">Solicitar código de acceso</span>
+                        <div class="btn-spinner hidden"></div>
+                    </button>
+                    <div id="email-error" class="error-message hidden"></div>
+                </form>
+
+                <!-- Formulario de Código -->
+                <form id="code-form" class="auth-form hidden">
+                    <div class="form-group">
+                        <label for="verification-code">Código de verificación</label>
+                        <input type="text" id="verification-code" name="code" required 
+                               placeholder="Ingresa el código de 8 dígitos" maxlength="8"
+                               autocomplete="one-time-code">
+                        <small class="form-hint">
+                            Revisa tu email. El código expira en 10 minutos.
+                        </small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="back-to-email">
+                            Cambiar email
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="verify-code-btn">
+                            <span class="btn-text">Verificar código</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </div>
+                    <div id="code-error" class="error-message hidden"></div>
+                    
+                    <div class="resend-code">
+                        <p>¿No recibiste el código?</p>
+                        <button type="button" class="btn-link" id="resend-code" disabled>
+                            Reenviar código (<span id="resend-timer">60</span>s)
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Estado de Éxito -->
+                <div id="auth-success" class="auth-success hidden">
+                    <div class="success-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="#059669" stroke-width="2"/>
+                            <path d="m9 12 2 2 4-4" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>¡Autenticación exitosa!</h3>
+                    <p id="welcome-message">Bienvenido de vuelta</p>
+                    <div class="loading-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                <p>¿Problemas con tu suscripción? <a href="#" id="support-link">Contactar soporte</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard-screen" class="dashboard-screen hidden">
+        <!-- Header del Dashboard -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <div class="logo-small">
+                    <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="8" fill="#2563eb"/>
+                        <path d="M12 20l6 6 10-10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>Nexos Cookies Tool</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="user-email">usuario@email.com</span>
+                    <div class="subscription-status">
+                        <span class="status-indicator active"></span>
+                        <span>Suscripción activa</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" id="logout-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" 
+                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Cerrar sesión
+                </button>
+            </div>
+        </header>
+
+        <!-- Contenido Principal -->
+        <main class="dashboard-main">
+            <!-- Sidebar de Navegación -->
+            <nav class="dashboard-sidebar">
+                <div class="nav-section">
+                    <h3>Navegación</h3>
+                    <button class="nav-item active" data-section="automation">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" 
+                                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Automatización
+                    </button>
+                    <button class="nav-item" data-section="profiles">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" 
+                                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Perfiles Ads Power
+                    </button>
+                    <button class="nav-item" data-section="database">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <ellipse cx="12" cy="5" rx="9" ry="3" stroke="currentColor" stroke-width="2"/>
+                            <path d="M3 5v14a9 3 0 0 0 18 0V5" stroke="currentColor" stroke-width="2"/>
+                            <path d="M3 12a9 3 0 0 0 18 0" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Base de Datos
+                    </button>
+                    <button class="nav-item" data-section="reports">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 3v18h18M7 16l4-4 4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Reportes
+                    </button>
+                </div>
+                <div class="nav-section">
+                    <h3>Configuración</h3>
+                    <button class="nav-item" data-section="settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Configuración
+                    </button>
+                    <button class="nav-item" data-section="help">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Ayuda
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Área de Contenido -->
+            <div class="dashboard-content">
+                <!-- Sección de Automatización -->
+                <section id="automation-section" class="content-section active">
+                    <div class="section-header">
+                        <h2>Automatización de Navegación</h2>
+                        <p>Configura y ejecuta sesiones de recolección de cookies</p>
+                    </div>
+
+                    <!-- Estado de Ads Power -->
+                    <div class="status-card">
+                        <div class="status-header">
+                            <h3>Estado de Ads Power</h3>
+                            <button class="btn btn-secondary btn-sm" id="refresh-adspower">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <path d="M23 4v6h-6M1 20v-6h6M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" 
+                                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Actualizar
+                            </button>
+                        </div>
+                        <div id="adspower-status" class="status-content">
+                            <div class="loading-indicator">
+                                <div class="loading-spinner-sm"></div>
+                                <span>Verificando conexión...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Navegación -->
+                    <div class="config-card">
+                        <div class="card-header">
+                            <h3>Configuración de Sesión</h3>
+                        </div>
+                        <div class="card-content">
+                            <form id="navigation-config-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="target-cookies">Objetivo de cookies</label>
+                                        <input type="number" id="target-cookies" name="targetCookies" 
+                                               value="2500" min="100" max="10000" step="100">
+                                        <small class="form-hint">Cantidad de cookies a recolectar por perfil</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-count">Perfiles simultáneos</label>
+                                        <input type="number" id="profile-count" name="profileCount" 
+                                               value="1" min="1" max="10" step="1">
+                                        <small class="form-hint">Número de perfiles a ejecutar en paralelo</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="selected-profiles">Perfiles seleccionados</label>
+                                    <div class="profile-selector">
+                                        <div id="profile-list" class="profile-list">
+                                            <div class="loading-profiles">
+                                                <div class="loading-spinner-sm"></div>
+                                                <span>Cargando perfiles...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="form-hint">Selecciona los perfiles de Ads Power que deseas utilizar</small>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-lg" id="start-navigation-btn" disabled>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                                        </svg>
+                                        <span class="btn-text">Iniciar Navegación</span>
+                                        <div class="btn-spinner hidden"></div>
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="stop-navigation-btn" disabled>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+                                        </svg>
+                                        Detener Navegación
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Monitor de Progreso -->
+                    <div id="progress-monitor" class="progress-card hidden">
+                        <div class="card-header">
+                            <h3>Monitor de Progreso</h3>
+                            <div class="progress-actions">
+                                <button class="btn btn-secondary btn-sm" id="export-progress">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" 
+                                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Exportar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="progress-summary">
+                                <div class="progress-stat">
+                                    <span class="stat-label">Cookies Recolectadas</span>
+                                    <span class="stat-value" id="total-cookies">0</span>
+                                </div>
+                                <div class="progress-stat">
+                                    <span class="stat-label">Sitios Visitados</span>
+                                    <span class="stat-value" id="total-sites">0</span>
+                                </div>
+                                <div class="progress-stat">
+                                    <span class="stat-label">Tiempo Transcurrido</span>
+                                    <span class="stat-value" id="elapsed-time">00:00:00</span>
+                                </div>
+                                <div class="progress-stat">
+                                    <span class="stat-label">Estado</span>
+                                    <span class="stat-value status-running" id="session-status">En espera</span>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-profiles">
+                                <h4>Progreso por Perfil</h4>
+                                <div id="profile-progress-list" class="profile-progress-list">
+                                    <!-- Se llenará dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Perfiles -->
+                <section id="profiles-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Gestión de Perfiles Ads Power</h2>
+                        <p>Administra y monitorea tus perfiles de navegador</p>
+                    </div>
+
+                    <div class="profiles-container">
+                        <div id="profiles-list" class="profiles-grid">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Base de Datos -->
+                <section id="database-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Base de Datos de Sitios Web</h2>
+                        <p>Gestiona la colección de sitios web para navegación</p>
+                    </div>
+
+                    <div class="database-stats-card">
+                        <h3>Estadísticas</h3>
+                        <div id="database-stats" class="stats-grid">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+
+                    <div class="database-actions">
+                        <button class="btn btn-primary" id="import-sites">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" 
+                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Importar Sitios (CSV)
+                        </button>
+                        <button class="btn btn-secondary" id="export-database">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" 
+                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Exportar Base de Datos
+                        </button>
+                    </div>
+
+                    <div class="sites-preview">
+                        <h3>Vista Previa de Sitios</h3>
+                        <div id="sites-list" class="sites-table">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Reportes -->
+                <section id="reports-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Reportes y Análisis</h2>
+                        <p>Revisa el historial y rendimiento de tus sesiones</p>
+                    </div>
+
+                    <div class="reports-container">
+                        <div class="reports-filters">
+                            <div class="filter-group">
+                                <label for="date-range">Rango de fechas</label>
+                                <select id="date-range">
+                                    <option value="today">Hoy</option>
+                                    <option value="week">Última semana</option>
+                                    <option value="month">Último mes</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" id="generate-report">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 3v18h18M7 16l4-4 4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Generar Reporte
+                            </button>
+                        </div>
+
+                        <div id="reports-content" class="reports-content">
+                            <div class="empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" 
+                                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <h3>No hay reportes disponibles</h3>
+                                <p>Ejecuta una sesión de navegación para generar reportes</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Configuración -->
+                <section id="settings-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Configuración</h2>
+                        <p>Personaliza el comportamiento de la aplicación</p>
+                    </div>
+
+                    <div class="settings-container">
+                        <div class="settings-group">
+                            <h3>Navegación</h3>
+                            <div class="setting-item">
+                                <label for="default-cookies">Objetivo de cookies por defecto</label>
+                                <input type="number" id="default-cookies" value="2500" min="100" max="10000">
+                            </div>
+                            <div class="setting-item">
+                                <label for="max-pages">Máximo de páginas por sitio</label>
+                                <input type="number" id="max-pages" value="10" min="1" max="50">
+                            </div>
+                            <div class="setting-item">
+                                <label for="min-time">Tiempo mínimo por página (ms)</label>
+                                <input type="number" id="min-time" value="2000" min="500" max="10000">
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <h3>Sistema</h3>
+                            <div class="setting-item">
+                                <label for="auto-backup">Respaldo automático</label>
+                                <input type="checkbox" id="auto-backup" checked>
+                                <small>Crear respaldos automáticos de la base de datos</small>
+                            </div>
+                            <div class="setting-item">
+                                <button class="btn btn-secondary" id="show-data-folder">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" 
+                                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Mostrar carpeta de datos
+                                </button>
+                                <small>Abre la carpeta donde se almacenan los datos</small>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button class="btn btn-primary" id="save-settings">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" 
+                                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Guardar Configuración
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección de Ayuda -->
+                <section id="help-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Ayuda y Soporte</h2>
+                        <p>Documentación y recursos para usar la aplicación</p>
+                    </div>
+
+                    <div class="help-container">
+                        <div class="help-grid">
+                            <div class="help-card">
+                                <h3>Primeros Pasos</h3>
+                                <p>Aprende a configurar y usar la aplicación por primera vez</p>
+                                <button class="btn btn-outline">Ver guía</button>
+                            </div>
+                            <div class="help-card">
+                                <h3>Configuración de Ads Power</h3>
+                                <p>Cómo configurar perfiles y conectar con Ads Power</p>
+                                <button class="btn btn-outline">Ver tutorial</button>
+                            </div>
+                            <div class="help-card">
+                                <h3>Solución de Problemas</h3>
+                                <p>Resuelve los problemas más comunes</p>
+                                <button class="btn btn-outline">Ver FAQ</button>
+                            </div>
+                            <div class="help-card">
+                                <h3>Contactar Soporte</h3>
+                                <p>¿Necesitas ayuda personalizada?</p>
+                                <button class="btn btn-outline" id="contact-support">Contactar</button>
+                            </div>
+                        </div>
+
+                        <div class="system-info">
+                            <h3>Información del Sistema</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Versión:</span>
+                                    <span class="info-value">1.0.0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Electron:</span>
+                                    <span class="info-value" id="electron-version">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Plataforma:</span>
+                                    <span class="info-value" id="platform">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notificaciones Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>
