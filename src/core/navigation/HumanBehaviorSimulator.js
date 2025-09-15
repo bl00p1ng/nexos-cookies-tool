@@ -194,27 +194,133 @@ class HumanBehaviorSimulator {
 
             console.log(`👆 Seleccionado: ${selectedLink.text} (${selectedLink.href})`);
 
-            // Simular movimiento humano hacia el enlace
-            const linkElement = await page.$(selectedLink.selector);
-            if (!linkElement) {
-                console.warn('⚠️ Elemento del enlace no encontrado');
+            // Intentar múltiples estrategias para hacer clic en el enlace
+            const clickSuccess = await this.performRobustLinkClick(page, selectedLink);
+            
+            if (clickSuccess) {
+                return selectedLink;
+            } else {
+                console.warn('⚠️ No se pudo hacer clic en el enlace, continuando...');
                 return null;
             }
-
-            // Movimiento del mouse hacia el enlace
-            await this.mouseSimulator.moveToElementNaturally(page, linkElement);
-            
-            // Pausa antes del clic (hesitación humana)
-            await this.timingManager.humanPause('click_hesitation', this.humanState.fatigue);
-            
-            // Realizar clic con comportamiento humano
-            await this.performHumanClick(linkElement);
-            
-            return selectedLink;
 
         } catch (error) {
             console.warn('⚠️ Error buscando siguiente enlace:', error.message);
             return null;
+        }
+    }
+
+    /**
+     * Realiza clic en enlace con múltiples estrategias de fallback
+     * @param {Object} page - Página de Playwright
+     * @param {Object} selectedLink - Enlace seleccionado
+     * @returns {Promise<boolean>} True si el clic fue exitoso
+     */
+    async performRobustLinkClick(page, selectedLink) {
+        const strategies = [
+            () => this.clickWithMouseSimulation(page, selectedLink),
+            () => this.clickWithDirectSelector(page, selectedLink),
+            () => this.clickWithNavigation(page, selectedLink)
+        ];
+
+        for (let i = 0; i < strategies.length; i++) {
+            try {
+                console.log(`   📍 Intentando estrategia ${i + 1}/3...`);
+                const success = await strategies[i]();
+                if (success) {
+                    console.log(`   ✅ Estrategia ${i + 1} exitosa`);
+                    return true;
+                }
+            } catch (error) {
+                console.warn(`   ⚠️ Estrategia ${i + 1} falló: ${error.message}`);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Estrategia 1: Clic con simulación de mouse
+     * @param {Object} page - Página de Playwright
+     * @param {Object} selectedLink - Enlace seleccionado
+     * @returns {Promise<boolean>} True si fue exitoso
+     */
+    async clickWithMouseSimulation(page, selectedLink) {
+        const linkElement = await page.$(selectedLink.selector);
+        if (!linkElement) return false;
+
+        // Verificar que el elemento sea clickeable
+        const isVisible = await linkElement.isVisible();
+        if (!isVisible) return false;
+
+        try {
+            // Movimiento del mouse hacia el enlace
+            await this.mouseSimulator.moveToElementNaturally(page, linkElement);
+            
+            // Pausa antes del clic
+            await this.timingManager.humanPause('click_hesitation', this.humanState.fatigue);
+            
+            // Hover con timeout reducido
+            await linkElement.hover({ timeout: 5000 });
+            
+            // Clic con comportamiento humano
+            await this.performHumanClick(linkElement);
+            
+            // Verificar navegación
+            await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+            return true;
+
+        } catch (error) {
+            // Si hay error de hover por popup, intentar clic directo
+            if (error.message.includes('intercepts pointer events') || 
+                error.message.includes('Timeout')) {
+                try {
+                    await this.performHumanClick(linkElement);
+                    await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+                    return true;
+                } catch (clickError) {
+                    throw clickError;
+                }
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Estrategia 2: Clic directo con selector
+     * @param {Object} page - Página de Playwright
+     * @param {Object} selectedLink - Enlace seleccionado
+     * @returns {Promise<boolean>} True si fue exitoso
+     */
+    async clickWithDirectSelector(page, selectedLink) {
+        try {
+            await page.click(selectedLink.selector, { timeout: 5000 });
+            await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Estrategia 3: Navegación directa por URL
+     * @param {Object} page - Página de Playwright
+     * @param {Object} selectedLink - Enlace seleccionado
+     * @returns {Promise<boolean>} True si fue exitoso
+     */
+    async clickWithNavigation(page, selectedLink) {
+        try {
+            // Solo para enlaces internos válidos
+            if (selectedLink.href && selectedLink.href.startsWith('http')) {
+                await page.goto(selectedLink.href, { 
+                    waitUntil: 'domcontentloaded',
+                    timeout: 15000 
+                });
+                return true;
+            }
+            return false;
+        } catch (error) {
+            return false;
         }
     }
 
