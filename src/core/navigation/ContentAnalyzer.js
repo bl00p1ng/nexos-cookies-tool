@@ -64,6 +64,17 @@ class ContentAnalyzer {
     async analyzePageContent(page) {
         try {
             const contentMetrics = await page.evaluate(() => {
+                // Función auxiliar para calcular promedio de palabras por oración
+                function calculateAverageWordsPerSentence(text) {
+                    if (!text || text.length === 0) return 0;
+                    
+                    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                    if (sentences.length === 0) return 0;
+                    
+                    const totalWords = text.split(/\s+/).filter(w => w.length > 0).length;
+                    return totalWords / sentences.length;
+                }
+
                 // Análisis básico del contenido
                 const bodyText = document.body.innerText || '';
                 const words = bodyText.trim().split(/\s+/).filter(word => word.length > 0);
@@ -99,7 +110,7 @@ class ContentAnalyzer {
                 return {
                     wordCount: words.length,
                     characterCount: bodyText.length,
-                    averageWordsPerSentence: this.calculateAverageWordsPerSentence(bodyText),
+                    averageWordsPerSentence: calculateAverageWordsPerSentence(bodyText),
                     readingTimeMinutes: Math.ceil(words.length / 250), // 250 WPM average
                     images,
                     videos,
