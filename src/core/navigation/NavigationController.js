@@ -139,6 +139,8 @@ class NavigationController {
             // Navegar por sitios hasta alcanzar objetivo
             let siteIndex = 0;
             const endTime = startTime + minimumTime;
+            let consecutiveConnectionErrors = 0;
+            const maxConnectionErrors = 3;
 
             while (sessionStats.cookiesCollected < targetCookies && 
                    Date.now() < endTime && 
@@ -150,12 +152,66 @@ class NavigationController {
                 console.log(`\n🌐 [${profileId}] Sitio ${siteIndex + 1}: ${website.domain}`);
                 
                 try {
+                    // Verificar que el navegador sigue conectado antes de procesar
+                    try {
+                        await page.evaluate(() => document.readyState);
+                    } catch (evalError) {
+                        if (evalError.message.includes('Target page, context or browser has been closed')) {
+                            throw new Error('CONEXION_PERDIDA: Navegador desconectado antes de procesar sitio');
+                        }
+                    }
+
                     // Procesar sitio con comportamiento humano
                     const siteResult = await this.processSiteWithHumanBehavior(
                         page, 
                         website, 
                         sessionStats
                     );
+
+                    // Verificar si hubo error de conexión
+                    if (siteResult.error && siteResult.error.startsWith('CONEXION_PERDIDA')) {
+                        consecutiveConnectionErrors++;
+                        console.warn(`🔌 [${profileId}] Error de conexión ${consecutiveConnectionErrors}/${maxConnectionErrors}: ${siteResult.error}`);
+                        
+                        if (consecutiveConnectionErrors >= maxConnectionErrors) {
+                            console.error(`❌ [${profileId}] Demasiados errores de conexión consecutivos, terminando sesión`);
+                            throw new Error('Navegador perdió conexión permanentemente');
+                        }
+                        
+                        // Intentar reconectar
+                        console.log(`🔄 [${profileId}] Intentando reconectar navegador...`);
+                        
+                        try {
+                            // Cerrar instancia actual si existe
+                            if (browserInstance && browserInstance.browser) {
+                                try {
+                                    await browserInstance.browser.close();
+                                } catch (closeError) {
+                                    console.warn(`⚠️ [${profileId}] Error cerrando navegador anterior: ${closeError.message}`);
+                                }
+                            }
+                            
+                            // Esperar antes de reconectar
+                            await this.sleep(5000);
+                            
+                            // Reconectar
+                            browserInstance = await this.startProfile(profileId);
+                            page = browserInstance.page;
+                            
+                            console.log(`✅ [${profileId}] Navegador reconectado exitosamente`);
+                            consecutiveConnectionErrors = 0; // Resetear contador
+                            
+                            // No incrementar siteIndex para reintentar el mismo sitio
+                            continue;
+                            
+                        } catch (reconnectError) {
+                            console.error(`❌ [${profileId}] Error reconectando: ${reconnectError.message}`);
+                            throw new Error(`No se pudo reconectar navegador: ${reconnectError.message}`);
+                        }
+                    } else {
+                        // Resetear contador si no hubo error de conexión
+                        consecutiveConnectionErrors = 0;
+                    }
 
                     // Actualizar estadísticas
                     sessionStats.cookiesCollected += siteResult.cookiesGained;
@@ -174,6 +230,12 @@ class NavigationController {
 
                 } catch (siteError) {
                     console.warn(`⚠️ [${profileId}] Error en ${website.domain}: ${siteError.message}`);
+                    
+                    // Si es error crítico de conexión, propagar hacia arriba
+                    if (siteError.message.includes('Navegador perdió conexión permanentemente') ||
+                        siteError.message.includes('No se pudo reconectar navegador')) {
+                        throw siteError;
+                    }
                 }
 
                 siteIndex++;
@@ -252,14 +314,75 @@ class NavigationController {
         let humanScore = 0;
 
         try {
-            // Navegar al sitio
-            await page.goto(website.url, { 
-                waitUntil: 'domcontentloaded',
-                timeout: 30000 
-            });
+            // erificar que la página siga disponible antes de navegar
+            if (!page || (page.isClosed && page.isClosed())) {
+                throw new Error('La página del navegador se ha cerrado');
+            }
 
-            // Pequeña pausa inicial
+            // Verificar conexión del contexto
+            try {
+                await page.evaluate(() => document.readyState);
+            } catch (evalError) {
+                if (evalError.message.includes('Target page, context or browser has been closed')) {
+                    throw new Error('Conexión del navegador perdida');
+                }
+            }
+
+            // Navegar al sitio con reintentos
+            let navigationSuccess = false;
+            let navAttempt = 0;
+            const maxNavAttempts = 3;
+
+            while (!navigationSuccess && navAttempt < maxNavAttempts) {
+                try {
+                    navAttempt++;
+                    console.log(`🔄 [${sessionStats.profileId}] Intento navegación ${navAttempt}/${maxNavAttempts} a ${website.domain}`);
+                    
+                    await page.goto(website.url, { 
+                        waitUntil: 'domcontentloaded',
+                        timeout: 30000 
+                    });
+                    
+                    // Verificar que la navegación fue exitosa
+                    const currentUrl = page.url();
+                    if (currentUrl && currentUrl !== 'about:blank') {
+                        navigationSuccess = true;
+                        console.log(`✅ [${sessionStats.profileId}] Navegación exitosa a ${website.domain}`);
+                    } else {
+                        throw new Error('Navegación resultó en página en blanco');
+                    }
+                    
+                } catch (navError) {
+                    console.warn(`⚠️ [${sessionStats.profileId}] Error navegación intento ${navAttempt}: ${navError.message}`);
+                    
+                    // Si es error de conexión cerrada, no reintentar
+                    // if (navError.message.includes('Target page, context or browser has been closed') ||
+                    //     navError.message.includes('Browser has been closed')) {
+                    //     throw new Error('Navegador desconectado durante navegación');
+                    // }
+                    
+                    // Si no es el último intento, esperar antes del siguiente
+                    if (navAttempt < maxNavAttempts) {
+                        await this.sleep(2000);
+                    }
+                }
+            }
+
+            if (!navigationSuccess) {
+                throw new Error(`No se pudo navegar a ${website.domain} después de ${maxNavAttempts} intentos`);
+            }
+
+            // Pequeña pausa inicial para estabilización
             await this.sleep(3000);
+
+            // Verificar nuevamente que la página sigue disponible después de navegar
+            try {
+                await page.evaluate(() => document.readyState);
+            } catch (evalError) {
+                if (evalError.message.includes('Target page, context or browser has been closed')) {
+                    throw new Error('Conexión perdida después de navegación');
+                }
+            }
 
             // Detectar y aceptar cookies automáticamente
             const cookieResult = await this.cookieDetector.acceptCookies(page);
@@ -287,6 +410,14 @@ class NavigationController {
         } catch (error) {
             console.error(`⚠️ [${sessionStats.profileId}] Error en ${website.domain}: ${error.message}`);
             errorMessage = error.message;
+            
+            // Si el error es por conexión perdida, marcar para reconexión
+            if (error.message.includes('Target page, context or browser has been closed') ||
+                error.message.includes('Navegador desconectado') ||
+                error.message.includes('Conexión perdida') ||
+                error.message.includes('Browser has been closed')) {
+                errorMessage = `CONEXION_PERDIDA: ${error.message}`;
+            }
         }
 
         const cookiesAfter = await this.cookieDetector.getCookieCount(page);
