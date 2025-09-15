@@ -59,54 +59,111 @@ class AdsPowerManager {
 
             console.log(`Iniciando perfil ${profileId}...`);
             
-            // Solicitar inicio del perfil a Ads Power
-            const response = await fetch(`${this.baseUrl}/browser/start?user_id=${profileId}`);
-            const data = await response.json();
+            // Implementar retry con backoff exponencial para manejar rate limiting
+            let attempt = 0;
+            const maxAttempts = 3;
+            let lastError = null;
             
-            if (data.code !== 0) {
-                throw new Error(`Error iniciando perfil ${profileId}: ${data.msg}`);
+            while (attempt < maxAttempts) {
+                try {
+                    // Delay progresivo para evitar rate limiting
+                    if (attempt > 0) {
+                        const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+                        console.log(`⏳ [${profileId}] Reintento ${attempt + 1}/${maxAttempts} en ${delayMs}ms...`);
+                        await this.sleep(delayMs);
+                    }
+                    
+                    // Solicitar inicio del perfil a Ads Power
+                    const response = await fetch(`${this.baseUrl}/browser/start?user_id=${profileId}`);
+                    const data = await response.json();
+                    
+                    if (data.code !== 0) {
+                        // Si es error de rate limiting, reintentar
+                        if (data.msg && (
+                            data.msg.includes('Too many request') || 
+                            data.msg.includes('rate limit') ||
+                            data.msg.includes('请求过于频繁')
+                        )) {
+                            lastError = new Error(`Rate limit para perfil ${profileId}: ${data.msg}`);
+                            attempt++;
+                            continue;
+                        }
+                        
+                        // Para otros errores, fallar inmediatamente
+                        throw new Error(`Error iniciando perfil ${profileId}: ${data.msg}`);
+                    }
+                    
+                    // Éxito - conectar con Playwright
+                    if (!data.data?.ws?.puppeteer) {
+                        throw new Error(`Respuesta inválida de Ads Power para perfil ${profileId}`);
+                    }
+                    
+                    const wsEndpoint = data.data.ws.puppeteer;
+                    
+                    // Conectar browser usando CDP
+                    const browser = await chromium.connectOverCDP(wsEndpoint);
+                    const contexts = browser.contexts();
+                    
+                    if (contexts.length === 0) {
+                        throw new Error(`No se encontraron contextos para perfil ${profileId}`);
+                    }
+                    
+                    const context = contexts[0];
+                    const pages = context.pages();
+                    let page;
+                    
+                    if (pages.length > 0) {
+                        page = pages[0];
+                    } else {
+                        page = await context.newPage();
+                    }
+                    
+                    const browserInstance = {
+                        browser,
+                        context,
+                        page,
+                        profileId,
+                        wsEndpoint,
+                        startTime: new Date()
+                    };
+                    
+                    this.activeBrowsers.set(profileId, browserInstance);
+                    console.log(`✅ Perfil ${profileId} iniciado correctamente (intento ${attempt + 1})`);
+                    
+                    return browserInstance;
+                    
+                } catch (error) {
+                    lastError = error;
+                    
+                    // Para errores de red o rate limiting, reintentar
+                    if (error.message.includes('Too many request') || 
+                        error.message.includes('rate limit') ||
+                        error.message.includes('ECONNRESET') ||
+                        error.message.includes('fetch')) {
+                        attempt++;
+                        continue;
+                    }
+                    
+                    // Para otros errores, fallar inmediatamente
+                    throw error;
+                }
             }
             
-            // Obtener la URL de conexión WebSocket
-            const wsEndpoint = data.data?.ws?.puppeteer;
-            if (!wsEndpoint) {
-                throw new Error('No se pudo obtener endpoint de conexión WebSocket');
-            }
-            
-            // Conectar Playwright al navegador iniciado
-            const browser = await chromium.connectOverCDP(wsEndpoint);
-            const contexts = browser.contexts();
-            
-            if (contexts.length === 0) {
-                throw new Error('No se encontró contexto de navegador válido');
-            }
-            
-            const context = contexts[0];
-            const pages = context.pages();
-            let page;
-            
-            if (pages.length > 0) {
-                page = pages[0];
-            } else {
-                page = await context.newPage();
-            }
-            
-            const browserInstance = {
-                browser,
-                context,
-                page,
-                profileId,
-                wsEndpoint
-            };
-            
-            // Almacenar la instancia activa
-            this.activeBrowsers.set(profileId, browserInstance);
-            
-            console.log(`Perfil ${profileId} iniciado correctamente`);
-            return browserInstance;
+            // Si llegamos aquí, se agotaron los reintentos
+            throw new Error(`Error iniciando perfil ${profileId} después de ${maxAttempts} intentos: ${lastError?.message || 'Error desconocido'}`);
             
         } catch (error) {
             console.error(`Error iniciando perfil ${profileId}:`, error.message);
+            
+            // Limpiar si hay algún recurso parcial
+            if (this.activeBrowsers.has(profileId)) {
+                try {
+                    await this.stopProfile(profileId);
+                } catch (cleanupError) {
+                    console.error(`Error en cleanup de perfil ${profileId}:`, cleanupError.message);
+                }
+            }
+            
             throw error;
         }
     }
