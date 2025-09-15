@@ -162,21 +162,67 @@ class AdsPowerManager {
     }
 
     /**
-     * Detiene todos los perfiles activos
+     * Detiene todos los perfiles activos con throttling para evitar rate limiting
      * @returns {Promise<void>}
      */
     async stopAllProfiles() {
         const profileIds = Array.from(this.activeBrowsers.keys());
         
-        for (const profileId of profileIds) {
+        if (profileIds.length === 0) {
+            console.log('No hay perfiles activos para detener');
+            return;
+        }
+        
+        console.log(`Deteniendo ${profileIds.length} perfiles activos...`);
+        
+        for (let i = 0; i < profileIds.length; i++) {
+            const profileId = profileIds[i];
+            
             try {
                 await this.stopProfile(profileId);
+                
+                // Agregar delay entre peticiones para evitar rate limiting
+                // Solo si no es el último perfil
+                if (i < profileIds.length - 1) {
+                    const delay = this.calculateStopDelay(profileIds.length);
+                    console.log(`⏳ Esperando ${delay}ms antes del siguiente perfil...`);
+                    await this.sleep(delay);
+                }
+                
             } catch (error) {
                 console.error(`Error deteniendo perfil ${profileId}:`, error.message);
+                
+                // Si hay error de rate limiting, esperar más tiempo
+                if (error.message.includes('Too many request') || error.message.includes('rate limit')) {
+                    console.log('⚠️ Rate limit detectado, esperando más tiempo...');
+                    await this.sleep(2000); // 2 segundos adicionales
+                }
             }
         }
         
         this.activeBrowsers.clear();
+        console.log('✅ Todos los perfiles han sido procesados');
+    }
+
+    /**
+     * Calcula el delay apropiado entre detener perfiles
+     * @param {number} totalProfiles - Total de perfiles a detener
+     * @returns {number} Delay en millisegundos
+     */
+    calculateStopDelay(totalProfiles) {
+        // Más delay si hay más perfiles para evitar saturar la API
+        if (totalProfiles <= 2) return 500;        // 0.5 segundos
+        if (totalProfiles <= 5) return 800;        // 0.8 segundos  
+        if (totalProfiles <= 10) return 1200;      // 1.2 segundos
+        return 1500;                               // 1.5 segundos para muchos perfiles
+    }
+
+    /**
+     * Utilidad para pausas
+     * @param {number} ms - Millisegundos a esperar
+     */
+    async sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
