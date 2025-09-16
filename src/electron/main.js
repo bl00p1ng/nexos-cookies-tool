@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import Store from 'electron-store';
 import axios from 'axios';
+import dotenv from 'dotenv';
 
 // Importar servicios del core
 import ConfigManager from '../core/config/ConfigManager.js';
@@ -23,7 +24,10 @@ class ElectronApp {
         this.isAuthenticated = false;
         this.userToken = null;
         this.userData = null;
-        this.authBackendUrl = process.env.AUTH_BACKEND_URL || 'http://localhost:3001';
+
+        // Cargar variables de entorno
+        dotenv.config();
+        this.authBackendUrl = process.env.AUTH_BACKEND_URL;
         
         // Store para persistir configuración y autenticación
         this.store = new Store({
@@ -59,6 +63,11 @@ class ElectronApp {
     async initialize() {
         try {
             console.log('🚀 Iniciando Cookies Hexzor...');
+
+            // Verificar que la URL del backend esté configurada
+            if (!this.authBackendUrl) {
+                throw new Error('La URL del backend de autenticación no está configurada. Por favor revisa el archivo .env');
+            }
 
             // Configurar eventos de la aplicación
             this.setupAppEvents();
@@ -392,6 +401,7 @@ class ElectronApp {
      * Limpia toda la información de autenticación guardada
      */
     clearStoredAuth() {
+        // Usar delete() en lugar de set con undefined
         this.store.delete('authToken');
         this.store.delete('lastEmail');
         this.store.delete('subscriptionEnd');
@@ -452,7 +462,7 @@ class ElectronApp {
             
             return { 
                 success: false, 
-                error: 'Error de conexión. Verifica tu internet e intenta nuevamente.' 
+                error: 'Se ha presentado un error. Por favor intenta nuevamente.' 
             };
         }
     }
@@ -464,32 +474,37 @@ class ElectronApp {
         try {
             console.log('🔐 Verificando código para:', email);
 
-            const response = await axios.post(`${this.authBackendUrl}/api/auth/verify-code`, {
-                email: email,
-                code: code
-            }, {
+            const requestData = { email: email, code: code };
+            console.log('Enviando a backend:', requestData);
+
+            const response = await axios.post(`${this.authBackendUrl}/api/auth/verify-code`, requestData, {
                 timeout: 10000,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
 
+            console.log('🔐 Respuesta del backend:', response.data);
+
             if (response.data.success) {
-                const { token, user, subscription } = response.data;
+                const { data } = response.data;
+                const token = data.token;
+                const user = data.user;
                 
                 // Calcular fecha de expiración del token (30 días)
                 const tokenExpiry = new Date();
                 tokenExpiry.setDate(tokenExpiry.getDate() + 30);
                 
-                // Guardar en store
+                // Guardar en store usando set()
                 this.store.set('authToken', token);
                 this.store.set('lastEmail', email);
                 this.store.set('tokenExpiry', tokenExpiry.toISOString());
                 
-                if (subscription) {
-                    this.store.set('subscriptionEnd', subscription.subscriptionEnd);
-                    this.store.set('customerName', subscription.customerName);
-                    this.store.set('customerId', subscription.customerId);
+                if (user.subscriptionEnd) {
+                    this.store.set('subscriptionEnd', user.subscriptionEnd);
+                }
+                if (user.name) {
+                    this.store.set('customerName', user.name);
                 }
                 
                 // Actualizar estado
@@ -497,9 +512,8 @@ class ElectronApp {
                 this.userToken = token;
                 this.userData = {
                     email: email,
-                    customerName: subscription?.customerName,
-                    customerId: subscription?.customerId,
-                    subscriptionEnd: subscription?.subscriptionEnd
+                    customerName: user.name,
+                    subscriptionEnd: user.subscriptionEnd
                 };
                 
                 console.log('✅ Autenticación exitosa para:', email);
@@ -535,7 +549,7 @@ class ElectronApp {
             
             return { 
                 success: false, 
-                error: 'Error de conexión. Verifica tu internet e intenta nuevamente.' 
+                error: 'Se ha presentado un error. Por favor intenta nuevamente.'
             };
         }
     }
