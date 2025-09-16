@@ -358,6 +358,14 @@ class ElectronApp {
                 this.store.set('authToken', result.data.token);
                 this.store.set('lastEmail', email);
 
+                console.log('🔑 Verificación exitosa, enviando auth:authenticated...');
+                this.mainWindow.webContents.send('auth:authenticated', {
+                    email: email,
+                    user: result.data.user,
+                    token: result.data.token
+                });
+                console.log('📨 Mensaje auth:authenticated enviado');
+
                 return { 
                     success: true, 
                     user: result.data.user,
@@ -426,7 +434,7 @@ class ElectronApp {
      */
     async checkAdsPowerStatus() {
         try {
-            const status = await this.adsPowerManager.checkApiStatus();
+            const status = await this.adsPowerManager.checkAdsPowerStatus();
             return { success: true, status };
         } catch (error) {
             return { success: false, error: error.message };
