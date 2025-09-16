@@ -1,4 +1,4 @@
-# Nexos Cookies Tool
+# Cookies Hexzor
 
 Aplicación de escritorio para Windows y Mac OS que se integra con el navegador de Ads Power de forma que abra perfiles del navegador y navegue por una serie de sitios web con el fin de solictar cookies
 

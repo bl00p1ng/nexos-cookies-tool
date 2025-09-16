@@ -1,5 +1,5 @@
 /**
- * Gestor de Autenticación para Nexos Cookies Tool
+ * Gestor de Autenticación para Cookies Hexzor
  * Maneja el flujo de login con email y código de verificación
  */
 class AuthManager {

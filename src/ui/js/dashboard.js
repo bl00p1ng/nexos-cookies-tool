@@ -1,5 +1,5 @@
 /**
- * Gestor del Dashboard de Nexos Cookies Tool
+ * Gestor del Dashboard de Cookies Hexzor
  * Maneja la navegación entre secciones y la interfaz principal
  */
 class DashboardManager {

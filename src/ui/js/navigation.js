@@ -1,5 +1,5 @@
 /**
- * Gestor de Navegación para Nexos Cookies Tool
+ * Gestor de Navegación para Cookies Hexzor
  * Maneja el estado y progreso de las sesiones de navegación
  */
 class NavigationManager {

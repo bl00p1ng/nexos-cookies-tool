@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 /**
- * Script de preload para Nexos Cookies Tool
+ * Script de preload para Cookies Hexzor
  * Expone APIs seguras del proceso principal al renderer
  */
 

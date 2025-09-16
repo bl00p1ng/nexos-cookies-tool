@@ -1,5 +1,5 @@
 /**
- * Aplicación principal de Nexos Cookies Tool
+ * Aplicación principal de Cookies Hexzor
  * Maneja la inicialización y coordinación de todos los módulos
  */
 class NexosApp {
@@ -49,7 +49,7 @@ class NexosApp {
      */
     async initialize() {
         try {
-            console.log('🚀 Inicializando Nexos Cookies Tool...');
+            console.log('🚀 Inicializando Cookies Hexzor...');
 
             // Inicializar referencias DOM
             this.initializeElements();

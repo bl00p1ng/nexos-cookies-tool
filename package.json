@@ -35,7 +35,7 @@
   },
   "build": {
     "appId": "com.nexos.cookies-tool",
-    "productName": "Nexos Cookies Tool",
+    "productName": "Cookies Hexzor",
     "directories": {
         "output": "dist"
     },

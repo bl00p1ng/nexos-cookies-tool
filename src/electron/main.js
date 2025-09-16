@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
- * Proceso principal de Electron para Nexos Cookies Tool
+ * Proceso principal de Electron para Cookies Hexzor
  * Maneja la ventana principal, autenticación persistente y coordinación con el core
  */
 class ElectronApp {
@@ -58,7 +58,7 @@ class ElectronApp {
      */
     async initialize() {
         try {
-            console.log('🚀 Iniciando Nexos Cookies Tool...');
+            console.log('🚀 Iniciando Cookies Hexzor...');
 
             // Configurar eventos de la aplicación
             this.setupAppEvents();
@@ -780,8 +780,8 @@ class ElectronApp {
     showAboutDialog() {
         dialog.showMessageBox(this.mainWindow, {
             type: 'info',
-            title: 'Acerca de Nexos Cookies Tool',
-            message: 'Nexos Cookies Tool v1.0.0',
+            title: 'Acerca de Cookies Hexzor',
+            message: 'Cookies Hexzor v1.0.0',
             detail: 'Sistema automatizado para calentar contingencias\n© 2025 Todos los derechos reservados.'
         });
     }
