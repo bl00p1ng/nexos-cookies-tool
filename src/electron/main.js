@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import Store from 'electron-store';
+import axios from 'axios';
 
 // Importar servicios del core
 import ConfigManager from '../core/config/ConfigManager.js';
@@ -14,7 +15,7 @@ const __dirname = dirname(__filename);
 
 /**
  * Proceso principal de Electron para Nexos Cookies Tool
- * Maneja la ventana principal, autenticación y coordinación con el core
+ * Maneja la ventana principal, autenticación persistente y coordinación con el core
  */
 class ElectronApp {
     constructor() {
@@ -22,12 +23,17 @@ class ElectronApp {
         this.isAuthenticated = false;
         this.userToken = null;
         this.userData = null;
+        this.authBackendUrl = process.env.AUTH_BACKEND_URL || 'http://localhost:3001';
         
-        // Store para persistir configuración
+        // Store para persistir configuración y autenticación
         this.store = new Store({
             schema: {
                 authToken: { type: 'string' },
                 lastEmail: { type: 'string' },
+                subscriptionEnd: { type: 'string' },
+                tokenExpiry: { type: 'string' },
+                customerName: { type: 'string' },
+                customerId: { type: 'string' },
                 windowBounds: {
                     type: 'object',
                     properties: {
@@ -81,21 +87,21 @@ class ElectronApp {
             this.createApplicationMenu();
         });
 
-        // Cuando todas las ventanas se cierran
+        // Cuando todas las ventanas estén cerradas
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') {
                 app.quit();
             }
         });
 
-        // Cuando la app se activa (macOS)
+        // Al activar (macOS)
         app.on('activate', () => {
             if (BrowserWindow.getAllWindows().length === 0) {
                 this.createMainWindow();
             }
         });
 
-        // Antes de cerrar la aplicación
+        // Antes de cerrar
         app.on('before-quit', async () => {
             await this.cleanup();
         });
@@ -105,49 +111,44 @@ class ElectronApp {
      * Crea la ventana principal
      */
     createMainWindow() {
-        // Recuperar bounds guardados o usar valores por defecto
-        const defaultBounds = { width: 1200, height: 800, x: undefined, y: undefined };
-        const savedBounds = this.store.get('windowBounds', defaultBounds);
+        // Obtener bounds guardados o usar valores por defecto
+        const bounds = this.store.get('windowBounds', {
+            width: 1200,
+            height: 800,
+            x: undefined,
+            y: undefined
+        });
 
+        // Crear ventana principal
         this.mainWindow = new BrowserWindow({
-            ...savedBounds,
+            ...bounds,
             minWidth: 800,
             minHeight: 600,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                enableRemoteModule: false,
                 preload: join(__dirname, 'preload.js')
             },
-            icon: join(__dirname, '../assets/icon.png'),
-            show: false,
-            titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default'
+            titleBarStyle: 'default',
+            show: false // No mostrar hasta que esté lista
         });
 
-        // Cargar interfaz de usuario
+        // Cargar interfaz
         this.mainWindow.loadFile(join(__dirname, '../ui/index.html'));
 
-        // Mostrar cuando esté listo
+        // Mostrar cuando esté lista
         this.mainWindow.once('ready-to-show', () => {
             this.mainWindow.show();
-            
-            // Verificar autenticación al inicio
             this.checkExistingAuth();
         });
 
-        // Guardar posición de ventana al cerrar
+        // Guardar bounds al cerrar
         this.mainWindow.on('close', () => {
             const bounds = this.mainWindow.getBounds();
             this.store.set('windowBounds', bounds);
         });
 
-        // Abrir enlaces externos en navegador por defecto
-        this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            shell.openExternal(url);
-            return { action: 'deny' };
-        });
-
-        // Configurar para desarrollo
+        // Para desarrollo: abrir DevTools automáticamente
         if (process.env.NODE_ENV === 'development') {
             this.mainWindow.webContents.openDevTools();
         }
@@ -162,8 +163,8 @@ class ElectronApp {
                 label: 'Archivo',
                 submenu: [
                     {
-                        label: 'Cerrar Sesión',
-                        accelerator: 'CmdOrCtrl+L',
+                        label: 'Cerrar sesión',
+                        accelerator: process.platform === 'darwin' ? 'Cmd+L' : 'Ctrl+L',
                         click: () => this.handleLogout()
                     },
                     { type: 'separator' },
@@ -266,189 +267,349 @@ class ElectronApp {
     }
 
     /**
-     * Verifica autenticación existente al inicio
+     * Verifica autenticación existente al inicio de la aplicación
+     * Solo pide re-autenticación si es necesario
      */
     async checkExistingAuth() {
         try {
-            const token = this.store.get('authToken');
-            const lastEmail = this.store.get('lastEmail');
+            console.log('🔐 Verificando autenticación existente...');
 
-            if (token) {
-                // Validar token con el backend
-                const isValid = await this.validateToken(token);
-                if (isValid) {
-                    this.isAuthenticated = true;
-                    this.userToken = token;
-                    this.mainWindow.webContents.send('auth:authenticated', {
-                        email: lastEmail,
-                        token: token
-                    });
+            const storedToken = this.store.get('authToken');
+            const storedEmail = this.store.get('lastEmail');
+            const tokenExpiry = this.store.get('tokenExpiry');
+            const subscriptionEnd = this.store.get('subscriptionEnd');
+
+            // Si no hay token guardado, mostrar login
+            if (!storedToken || !storedEmail) {
+                console.log('📝 No hay sesión guardada, mostrando login');
+                this.mainWindow.webContents.send('auth:show-login');
+                return;
+            }
+
+            // Verificar si el token ha expirado (tokens válidos por 30 días)
+            if (tokenExpiry) {
+                const expiryDate = new Date(tokenExpiry);
+                const now = new Date();
+                
+                if (now > expiryDate) {
+                    console.log('⏰ Token expirado, requiere nueva autenticación');
+                    this.clearStoredAuth();
+                    this.mainWindow.webContents.send('auth:show-login');
                     return;
                 }
             }
 
-            // Si no hay token válido, mostrar pantalla de login
-            this.mainWindow.webContents.send('auth:show-login');
+            // Verificar si la suscripción ha expirado
+            if (subscriptionEnd) {
+                const subEndDate = new Date(subscriptionEnd);
+                const now = new Date();
+                
+                if (now > subEndDate) {
+                    console.log('📅 Suscripción expirada, requiere nueva autenticación');
+                    this.clearStoredAuth();
+                    this.mainWindow.webContents.send('auth:show-login');
+                    return;
+                }
+            }
+
+            // Validar token con el backend
+            const isValidToken = await this.validateTokenWithBackend(storedToken, storedEmail);
+            
+            if (isValidToken.success) {
+                // Token válido y suscripción activa
+                this.isAuthenticated = true;
+                this.userToken = storedToken;
+                this.userData = {
+                    email: storedEmail,
+                    customerName: this.store.get('customerName'),
+                    customerId: this.store.get('customerId'),
+                    subscriptionEnd: subscriptionEnd
+                };
+                
+                console.log('✅ Sesión restaurada automáticamente para:', storedEmail);
+                
+                this.mainWindow.webContents.send('auth:authenticated', {
+                    email: storedEmail,
+                    token: storedToken,
+                    user: this.userData
+                });
+                
+            } else {
+                // Token inválido o suscripción inactiva
+                console.log('❌ Token inválido o suscripción inactiva:', isValidToken.error);
+                this.clearStoredAuth();
+                this.mainWindow.webContents.send('auth:show-login');
+            }
 
         } catch (error) {
             console.error('Error verificando autenticación:', error.message);
+            this.clearStoredAuth();
             this.mainWindow.webContents.send('auth:show-login');
         }
     }
 
     /**
-     * Maneja solicitud de código de acceso
+     * Valida un token guardado con el backend de autenticación
+     */
+    async validateTokenWithBackend(token, email) {
+        try {
+            const response = await axios.post(`${this.authBackendUrl}/api/auth/validate-token`, {
+                token: token,
+                email: email
+            }, {
+                timeout: 10000,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.data.success) {
+                // Actualizar información de suscripción si ha cambiado
+                const subscriptionData = response.data.subscription;
+                if (subscriptionData && subscriptionData.subscriptionEnd) {
+                    this.store.set('subscriptionEnd', subscriptionData.subscriptionEnd);
+                    this.store.set('customerName', subscriptionData.customerName);
+                    this.store.set('customerId', subscriptionData.customerId);
+                }
+                
+                return { success: true };
+            } else {
+                return { success: false, error: response.data.error || 'Token inválido' };
+            }
+
+        } catch (error) {
+            if (error.response && error.response.status === 401) {
+                return { success: false, error: 'Token expirado o inválido' };
+            }
+            
+            console.error('Error validando token:', error.message);
+            return { success: false, error: 'Error de conexión con servidor de autenticación' };
+        }
+    }
+
+    /**
+     * Limpia toda la información de autenticación guardada
+     */
+    clearStoredAuth() {
+        this.store.delete('authToken');
+        this.store.delete('lastEmail');
+        this.store.delete('subscriptionEnd');
+        this.store.delete('tokenExpiry');
+        this.store.delete('customerName');
+        this.store.delete('customerId');
+        
+        this.isAuthenticated = false;
+        this.userToken = null;
+        this.userData = null;
+    }
+
+    //#region AUTENTICACIÓN
+    /**
+     * Solicita código de verificación al backend
      */
     async handleRequestCode(event, email) {
         try {
-            console.log(`📧 Solicitando código para: ${email}`);
+            console.log('📧 Solicitando código para:', email);
 
-            // Hacer petición al backend de autenticación
-            const response = await fetch('http://localhost:3001/api/auth/request-code', {
-                method: 'POST',
+            const response = await axios.post(`${this.authBackendUrl}/api/auth/request-code`, {
+                email: email
+            }, {
+                timeout: 15000,
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email })
+                    'Content-Type': 'application/json'
+                }
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                // Guardar email para recordar
-                this.store.set('lastEmail', email);
-                return { success: true, message: result.message };
+            if (response.data.success) {
+                console.log('✅ Código enviado exitosamente');
+                return { 
+                    success: true, 
+                    message: response.data.message || 'Código enviado a tu email' 
+                };
             } else {
-                return { success: false, error: result.error };
+                return { 
+                    success: false, 
+                    error: response.data.error || 'Error enviando código'
+                };
             }
 
         } catch (error) {
             console.error('Error solicitando código:', error.message);
+            
+            if (error.response) {
+                const status = error.response.status;
+                const errorMsg = error.response.data?.error || 'Error del servidor';
+                
+                if (status === 404) {
+                    return { success: false, error: 'Email no encontrado o sin suscripción activa' };
+                } else if (status === 429) {
+                    return { success: false, error: 'Demasiados intentos. Intenta más tarde' };
+                } else {
+                    return { success: false, error: errorMsg };
+                }
+            }
+            
             return { 
                 success: false, 
-                error: 'Error de conexión. Verifica que el servidor de autenticación esté ejecutándose.' 
+                error: 'Error de conexión. Verifica tu internet e intenta nuevamente.' 
             };
         }
     }
 
     /**
-     * Maneja verificación de código
+     * Verifica código de acceso con el backend
      */
     async handleVerifyCode(event, email, code) {
         try {
-            console.log(`🔑 Verificando código para: ${email}`);
+            console.log('🔐 Verificando código para:', email);
 
-            // TODO: Reemplazar URL con la del backend real
-            const response = await fetch('http://localhost:3001/api/auth/verify-code', {
-                method: 'POST',
+            const response = await axios.post(`${this.authBackendUrl}/api/auth/verify-code`, {
+                email: email,
+                code: code
+            }, {
+                timeout: 10000,
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, code })
+                    'Content-Type': 'application/json'
+                }
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                // Guardar token y datos de usuario
-                this.isAuthenticated = true;
-                this.userToken = result.data.token;
-                this.userData = result.data.user;
+            if (response.data.success) {
+                const { token, user, subscription } = response.data;
                 
-                this.store.set('authToken', result.data.token);
+                // Calcular fecha de expiración del token (30 días)
+                const tokenExpiry = new Date();
+                tokenExpiry.setDate(tokenExpiry.getDate() + 30);
+                
+                // Guardar en store
+                this.store.set('authToken', token);
                 this.store.set('lastEmail', email);
-
-                console.log('🔑 Verificación exitosa, enviando auth:authenticated...');
-                this.mainWindow.webContents.send('auth:authenticated', {
+                this.store.set('tokenExpiry', tokenExpiry.toISOString());
+                
+                if (subscription) {
+                    this.store.set('subscriptionEnd', subscription.subscriptionEnd);
+                    this.store.set('customerName', subscription.customerName);
+                    this.store.set('customerId', subscription.customerId);
+                }
+                
+                // Actualizar estado
+                this.isAuthenticated = true;
+                this.userToken = token;
+                this.userData = {
                     email: email,
-                    user: result.data.user,
-                    token: result.data.token
-                });
-                console.log('📨 Mensaje auth:authenticated enviado');
-
+                    customerName: subscription?.customerName,
+                    customerId: subscription?.customerId,
+                    subscriptionEnd: subscription?.subscriptionEnd
+                };
+                
+                console.log('✅ Autenticación exitosa para:', email);
+                
                 return { 
                     success: true, 
-                    user: result.data.user,
-                    token: result.data.token
+                    token,
+                    user: this.userData
                 };
+                
             } else {
-                return { success: false, error: result.error };
+                return { 
+                    success: false, 
+                    error: response.data.error || 'Código inválido' 
+                };
             }
 
         } catch (error) {
             console.error('Error verificando código:', error.message);
+            
+            if (error.response) {
+                const status = error.response.status;
+                const errorMsg = error.response.data?.error || 'Error del servidor';
+                
+                if (status === 401) {
+                    return { success: false, error: 'Código inválido o expirado' };
+                } else if (status === 429) {
+                    return { success: false, error: 'Demasiados intentos. Intenta más tarde' };
+                } else {
+                    return { success: false, error: errorMsg };
+                }
+            }
+            
             return { 
                 success: false, 
-                error: 'Error de conexión con el servidor de autenticación.' 
+                error: 'Error de conexión. Verifica tu internet e intenta nuevamente.' 
             };
         }
     }
 
     /**
-     * Valida token con el backend
+     * Cierra sesión del usuario (manual)
      */
-    async validateToken(token) {
+    async handleLogout() {
         try {
-            // TODO: Reemplazar URL con la del backend real
-            const response = await fetch('http://localhost:3001/api/auth/validate-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ token })
-            });
-
-            return response.ok;
+            console.log('👋 Cerrando sesión...');
+            
+            // Intentar notificar al backend (opcional, no falla si no se puede)
+            try {
+                if (this.userToken) {
+                    await axios.post(`${this.authBackendUrl}/api/auth/logout`, {}, {
+                        timeout: 5000,
+                        headers: {
+                            'Authorization': `Bearer ${this.userToken}`
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn('No se pudo notificar logout al backend:', error.message);
+            }
+            
+            // Limpiar estado local
+            this.clearStoredAuth();
+            
+            // Notificar a la UI
+            this.mainWindow.webContents.send('auth:logged-out');
+            
+            console.log('✅ Sesión cerrada exitosamente');
+            
+            return { success: true };
 
         } catch (error) {
-            console.error('Error validando token:', error.message);
-            return false;
+            console.error('Error cerrando sesión:', error.message);
+            return { success: false, error: error.message };
         }
     }
 
     /**
-     * Maneja logout
+     * Obtiene estado de autenticación actual
      */
-    async handleLogout() {
-        this.isAuthenticated = false;
-        this.userToken = null;
-        this.userData = null;
-        
-        this.store.delete('authToken');
-        
-        this.mainWindow.webContents.send('auth:logged-out');
-    }
-
-    /**
-     * Obtiene estado de autenticación
-     */
-    getAuthStatus() {
+    async getAuthStatus() {
         return {
             isAuthenticated: this.isAuthenticated,
             user: this.userData
         };
     }
+    //#endregion AUTENTICACIÓN
 
+    //#region ADS POWER
     /**
      * Verifica estado de Ads Power
      */
     async checkAdsPowerStatus() {
         try {
-            const status = await this.adsPowerManager.checkAdsPowerStatus();
-            return { success: true, status };
+            const isAvailable = await this.adsPowerManager.checkAdsPowerStatus();
+            return { success: true, available: isAvailable };
         } catch (error) {
             return { success: false, error: error.message };
         }
     }
 
     /**
-     * Lista perfiles de Ads Power
+     * Lista perfiles disponibles de Ads Power
      */
     async listAdsPowerProfiles() {
         try {
             const profiles = await this.adsPowerManager.getAvailableProfiles();
             return { success: true, profiles };
         } catch (error) {
+            console.error('Error listando perfiles:', error.message);
             return { success: false, error: error.message };
         }
     }
@@ -464,7 +625,9 @@ class ElectronApp {
             return { success: false, error: error.message };
         }
     }
+    //#endregion ADS POWER
 
+    //#region NAVEGACIÓN
     /**
      * Inicia navegación
      */
@@ -502,17 +665,19 @@ class ElectronApp {
     }
 
     /**
-     * Obtiene estado de navegación
+     * Obtiene estado actual de navegación
      */
-    getNavigationStatus() {
+    async getNavigationStatus() {
         try {
-            const status = this.navigationController.getGlobalStats();
+            const status = await this.navigationController.getSessionsStatus();
             return { success: true, status };
         } catch (error) {
             return { success: false, error: error.message };
         }
     }
+    //#endregion NAVEGACIÓN
 
+    //#region DB
     /**
      * Obtiene estadísticas de base de datos
      */
@@ -536,12 +701,19 @@ class ElectronApp {
             return { success: false, error: error.message };
         }
     }
+    //#endregion DB
 
+    //#region CONFIGURACIÓN
     /**
      * Obtiene configuración
      */
-    getConfiguration() {
-        return this.configManager.getConfig();
+    async getConfiguration() {
+        try {
+            const config = this.configManager.getConfig();
+            return { success: true, config };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
     }
 
     /**
@@ -559,7 +731,9 @@ class ElectronApp {
             return { success: false, error: error.message };
         }
     }
+    //#endregion CONFIGURACIÓN
 
+    //#region SISTEMA
     /**
      * Muestra carpeta de datos
      */
@@ -638,6 +812,7 @@ class ElectronApp {
         }
     }
 }
+//#endregion SISTEMA
 
 // Inicializar aplicación
 const electronApp = new ElectronApp();
