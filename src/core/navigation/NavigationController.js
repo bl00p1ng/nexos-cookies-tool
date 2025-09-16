@@ -743,6 +743,24 @@ class NavigationController {
     }
 
     /**
+     * Detiene todas las sesiones activas
+     */
+    stopAllSessions() {
+        // Detener todas las sesiones activas
+        this.activeSessions.forEach(async (session, profileId) => {
+            try {
+                console.log(`🛑 Deteniendo sesión de perfil ${profileId}...`);
+                await this.cleanupProfile(profileId, null);
+                console.log(`✅ Sesión de perfil ${profileId} detenida`);
+            } catch (error) {
+                console.warn(`⚠️ Error deteniendo perfil ${profileId}:`, error.message);
+            }
+        });
+        
+        this.activeSessions.clear();
+    }
+
+    /**
      * Genera número aleatorio entre min y max
      */
     randomBetween(min, max) {
