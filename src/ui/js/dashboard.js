@@ -30,6 +30,9 @@ class DashboardManager {
             profiles: [],
             navigationRunning: false
         };
+
+        // Instancia del gestor de perfiles
+        this.profileInputManager = new ProfileInputManager();
     }
 
     /**
@@ -44,6 +47,8 @@ class DashboardManager {
             this.updateUserInfo();
             await this.loadInitialData();
             this.showSection('automation');
+
+            this.profileInputManager.initialize();
             
             this.initialized = true;
             console.log('✅ Dashboard inicializado');
@@ -221,6 +226,14 @@ class DashboardManager {
             this.app.showError('Error de conexión al cargar perfiles');
             this.clearProfiles();
         }
+    }
+
+    /**
+     * Obtener los perfiles seleccionados por el usuario
+     * @returns {Array} Array de IDs de perfiles seleccionados
+     */
+    getSelectedProfiles() {
+        return this.profileInputManager.getValidProfileIds();
     }
 
     /**

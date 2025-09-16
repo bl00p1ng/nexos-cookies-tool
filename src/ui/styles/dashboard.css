@@ -705,6 +705,231 @@
     font-size: var(--font-size-sm);
 }
 
+/* Sección de perfiles */
+.profiles-section {
+    margin-bottom: var(--spacing-8);
+}
+
+.profiles-section h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--nexos-gray-800);
+    margin: 0 0 var(--spacing-2);
+}
+
+.section-description {
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-600);
+    margin: 0 0 var(--spacing-6);
+}
+
+/* Contenedor principal de inputs */
+.profile-input-container {
+    background: var(--nexos-white);
+    border: 1px solid var(--nexos-gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-6);
+}
+
+/* Lista de inputs de perfiles */
+.profile-inputs {
+    margin-bottom: var(--spacing-6);
+}
+
+/* Input individual de perfil */
+.profile-input-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-4);
+    padding: var(--spacing-4);
+    background: var(--nexos-gray-50);
+    border: 1px solid var(--nexos-gray-200);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.profile-input-item:hover {
+    border-color: var(--nexos-blue-light);
+    background: var(--nexos-blue-50);
+}
+
+.profile-input-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Input del ID de perfil */
+.profile-id-input {
+    flex: 1;
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-size-base);
+    border: 1px solid var(--nexos-gray-300);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+.profile-id-input:focus {
+    border-color: var(--nexos-blue);
+    box-shadow: 0 0 0 3px var(--nexos-blue-light);
+    outline: none;
+}
+
+.profile-id-input::placeholder {
+    color: var(--nexos-gray-500);
+    font-family: inherit;
+}
+
+/* Etiqueta del número */
+.profile-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--nexos-blue);
+    color: var(--nexos-white);
+    border-radius: 50%;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Botón de eliminar perfil */
+.remove-profile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--nexos-gray-300);
+    border-radius: 50%;
+    color: var(--nexos-gray-500);
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.remove-profile-btn:hover {
+    background: var(--nexos-error);
+    border-color: var(--nexos-error);
+    color: var(--nexos-white);
+}
+
+/* Acciones de perfiles */
+.profile-actions {
+    display: flex;
+    gap: var(--spacing-3);
+    padding-bottom: var(--spacing-6);
+    border-bottom: 1px solid var(--nexos-gray-200);
+    margin-bottom: var(--spacing-6);
+}
+
+.profile-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-size-sm);
+}
+
+/* Resumen de perfiles */
+.profile-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-4);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--nexos-gray-50);
+    border-radius: var(--border-radius);
+}
+
+.summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-600);
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: var(--font-size-base);
+    color: var(--nexos-gray-800);
+    font-weight: 600;
+}
+
+/* Estados especiales */
+.profile-input-item.error {
+    border-color: var(--nexos-error);
+    background: var(--nexos-error-light);
+}
+
+.profile-input-item.error .profile-id-input {
+    border-color: var(--nexos-error);
+}
+
+/* Mensaje cuando no hay perfiles */
+.no-profiles-message {
+    text-align: center;
+    padding: var(--spacing-8) var(--spacing-4);
+    color: var(--nexos-gray-500);
+    background: var(--nexos-gray-50);
+    border: 2px dashed var(--nexos-gray-300);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-6);
+}
+
+.no-profiles-message svg {
+    margin-bottom: var(--spacing-3);
+    color: var(--nexos-gray-400);
+}
+
+/* Validación visual */
+.profile-id-input.valid {
+    border-color: var(--nexos-success);
+    background: var(--nexos-success-light);
+}
+
+.profile-id-input.invalid {
+    border-color: var(--nexos-error);
+    background: var(--nexos-error-light);
+}
+
+/* Animaciones */
+.profile-input-item {
+    animation: slideInProfile 0.3s ease-out;
+}
+
+@keyframes slideInProfile {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-input-item.removing {
+    animation: slideOutProfile 0.2s ease-in forwards;
+}
+
+@keyframes slideOutProfile {
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-color: transparent;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .dashboard-sidebar {
