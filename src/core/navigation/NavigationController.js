@@ -745,7 +745,7 @@ class NavigationController {
     /**
      * Detiene todas las sesiones activas
      */
-    stopAllSessions() {
+    async stopAllSessions() {
         // Detener todas las sesiones activas
         this.activeSessions.forEach(async (session, profileId) => {
             try {
