@@ -446,7 +446,7 @@ class ElectronApp {
      */
     async listAdsPowerProfiles() {
         try {
-            const profiles = await this.adsPowerManager.listProfiles();
+            const profiles = await this.adsPowerManager.getAvailableProfiles();
             return { success: true, profiles };
         } catch (error) {
             return { success: false, error: error.message };
