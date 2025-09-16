@@ -312,10 +312,6 @@ class DashboardManager {
                 </svg>
                 <div>
                     <div><strong>Ads Power Conectado</strong></div>
-                    <div style="font-size: 12px; opacity: 0.8;">
-                        Puerto: ${status.port || 50325} | 
-                        Versión: ${status.version || 'Desconocida'}
-                    </div>
                 </div>
             </div>
         `;
