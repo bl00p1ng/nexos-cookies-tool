@@ -10,6 +10,10 @@ class AuthManager {
         this.resendTimer = null;
         this.resendCountdown = 60;
 
+        // Flags para prevenir llamadas duplicadas
+        this.isRequestingCode = false;
+        this.isVerifyingCode = false;
+
         // Referencias a elementos DOM
         this.elements = {
             emailForm: null,
@@ -35,7 +39,6 @@ class AuthManager {
         this.initializeElements();
         this.setupEventListeners();
         this.showEmailForm();
-        this.loadSavedEmail();
     }
 
     /**
@@ -71,28 +74,35 @@ class AuthManager {
      * Configura event listeners
      */
     setupEventListeners() {
-        // Formulario de email
+        // Limpiar listeners existentes si los hay
+        this.removeExistingListeners();
+
+        // Formulario de email 
         this.elements.emailForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.handleEmailSubmit();
-        });
+        }, { once: false });
 
         // Formulario de código
         this.elements.codeForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.handleCodeSubmit();
-        });
+        }, { once: false });
 
         // Botón volver al email
         if (this.elements.backToEmailBtn) {
-            this.elements.backToEmailBtn.addEventListener('click', () => {
+            this.elements.backToEmailBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.showEmailForm();
             });
         }
 
         // Botón reenviar código
         if (this.elements.resendCodeBtn) {
-            this.elements.resendCodeBtn.addEventListener('click', () => {
+            this.elements.resendCodeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.handleResendCode();
             });
         }
@@ -112,106 +122,153 @@ class AuthManager {
             this.clearError('code');
         });
 
-        // Enter en código pasa al siguiente campo o submit
-        this.elements.codeInput.addEventListener('keydown', (e) => {
+        // Enter key handlers
+        this.elements.emailInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleEmailSubmit();
+            }
+        });
+
+        this.elements.codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
                 this.handleCodeSubmit();
             }
         });
     }
 
     /**
-     * Carga email guardado del localStorage de Electron
+     * Remueve listeners existentes para evitar duplicados
      */
-    loadSavedEmail() {
-        // En Electron, el email se guarda automáticamente por el proceso principal
-        // Solo configuramos placeholder si no hay valor
-        if (!this.elements.emailInput.value) {
-            this.elements.emailInput.focus();
+    removeExistingListeners() {
+        // Clonar elementos para remover todos los listeners
+        if (this.elements.emailForm) {
+            const newEmailForm = this.elements.emailForm.cloneNode(true);
+            this.elements.emailForm.parentNode.replaceChild(newEmailForm, this.elements.emailForm);
+            this.elements.emailForm = newEmailForm;
         }
+
+        if (this.elements.codeForm) {
+            const newCodeForm = this.elements.codeForm.cloneNode(true);
+            this.elements.codeForm.parentNode.replaceChild(newCodeForm, this.elements.codeForm);
+            this.elements.codeForm = newCodeForm;
+        }
+
+        // Actualizar referencias después del clonado
+        this.initializeElements();
     }
 
     /**
-     * Maneja envío del formulario de email
+     * Maneja el envío del formulario de email
      */
     async handleEmailSubmit() {
-        const email = this.elements.emailInput.value.trim();
-        
-        if (!this.validateEmail(email)) {
-            this.showError('email', 'Por favor ingresa un email válido');
+        // Prevenir llamadas duplicadas
+        if (this.isRequestingCode) {
+            console.log('⚠️ Solicitud de código ya en progreso');
             return;
         }
 
-        this.currentEmail = email;
-        this.setButtonLoading(this.elements.requestCodeBtn, true);
-        this.clearError('email');
-
         try {
+            const email = this.elements.emailInput.value.trim();
+
+            // Validar email
+            if (!this.validateEmail(email)) {
+                this.showError('email', 'Por favor ingresa un email válido');
+                return;
+            }
+
+            this.clearError('email');
+            this.isRequestingCode = true;
+            this.setButtonLoading(this.elements.requestCodeBtn, true);
+
+            console.log('📧 Solicitando código para:', email);
+
+            // Llamar al backend a través de Electron
             const result = await window.electronAPI.auth.requestCode(email);
-            
+
             if (result.success) {
+                this.currentEmail = email;
                 this.showCodeForm();
-                this.app.showSuccess('Código enviado a tu email');
                 this.startResendTimer();
+                this.app.showSuccess(result.message || 'Código enviado a tu email');
             } else {
-                this.showError('email', result.error || 'Error solicitando código');
+                this.showError('email', result.error || 'Error enviando código');
             }
 
         } catch (error) {
             console.error('Error solicitando código:', error);
-            this.showError('email', 'Error de conexión. Verifica tu internet y que el servidor esté ejecutándose.');
-            
+            this.showError('email', 'Se ha presentado un Eror. Intenta nuevamente.');
         } finally {
+            this.isRequestingCode = false;
             this.setButtonLoading(this.elements.requestCodeBtn, false);
         }
     }
 
     /**
-     * Maneja envío del formulario de código
+     * Maneja el envío del formulario de código
      */
     async handleCodeSubmit() {
-        const code = this.elements.codeInput.value.trim();
-        
-        if (!this.validateCode(code)) {
-            this.showError('code', 'El código debe tener 8 caracteres');
+        // Prevenir llamadas duplicadas
+        if (this.isVerifyingCode) {
+            console.log('⚠️ Verificación de código ya en progreso');
             return;
         }
 
-        this.setButtonLoading(this.elements.verifyCodeBtn, true);
-        this.clearError('code');
-
         try {
+            const code = this.elements.codeInput.value.trim();
+
+            // Validar código
+            if (!this.validateCode(code)) {
+                this.showError('code', 'El código debe tener 8 caracteres');
+                return;
+            }
+
+            this.clearError('code');
+            this.isVerifyingCode = true;
+            this.setButtonLoading(this.elements.verifyCodeBtn, true);
+
+            console.log('🔐 Verificando código para:', this.currentEmail);
+
+            // Llamar al backend a través de Electron
             const result = await window.electronAPI.auth.verifyCode(this.currentEmail, code);
-            
+
             if (result.success) {
+                this.app.showSuccess('¡Autenticación exitosa!');
                 this.showSuccessScreen(result.user);
-                this.stopResendTimer();
                 
-                // La autenticación exitosa será manejada por el evento desde el proceso principal
-                // que llamará a app.handleAuthenticationSuccess()
-                
+                // Notificar a la app principal que la autenticación fue exitosa
+                this.app.handleAuthenticationSuccess({
+                    email: this.currentEmail,
+                    token: result.token,
+                    user: result.user
+                });
             } else {
-                this.showError('code', result.error || 'Código inválido o expirado');
-                this.elements.codeInput.value = '';
-                this.elements.codeInput.focus();
+                this.showError('code', result.error || 'Código inválido');
+                this.elements.codeInput.select(); // Seleccionar texto para fácil reemplazo
             }
 
         } catch (error) {
             console.error('Error verificando código:', error);
-            this.showError('code', 'Error de conexión con el servidor de autenticación');
-            
+            this.showError('code', 'Se ha presentado un error. Intenta nuevamente.');
         } finally {
+            this.isVerifyingCode = false;
             this.setButtonLoading(this.elements.verifyCodeBtn, false);
         }
     }
 
     /**
-     * Maneja reenvío de código
+     * Maneja el reenvío de código
      */
     async handleResendCode() {
-        if (this.resendTimer) return; // Timer activo
+        if (!this.currentEmail) {
+            this.showEmailForm();
+            return;
+        }
 
         try {
+            this.setButtonLoading(this.elements.resendCodeBtn, true);
+            
             const result = await window.electronAPI.auth.requestCode(this.currentEmail);
             
             if (result.success) {
@@ -224,6 +281,8 @@ class AuthManager {
         } catch (error) {
             console.error('Error reenviando código:', error);
             this.app.showError('Error de conexión');
+        } finally {
+            this.setButtonLoading(this.elements.resendCodeBtn, false);
         }
     }
 
@@ -268,7 +327,9 @@ class AuthManager {
     hideAllForms() {
         this.elements.emailForm.classList.add('hidden');
         this.elements.codeForm.classList.add('hidden');
-        this.elements.authSuccess.classList.add('hidden');
+        if (this.elements.authSuccess) {
+            this.elements.authSuccess.classList.add('hidden');
+        }
     }
 
     /**
@@ -296,23 +357,22 @@ class AuthManager {
             clearInterval(this.resendTimer);
             this.resendTimer = null;
         }
+        this.resendCountdown = 0;
         this.updateResendButton();
     }
 
     /**
-     * Actualiza estado del botón de reenvío
+     * Actualiza el botón de reenvío
      */
     updateResendButton() {
-        if (!this.elements.resendCodeBtn || !this.elements.resendTimer) return;
+        if (!this.elements.resendCodeBtn) return;
 
         if (this.resendCountdown > 0) {
             this.elements.resendCodeBtn.disabled = true;
-            this.elements.resendCodeBtn.textContent = `Reenviar código (${this.resendCountdown}s)`;
-            this.elements.resendTimer.textContent = this.resendCountdown;
+            this.elements.resendCodeBtn.textContent = `Reenviar en ${this.resendCountdown}s`;
         } else {
             this.elements.resendCodeBtn.disabled = false;
             this.elements.resendCodeBtn.textContent = 'Reenviar código';
-            this.elements.resendTimer.textContent = '0';
         }
     }
 
@@ -320,21 +380,11 @@ class AuthManager {
      * Formatea el código de verificación mientras se escribe
      */
     formatVerificationCode(input) {
-        // Permitir solo números y letras, máximo 8 caracteres
-        let value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        
+        let value = input.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
         if (value.length > 8) {
-            value = value.slice(0, 8);
+            value = value.substring(0, 8);
         }
-
         input.value = value;
-
-        // Auto-enviar cuando se completen 8 caracteres
-        if (value.length === 8) {
-            setTimeout(() => {
-                this.handleCodeSubmit();
-            }, 500);
-        }
     }
 
     /**
@@ -420,6 +470,8 @@ class AuthManager {
     reset() {
         this.currentStep = 'email';
         this.currentEmail = '';
+        this.isRequestingCode = false;
+        this.isVerifyingCode = false;
         this.stopResendTimer();
         this.clearAllErrors();
         
