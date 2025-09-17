@@ -136,7 +136,8 @@ class ElectronApp {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                preload: join(__dirname, 'preload.js')
+                preload: join(__dirname, 'preload.js'),
+                webSecurity: false
             },
             titleBarStyle: 'default',
             show: false // No mostrar hasta que esté lista
@@ -244,6 +245,17 @@ class ElectronApp {
         // Sistema
         ipcMain.handle('system:show-folder', this.showDataFolder.bind(this));
         ipcMain.handle('system:export-logs', this.exportLogs.bind(this));
+
+        // Portapapeles
+        ipcMain.handle('clipboard:read-text', () => {
+            const { clipboard } = require('electron');
+            return clipboard.readText();
+        });
+
+        ipcMain.handle('clipboard:write-text', (event, text) => {
+            const { clipboard } = require('electron');
+            clipboard.writeText(text);
+        });
     }
 
     /**

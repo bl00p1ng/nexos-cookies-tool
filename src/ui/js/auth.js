@@ -107,19 +107,9 @@ class AuthManager {
             });
         }
 
-        // Auto-formateo del código de verificación
-        this.elements.codeInput.addEventListener('input', (e) => {
-            this.formatVerificationCode(e.target);
-        });
-
         // Validación en tiempo real del email
         this.elements.emailInput.addEventListener('input', () => {
             this.clearError('email');
-        });
-
-        // Validación en tiempo real del código
-        this.elements.codeInput.addEventListener('input', () => {
-            this.clearError('code');
         });
 
         // Enter key handlers
@@ -135,6 +125,17 @@ class AuthManager {
                 e.preventDefault();
                 this.handleCodeSubmit();
             }
+        });
+
+        // Pegado desde portapapeles
+        this.elements.codeInput.addEventListener('paste', (e) => {
+            e.preventDefault();
+
+            console.log('📋 Pegando desde portapapeles');
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const formatted = pasteData.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
+            this.elements.codeInput.value = formatted;
+            this.clearError('code');
         });
     }
 
@@ -219,10 +220,10 @@ class AuthManager {
             const code = this.elements.codeInput.value.trim();
 
             // Validar código
-            if (!this.validateCode(code)) {
-                this.showError('code', 'El código debe tener 8 caracteres');
-                return;
-            }
+            // if (!this.validateCode(code)) {
+            //     this.showError('code', 'El código debe tener 8 caracteres');
+            //     return;
+            // }
 
             this.clearError('code');
             this.isVerifyingCode = true;
@@ -374,17 +375,6 @@ class AuthManager {
             this.elements.resendCodeBtn.disabled = false;
             this.elements.resendCodeBtn.textContent = 'Reenviar código';
         }
-    }
-
-    /**
-     * Formatea el código de verificación mientras se escribe
-     */
-    formatVerificationCode(input) {
-        let value = input.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
-        if (value.length > 8) {
-            value = value.substring(0, 8);
-        }
-        input.value = value;
     }
 
     /**

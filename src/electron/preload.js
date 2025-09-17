@@ -82,6 +82,12 @@ const electronAPI = {
 // Exponer API al contexto del renderer
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 
+// Exponer API del portapapeles al renderer
+contextBridge.exposeInMainWorld('clipboard', {
+    writeText: (text) => ipcRenderer.invoke('clipboard:write-text', text),
+    readText: () => ipcRenderer.invoke('clipboard:read-text')
+});
+
 // Logging seguro para desarrollo
 if (process.env.NODE_ENV === 'development') {
     contextBridge.exposeInMainWorld('electronLogger', {
