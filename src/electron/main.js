@@ -655,50 +655,281 @@ class ElectronApp {
 
     //#region NAVEGACIÓN
     /**
-     * Inicia navegación
-     */
+    * Inicia navegación
+    * @param {Object} event - Evento IPC
+    * @param {Object} config - Configuración de navegación
+    * @returns {Promise<Object>} Resultado de la operación
+    */
     async startNavigation(event, config) {
         try {
-            if (!this.isAuthenticated) {
-                throw new Error('Usuario no autenticado');
+            console.log('🚀 Iniciando navegación desde UI:', config);
+
+            // Validar configuración
+            if (!config.profileIds || config.profileIds.length === 0) {
+                return {
+                    success: false,
+                    error: 'Se requiere al menos un perfil de Ads Power'
+                };
             }
 
-            console.log('🚀 Iniciando navegación con configuración:', config);
+            // Parsear y validar perfiles
+            const profileIds = this.parseAndValidateProfiles(config.profileIds);
+            const targetCookies = parseInt(config.targetCookies) || 2500;
 
-            const result = await this.navigationController.startMultipleNavigationSessions(
-                config.profileIds,
-                config.targetCookies
+            console.log(`📋 Perfiles: ${profileIds.length}`);
+            console.log(`🎯 Objetivo por perfil: ${targetCookies} cookies`);
+            console.log(`📊 Total objetivo: ${targetCookies * profileIds.length} cookies`);
+
+            // Verificar que Ads Power esté disponible
+            const adsPowerStatus = await this.adsPowerManager.checkAdsPowerStatus();
+            if (!adsPowerStatus) {
+                return {
+                    success: false,
+                    error: 'Ads Power no está disponible. Verifica que esté ejecutándose.'
+                };
+            }
+
+            // Validar perfiles si se solicita
+            if (config.validateProfiles !== false) {
+                await this.validateProfilesForNavigation(profileIds);
+            }
+
+            // Verificar recursos del sistema
+            this.checkSystemResourcesForNavigation(profileIds.length);
+
+            // Configurar eventos de progreso para la UI
+            this.setupNavigationProgressEvents();
+
+            // Iniciar navegación usando el NavigationController
+            const navigationPromise = this.navigationController.startMultipleNavigationSessions(
+                profileIds,
+                targetCookies
             );
 
-            return { success: true, result };
+            // Notificar a la UI que la navegación ha comenzado
+            this.sendNavigationStatusUpdate({
+                status: 'starting',
+                profileIds: profileIds,
+                targetCookies: targetCookies,
+                timestamp: new Date().toISOString()
+            });
+
+            // Esperar el resultado en background y manejar la finalización
+            this.handleNavigationCompletion(navigationPromise, profileIds);
+
+            return {
+                success: true,
+                message: 'Navegación iniciada correctamente',
+                data: {
+                    profileIds: profileIds,
+                    targetCookies: targetCookies,
+                    totalTarget: targetCookies * profileIds.length
+                }
+            };
 
         } catch (error) {
-            console.error('Error iniciando navegación:', error.message);
-            return { success: false, error: error.message };
+            console.error('❌ Error iniciando navegación:', error.message);
+            
+            // Notificar error a la UI
+            this.sendNavigationStatusUpdate({
+                status: 'error',
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 
     /**
-     * Detiene navegación
+     * Detiene la navegación activa
+     * @param {Object} event - Evento IPC
+     * @returns {Promise<Object>} Resultado de la operación
      */
-    async stopNavigation() {
+    async stopNavigation(event) {
         try {
+            console.log('🛑 Deteniendo navegación desde UI...');
+
+            if (!this.navigationController) {
+                return {
+                    success: false,
+                    error: 'NavigationController no está disponible'
+                };
+            }
+
+            // Llamar al método de cleanup del NavigationController
             await this.navigationController.stopAllSessions();
-            return { success: true };
+
+            // Notificar a la UI
+            this.sendNavigationStatusUpdate({
+                status: 'stopped',
+                timestamp: new Date().toISOString()
+            });
+
+            console.log('✅ Navegación detenida correctamente');
+
+            return {
+                success: true,
+                message: 'Navegación detenida correctamente'
+            };
+
         } catch (error) {
-            return { success: false, error: error.message };
+            console.error('❌ Error deteniendo navegación:', error.message);
+            
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 
     /**
-     * Obtiene estado actual de navegación
+     * Obtiene el estado actual de la navegación
+     * @param {Object} event - Evento IPC
+     * @returns {Promise<Object>} Estado de la navegación
      */
-    async getNavigationStatus() {
+    async getNavigationStatus(event) {
         try {
-            const status = await this.navigationController.getSessionsStatus();
-            return { success: true, status };
+            if (!this.navigationController) {
+                return {
+                    success: false,
+                    error: 'NavigationController no está disponible'
+                };
+            }
+
+            const status = this.navigationController.getGlobalStatus();
+            
+            return {
+                success: true,
+                data: status
+            };
+
         } catch (error) {
-            return { success: false, error: error.message };
+            console.error('❌ Error obteniendo estado de navegación:', error.message);
+            
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Configura eventos de progreso para comunicación con la UI
+     */
+    setupNavigationProgressEvents() {
+        if (!this.navigationController) return;
+
+        // Escuchar eventos del NavigationController y reenviarlos a la UI
+        this.navigationController.on('session:started', (data) => {
+            this.sendNavigationProgressUpdate({
+                type: 'session_started',
+                sessionId: data.sessionId,
+                profileId: data.profileId,
+                timestamp: new Date().toISOString(),
+                ...data
+            });
+        });
+
+        this.navigationController.on('session:progress', (data) => {
+            this.sendNavigationProgressUpdate({
+                type: 'session_progress',
+                sessionId: data.sessionId,
+                profileId: data.profileId,
+                progress: data.progress,
+                cookies: data.cookies,
+                sitesVisited: data.sitesVisited,
+                currentSite: data.currentSite,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        this.navigationController.on('session:completed', (data) => {
+            this.sendNavigationProgressUpdate({
+                type: 'session_completed',
+                sessionId: data.sessionId,
+                profileId: data.profileId,
+                finalStats: data.finalStats,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        this.navigationController.on('session:error', (data) => {
+            this.sendNavigationProgressUpdate({
+                type: 'session_error',
+                sessionId: data.sessionId,
+                profileId: data.profileId,
+                error: data.error,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        this.navigationController.on('global:stats', (data) => {
+            this.sendNavigationProgressUpdate({
+                type: 'global_stats',
+                stats: data,
+                timestamp: new Date().toISOString()
+            });
+        });
+    }
+
+    /**
+     * Maneja la finalización de la navegación en background
+     * @param {Promise} navigationPromise - Promesa de navegación
+     * @param {Array} profileIds - IDs de perfiles
+     */
+    async handleNavigationCompletion(navigationPromise, profileIds) {
+        try {
+            const results = await navigationPromise;
+            
+            console.log('✅ Navegación completada:', results);
+
+            // Enviar resumen final a la UI
+            this.sendNavigationStatusUpdate({
+                status: 'completed',
+                results: results,
+                timestamp: new Date().toISOString()
+            });
+
+        } catch (error) {
+            console.error('❌ Error en navegación:', error.message);
+
+            // Enviar error a la UI
+            this.sendNavigationStatusUpdate({
+                status: 'error',
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+
+            // Intentar cleanup en caso de error
+            try {
+                await this.navigationController.stopAllSessions();
+            } catch (cleanupError) {
+                console.error('Error en cleanup:', cleanupError.message);
+            }
+        }
+    }
+
+    /**
+     * Envía actualización de estado de navegación a la UI
+     * @param {Object} statusData - Datos de estado
+     */
+    sendNavigationStatusUpdate(statusData) {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('navigation:status-change', statusData);
+        }
+    }
+
+    /**
+     * Envía actualización de progreso de navegación a la UI
+     * @param {Object} progressData - Datos de progreso
+     */
+    sendNavigationProgressUpdate(progressData) {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            this.mainWindow.webContents.send('navigation:progress', progressData);
         }
     }
     //#endregion NAVEGACIÓN
@@ -810,6 +1041,68 @@ class ElectronApp {
             message: 'Cookies Hexzor v1.0.0',
             detail: 'Sistema automatizado para calentar contingencias\n© 2025 Todos los derechos reservados.'
         });
+    }
+
+    /**
+     * Parsea y valida array de IDs de perfiles
+     * Equivalente a parseProfileIds en main.js pero adaptado para UI
+     * @param {Array} profileIds - Array de IDs de perfiles
+     * @returns {Array} Array de IDs únicos validados
+     */
+    parseAndValidateProfiles(profileIds) {
+        if (!Array.isArray(profileIds) || profileIds.length === 0) {
+            throw new Error('Debe proporcionar al menos un ID de perfil');
+        }
+
+        // Filtrar IDs válidos y remover duplicados
+        const validIds = profileIds
+            .filter(id => id && typeof id === 'string' && id.trim().length > 0)
+            .map(id => id.trim());
+
+        const uniqueIds = [...new Set(validIds)];
+
+        if (uniqueIds.length === 0) {
+            throw new Error('No se encontraron IDs válidos de perfiles');
+        }
+
+        if (uniqueIds.length > 10) {
+            console.warn('⚠️  Advertencia: Usar más de 10 perfiles puede consumir recursos excesivos');
+        }
+
+        return uniqueIds;
+    }
+
+    /**
+     * Valida que todos los perfiles existen en Ads Power
+     * @param {Array} profileIds - Array de IDs de perfiles
+     */
+    async validateProfilesForNavigation(profileIds) {
+        console.log('🔍 Validando perfiles en Ads Power...');
+
+        const availableProfiles = await this.adsPowerManager.getAvailableProfiles();
+        const availableIds = availableProfiles.map(p => p.user_id || p.id);
+
+        const invalidProfiles = profileIds.filter(id => !availableIds.includes(id));
+
+        if (invalidProfiles.length > 0) {
+            throw new Error(`Perfiles no encontrados en Ads Power: ${invalidProfiles.join(', ')}`);
+        }
+
+        console.log('✅ Todos los perfiles son válidos');
+    }
+
+    /**
+     * Verifica recursos del sistema para la navegación
+     * @param {number} profileCount - Cantidad de perfiles a usar
+     */
+    checkSystemResourcesForNavigation(profileCount) {
+        const requiredRAM = profileCount * 512; // MB por perfil estimado
+        
+        console.log(`💾 Recursos estimados requeridos: ${requiredRAM}MB RAM para ${profileCount} perfil(es)`);
+        
+        if (profileCount > 5) {
+            console.warn('⚠️  Advertencia: Muchos perfiles simultáneos pueden afectar el rendimiento');
+        }
     }
 
     /**
