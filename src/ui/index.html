@@ -143,13 +143,6 @@
 
                         Automatización
                     </button>
-                    <button class="nav-item" data-section="profiles">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" 
-                                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Perfiles Ads Power
-                    </button>
                     <button class="nav-item" data-section="database">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                             <ellipse cx="12" cy="5" rx="9" ry="3" stroke="currentColor" stroke-width="2"/>
@@ -224,34 +217,32 @@
                                     <h3>Perfiles de Ads Power</h3>
                                     <p class="section-description">Ingresa los IDs de los perfiles que deseas utilizar para la navegación</p>
                                     
-                                    <div class="profile-input-container">
-                                        <div class="profile-inputs" id="profile-inputs">
-                                            <!-- Los inputs se generarán dinámicamente aquí -->
-                                        </div>
+                                    <div class="profile-inputs" id="profile-inputs">
+                                        <!-- Los inputs se generarán dinámicamente aquí -->
+                                    </div>
+                                    
+                                    <div class="profile-actions">
+                                        <button type="button" class="btn btn-secondary" id="add-profile-btn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                            Agregar perfil
+                                        </button>
                                         
-                                        <div class="profile-actions">
-                                            <button type="button" class="btn btn-secondary" id="add-profile-btn">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                                    <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                                    <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                                </svg>
-                                                Agregar perfil
-                                            </button>
-                                            
-                                            <button type="button" class="btn btn-outline" id="clear-profiles-btn">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                                    <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-                                                Limpiar todo
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="profile-summary" id="profile-summary">
-                                            <div class="summary-item">
-                                                <span class="summary-label">Perfiles configurados:</span>
-                                                <span class="summary-value" id="profile-count">0</span>
-                                            </div>
+                                        <button type="button" class="btn btn-outline" id="clear-profiles-btn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            Limpiar todo
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="profile-summary" id="profile-summary">
+                                        <div class="summary-item">
+                                            <span class="summary-label">Perfiles configurados:</span>
+                                            <span class="summary-value" id="profile-count">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -315,20 +306,6 @@
                                     <!-- Se llenará dinámicamente -->
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Sección de Perfiles -->
-                <section id="profiles-section" class="content-section">
-                    <div class="section-header">
-                        <h2>Gestión de Perfiles Ads Power</h2>
-                        <p>Administra y monitorea tus perfiles de navegador</p>
-                    </div>
-
-                    <div class="profiles-container">
-                        <div id="profiles-list" class="profiles-grid">
-                            
                         </div>
                     </div>
                 </section>
