@@ -276,7 +276,8 @@ class ElectronApp {
             // Inicializar Navigation Controller
             this.navigationController = new NavigationController(
                 this.databaseManager,
-                this.configManager
+                this.configManager,
+                this.adsPowerManager
             );
 
             console.log('🔧 Servicios del core inicializados');

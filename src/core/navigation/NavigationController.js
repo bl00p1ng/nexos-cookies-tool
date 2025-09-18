@@ -8,11 +8,12 @@ import HumanBehaviorSimulator from './HumanBehaviorSimulator.js';
  * Soporta múltiples perfiles simultáneos
  */
 class NavigationController extends EventEmitter {
-    constructor(databaseManager, configManager) {
+    constructor(databaseManager, configManager, adsPowerManager = null) {
         super(); // Llamar constructor de EventEmitter
 
         this.databaseManager = databaseManager;
         this.configManager = configManager;
+        this.adsPowerManager = adsPowerManager;
         this.cookieDetector = new CookieDetector();
         this.humanBehaviorSimulator = new HumanBehaviorSimulator();
         this.activeSessions = new Map();
@@ -99,6 +100,10 @@ class NavigationController extends EventEmitter {
         const startTime = Date.now();
         
         console.log(`🔄 [${profileId}] Iniciando sesión...`);
+
+        if (!this.adsPowerManager) {
+            throw new Error('AdsPowerManager no está disponible en NavigationController');
+        }
 
         // Emitir evento de sesión iniciada
         this.emitSessionStarted(sessionId, profileId);
@@ -487,8 +492,9 @@ class NavigationController extends EventEmitter {
      * @returns {Promise<Object>} Instancia del navegador
      */
     async startProfile(profileId) {
-        // Obtener AdsPowerManager desde main.js (se pasa como dependencia)
-        const adsPowerManager = global.adsPowerManager;
+        // Obtener AdsPowerManager
+        const adsPowerManager = this.adsPowerManager;
+
         if (!adsPowerManager) {
             throw new Error('AdsPowerManager no disponible');
         }
