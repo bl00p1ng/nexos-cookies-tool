@@ -353,33 +353,6 @@ class CookiesTool {
     }
 
     /**
-     * Lista todos los perfiles disponibles
-     */
-    async listProfiles() {
-        try {
-            console.log('Obteniendo lista de perfiles...');
-            const profiles = await this.adsPowerManager.getAvailableProfiles();
-            
-            if (profiles.length === 0) {
-                console.log('No se encontraron perfiles disponibles');
-                return;
-            }
-
-            console.log(`\nPerfiles disponibles (${profiles.length}):`);
-            console.log('─'.repeat(60));
-            
-            profiles.forEach(profile => {
-                console.log(`ID: ${profile.user_id || profile.serial_number || 'N/A'}`);
-                console.log(`Nombre: ${profile.name || 'Sin nombre'}`);
-                console.log(`Estado: ${profile.status || 'Desconocido'}`);
-                console.log('─'.repeat(30));
-            });
-        } catch (error) {
-            console.error('Error obteniendo perfiles:', error.message);
-        }
-    }
-
-    /**
      * Obtiene información detallada de un perfil
      * @param {string} profileId - ID del perfil
      */

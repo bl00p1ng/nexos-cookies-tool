@@ -30,7 +30,6 @@ const electronAPI = {
     // Ads Power
     adspower: {
         checkStatus: () => ipcRenderer.invoke('adspower:check-status'),
-        listProfiles: () => ipcRenderer.invoke('adspower:list-profiles'),
         getProfileInfo: (profileId) => ipcRenderer.invoke('adspower:profile-info', profileId)
     },
 

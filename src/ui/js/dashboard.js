@@ -187,10 +187,7 @@ class DashboardManager {
                 this.showAdsPowerConnected(result.status);
                 this.app.updateState('adspower.connected', true);
                 this.app.updateState('adspower.status', result.status);
-                
-                // Cargar perfiles automáticamente
-                await this.loadProfiles();
-                
+
             } else {
                 this.showAdsPowerDisconnected(result.error);
                 this.app.updateState('adspower.connected', false);
@@ -201,30 +198,6 @@ class DashboardManager {
             console.error('Error verificando Ads Power:', error);
             this.showAdsPowerDisconnected('Error de conexión');
             this.app.updateState('adspower.connected', false);
-        }
-    }
-
-    /**
-     * Carga perfiles de Ads Power
-     */
-    async loadProfiles() {
-        try {
-            const result = await window.electronAPI.adspower.listProfiles();
-            
-            if (result.success) {
-                this.state.profiles = result.profiles;
-                this.app.updateState('adspower.profiles', result.profiles);
-                this.renderProfiles(result.profiles);
-                this.updateNavigationButtonState();
-            } else {
-                this.app.showError('Error cargando perfiles: ' + result.error);
-                this.clearProfiles();
-            }
-
-        } catch (error) {
-            console.error('Error cargando perfiles:', error);
-            this.app.showError('Error de conexión al cargar perfiles');
-            this.clearProfiles();
         }
     }
 
