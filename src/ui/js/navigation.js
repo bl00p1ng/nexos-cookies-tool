@@ -29,7 +29,7 @@ class NavigationManager {
             <div class="profile-progress-stats">
                 <div class="stat-item">
                     <span class="stat-label">Cookies:</span>
-                    <span class="stat-value">${session.cookiesCollected}/2500</span>
+                    <span class="stat-value">${session.cookiesCollected}/${session.targetCookies}</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">Sitios:</span>
