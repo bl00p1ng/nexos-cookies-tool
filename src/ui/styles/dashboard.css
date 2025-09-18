@@ -535,6 +535,156 @@
     overflow-x: auto;
 }
 
+/* Progreso por Perfil */
+.profile-progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.profile-progress-item {
+    background-color: var(--nexos-white);
+    border: 1px solid var(--nexos-gray-200);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.profile-progress-item:hover {
+    border-color: var(--nexos-blue-light);
+    box-shadow: var(--shadow-md);
+}
+
+.profile-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-3);
+}
+
+.profile-id {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-800);
+    background-color: var(--nexos-gray-100);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--border-radius-sm);
+}
+
+.profile-status {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--border-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.profile-status.status-running {
+    background-color: var(--nexos-success-light);
+    color: var(--nexos-success);
+    border: 1px solid var(--nexos-success);
+}
+
+.profile-status.status-completed {
+    background-color: var(--nexos-blue-light);
+    color: var(--nexos-blue);
+    border: 1px solid var(--nexos-blue);
+}
+
+.profile-status.status-error {
+    background-color: var(--nexos-error-light);
+    color: var(--nexos-error);
+    border: 1px solid var(--nexos-error);
+}
+
+.profile-progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-3);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-item .stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--nexos-gray-600);
+    font-weight: 500;
+}
+
+.stat-item .stat-value {
+    font-size: var(--font-size-sm);
+    color: var(--nexos-gray-800);
+    font-weight: 600;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+.profile-progress-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.progress-bar-container {
+    flex: 1;
+    height: 8px;
+    background-color: var(--nexos-gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--nexos-success) 0%, var(--nexos-blue) 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-percentage {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--nexos-gray-700);
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Estados de progreso adicionales */
+.status-running {
+    color: var(--nexos-success) !important;
+}
+
+.status-completed {
+    color: var(--nexos-blue) !important;
+}
+
+.status-error {
+    color: var(--nexos-error) !important;
+}
+
+/* Responsive para progreso por perfil */
+@media (max-width: 768px) {
+    .profile-progress-stats {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-2);
+    }
+    
+    .stat-item {
+        padding: var(--spacing-2) 0;
+        border-bottom: 1px solid var(--nexos-gray-100);
+    }
+    
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+}
+
 /* Reportes */
 .reports-container {
     background-color: var(--nexos-white);

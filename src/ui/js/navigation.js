@@ -12,21 +12,76 @@ class NavigationManager {
         this.startTime = null;
     }
 
+    //#region Crear elementos UI
+    /**
+     * Crea elemento visual para progreso de perfil individual
+     * @param {Object} session - Datos de la sesión
+     * @returns {HTMLElement} Elemento del progreso
+     */
+    createProfileProgressElement(session) {
+        const div = document.createElement('div');
+        div.className = 'profile-progress-item';
+        div.innerHTML = `
+            <div class="profile-progress-header">
+                <div class="profile-id">${session.profileId}</div>
+                <div class="profile-status status-${session.status}">${this.getStatusText(session.status)}</div>
+            </div>
+            <div class="profile-progress-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Cookies:</span>
+                    <span class="stat-value">${session.cookiesCollected}/2500</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sitios:</span>
+                    <span class="stat-value">${session.sitesVisited}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Actual:</span>
+                    <span class="stat-value">${session.currentSite}</span>
+                </div>
+            </div>
+            <div class="profile-progress-bar">
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${session.progress || 0}%"></div>
+                </div>
+                <div class="progress-percentage">${Math.round(session.progress || 0)}%</div>
+            </div>
+        `;
+        return div;
+    }
+    //#endregion Crear elementos UI
+
+    //#region Update UI
     /**
      * Actualiza el progreso de navegación
      * @param {Object} data - Datos de progreso
      */
     updateProgress(data) {
-        if (data.sessionId) {
-            this.sessions.set(data.sessionId, data);
+        console.log('🔄 [NavigationManager] Procesando evento:', data.type, data);
+
+        // Procesar según tipo de evento
+        switch (data.type) {
+            case 'session_started':
+                this.handleSessionStarted(data);
+                break;
+            case 'session_progress':
+                this.handleSessionProgress(data);
+                break;
+            case 'session_completed':
+                this.handleSessionCompleted(data);
+                break;
+            case 'session_error':
+                this.handleSessionError(data);
+                break;
+            case 'global_stats':
+                this.handleGlobalStats(data);
+                break;
         }
 
-        // Actualizar estadísticas globales
-        this.updateGlobalStats();
-
-        // Actualizar UI si hay elementos disponibles
+        // Actualizar UI
         this.updateProgressUI(data);
     }
+
 
     /**
      * Actualiza el estado de navegación
@@ -66,6 +121,212 @@ class NavigationManager {
     }
 
     /**
+     * Actualiza la interfaz de progreso
+     * @param {Object} data - Datos de progreso
+     */
+    updateProgressUI(data) {
+        const stats = this.getGlobalStats();
+        
+        // Actualizar estadísticas globales
+        const totalCookiesEl = document.getElementById('total-cookies');
+        const totalSitesEl = document.getElementById('total-sites');
+        const elapsedTimeEl = document.getElementById('elapsed-time');
+        
+        if (totalCookiesEl) {
+            totalCookiesEl.textContent = stats.totalCookies;
+        }
+        
+        if (totalSitesEl) {
+            totalSitesEl.textContent = stats.totalSites;
+        }
+        
+        if (elapsedTimeEl && stats.uptime > 0) {
+            const totalSeconds = Math.floor(stats.uptime / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            elapsedTimeEl.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Actualizar progreso por perfil
+        this.updateProfileProgress();
+    }
+
+    /**
+     * Actualiza el progreso individual por perfil
+     */
+    updateProfileProgress() {
+        const container = document.getElementById('profile-progress-list');
+        if (!container) return;
+        
+        // Limpiar contenido existente
+        container.innerHTML = '';
+        
+        // Crear progreso para cada sesión activa
+        this.sessions.forEach((session, sessionId) => {
+            const profileElement = this.createProfileProgressElement(session);
+            container.appendChild(profileElement);
+        });
+    }
+    //#endregion Update UI
+
+    //#region Handlers de eventos
+    /**
+     * Maneja evento de sesión iniciada
+     * @param {Object} data - Datos del evento
+     */
+    handleSessionStarted(data) {
+        console.log('🚀 [NavigationManager] Sesión iniciada:', data.profileId);
+        
+        // Inicializar sesión
+        this.sessions.set(data.sessionId, {
+            sessionId: data.sessionId,
+            profileId: data.profileId,
+            cookiesCollected: 0,
+            sitesVisited: 0,
+            currentSite: 'Iniciando...',
+            progress: 0,
+            status: 'running',
+            startTime: new Date(data.timestamp)
+        });
+
+        // Marcar como navegando y iniciar cronómetro si es la primera sesión
+        if (!this.isRunning) {
+            this.isRunning = true;
+            this.startTime = new Date();
+            
+            // Iniciar cronómetro que actualiza cada segundo
+            this.timerInterval = setInterval(() => {
+                this.updateProgressUI({ type: 'timer_update' });
+            }, 1000);
+        }
+
+        // Actualizar estado global
+        this.updateGlobalStats();
+        
+        // Cambiar estado de la UI
+        const statusElement = document.getElementById('session-status');
+        if (statusElement) {
+            statusElement.textContent = 'Navegando';
+            statusElement.className = 'stat-value status-running';
+        }
+    }
+
+    /**
+     * Maneja evento de progreso de sesión
+     * @param {Object} data - Datos del evento
+     */
+    handleSessionProgress(data) {
+        console.log('📊 [NavigationManager] Progreso:', data.profileId, `${data.cookies || 0} cookies`);
+        
+        const session = this.sessions.get(data.sessionId);
+        if (session) {
+            session.cookiesCollected = data.cookies || 0;
+            session.sitesVisited = data.sitesVisited || 0;
+            session.currentSite = data.currentSite || 'Navegando...';
+            session.progress = data.progress || 0;
+            session.lastUpdate = new Date(data.timestamp);
+        }
+
+        this.updateGlobalStats();
+    }
+
+    /**
+     * Maneja evento de sesión completada
+     * @param {Object} data - Datos del evento
+     */
+    handleSessionCompleted(data) {
+        console.log('✅ [NavigationManager] Sesión completada:', data.profileId);
+        
+        const session = this.sessions.get(data.sessionId);
+        if (session) {
+            session.status = 'completed';
+            session.endTime = new Date(data.timestamp);
+            session.finalStats = data.finalStats;
+        }
+    }
+
+    /**
+     * Maneja evento de error de sesión
+     * @param {Object} data - Datos del evento
+     */
+    handleSessionError(data) {
+        console.log('❌ [NavigationManager] Error en sesión:', data.profileId, data.error);
+        
+        const session = this.sessions.get(data.sessionId);
+        if (session) {
+            session.status = 'error';
+            session.error = data.error;
+            session.endTime = new Date(data.timestamp);
+        }
+    }
+
+    /**
+     * Maneja estadísticas globales
+     * @param {Object} data - Datos del evento
+     */
+    handleGlobalStats(data) {
+        if (data.stats) {
+            // Actualizar estadísticas globales si vienen del backend
+            this.totalCookiesCollected = data.stats.totalCookiesCollected || 0;
+            this.totalSitesVisited = data.stats.totalSitesVisited || 0;
+        }
+    }
+
+    /**
+     * Limpia recursos y estado
+     */
+    cleanup() {
+        this.sessions.clear();
+        this.isRunning = false;
+        this.totalCookiesCollected = 0;
+        this.totalSitesVisited = 0;
+        this.startTime = null;
+        
+        // Limpiar cronómetro
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+    //#endregion Handlers de eventos
+
+    //#region Getters
+    /**
+     * Obtiene sesión por ID
+     * @param {string} sessionId - ID de la sesión
+     * @returns {Object|null} Datos de la sesión
+     */
+    getSession(sessionId) {
+        return this.sessions.get(sessionId) || null;
+    }
+
+    /**
+     * Convierte estado de sesión a texto legible
+     * @param {string} status - Estado de la sesión
+     * @returns {string} Texto del estado
+     */
+    getStatusText(status) {
+        const statusMap = {
+            'running': 'Navegando',
+            'completed': 'Completado',
+            'error': 'Error',
+            'paused': 'Pausado'
+        };
+        return statusMap[status] || 'Desconocido';
+    }
+
+    /**
+     * Obtiene todas las sesiones activas
+     * @returns {Array} Array de sesiones
+     */
+    getAllSessions() {
+        return Array.from(this.sessions.values());
+    }
+
+    /**
      * Obtiene estadísticas globales
      * @returns {Object} Estadísticas globales
      */
@@ -79,70 +340,5 @@ class NavigationManager {
             uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
         };
     }
-
-    /**
-     * Actualiza la interfaz de progreso
-     * @param {Object} data - Datos de progreso
-     */
-    updateProgressUI(data) {
-        // Implementar actualizaciones específicas de UI aquí
-        const progressElement = document.getElementById('navigation-progress');
-        if (progressElement && data) {
-            // Actualizar elementos específicos según la estructura del HTML
-            this.renderProgressInfo(data);
-        }
-    }
-
-    /**
-     * Renderiza información de progreso
-     * @param {Object} data - Datos de progreso
-     */
-    renderProgressInfo(data) {
-        const stats = this.getGlobalStats();
-        
-        // Actualizar contadores globales
-        const totalCookiesEl = document.getElementById('total-cookies');
-        const totalSitesEl = document.getElementById('total-sites');
-        const activeSessionsEl = document.getElementById('active-sessions');
-
-        if (totalCookiesEl) totalCookiesEl.textContent = stats.totalCookies;
-        if (totalSitesEl) totalSitesEl.textContent = stats.totalSites;
-        if (activeSessionsEl) activeSessionsEl.textContent = stats.activeSessions;
-
-        // Actualizar tiempo de ejecución
-        const uptimeEl = document.getElementById('uptime');
-        if (uptimeEl && stats.uptime > 0) {
-            const minutes = Math.floor(stats.uptime / 60000);
-            const seconds = Math.floor((stats.uptime % 60000) / 1000);
-            uptimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-    }
-
-    /**
-     * Limpia recursos y estado
-     */
-    cleanup() {
-        this.sessions.clear();
-        this.isRunning = false;
-        this.totalCookiesCollected = 0;
-        this.totalSitesVisited = 0;
-        this.startTime = null;
-    }
-
-    /**
-     * Obtiene sesión por ID
-     * @param {string} sessionId - ID de la sesión
-     * @returns {Object|null} Datos de la sesión
-     */
-    getSession(sessionId) {
-        return this.sessions.get(sessionId) || null;
-    }
-
-    /**
-     * Obtiene todas las sesiones activas
-     * @returns {Array} Array de sesiones
-     */
-    getAllSessions() {
-        return Array.from(this.sessions.values());
-    }
+    //#endregion Getters
 }

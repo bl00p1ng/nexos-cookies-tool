@@ -174,10 +174,12 @@ class NexosApp {
 
         // Eventos de navegación
         window.electronAPI.navigation.onProgressUpdate((event, data) => {
+            console.log(`🖥️ [DEBUG] Evento recibido en UI: navigation:progress`, data);
             this.navigationManager.updateProgress(data);
         });
 
         window.electronAPI.navigation.onStatusChange((event, data) => {
+            console.log(`🖥️ [DEBUG] Evento recibido en UI: navigation:status-change`, data);
             this.navigationManager.updateStatus(data);
         });
 

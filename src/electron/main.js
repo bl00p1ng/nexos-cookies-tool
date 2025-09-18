@@ -836,6 +836,8 @@ class ElectronApp {
 
         // Escuchar eventos del NavigationController y reenviarlos a la UI
         this.navigationController.on('session:started', (data) => {
+            console.log(`🔔 [DEBUG] Evento recibido en main.js: session:started para ${data.profileId}`);
+
             this.sendNavigationProgressUpdate({
                 type: 'session_started',
                 sessionId: data.sessionId,
@@ -846,12 +848,14 @@ class ElectronApp {
         });
 
         this.navigationController.on('session:progress', (data) => {
+            console.log(`🔔 [DEBUG] Evento recibido en main.js: session:progress para ${data.profileId}: ${data.cookiesCollected} cookies`);
+
             this.sendNavigationProgressUpdate({
                 type: 'session_progress',
                 sessionId: data.sessionId,
                 profileId: data.profileId,
                 progress: data.progress,
-                cookies: data.cookies,
+                cookies: data.cookiesCollected,
                 sitesVisited: data.sitesVisited,
                 currentSite: data.currentSite,
                 timestamp: new Date().toISOString()

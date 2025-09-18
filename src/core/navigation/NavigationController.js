@@ -802,6 +802,8 @@ class NavigationController extends EventEmitter {
      * @param {Object} data - Datos del progreso
      */
     emitSessionProgress(sessionId, profileId, data) {
+        console.log(`📡 [DEBUG] Emitiendo session:progress para ${profileId}: ${data.cookiesCollected}/${data.targetCookies} cookies`);
+
         this.emit('session:progress', {
             sessionId,
             profileId,
@@ -815,6 +817,8 @@ class NavigationController extends EventEmitter {
      * @param {string} profileId - ID del perfil
      */
     emitSessionStarted(sessionId, profileId) {
+        console.log(`📡 [DEBUG] Emitiendo session:started para ${profileId}`);
+
         this.emit('session:started', {
             sessionId,
             profileId,
