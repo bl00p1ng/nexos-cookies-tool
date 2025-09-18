@@ -42,6 +42,9 @@ class NavigationController extends EventEmitter {
         
         this.globalStats.totalSessions = profiles.length;
         this.globalStats.startTime = new Date();
+
+        // Emitir estadísticas globales actualizadas
+        this.emitGlobalStats(this.globalStats);
         
         // Configurar WAL mode para SQLite (mejora concurrencia)
         await this.setupDatabaseConcurrency();
@@ -96,6 +99,9 @@ class NavigationController extends EventEmitter {
         const startTime = Date.now();
         
         console.log(`🔄 [${profileId}] Iniciando sesión...`);
+
+        // Emitir evento de sesión iniciada
+        this.emitSessionStarted(sessionId, profileId);
         
         const sessionStats = {
             sessionId,
@@ -222,6 +228,15 @@ class NavigationController extends EventEmitter {
                     sessionStats.totalInteractions += siteResult.interactions || 0;
                     sessionStats.humanBehaviorScore += siteResult.humanScore || 0;
 
+                    // Emitir progreso de la sesión
+                    this.emitSessionProgress(sessionId, profileId, {
+                        cookiesCollected: sessionStats.cookiesCollected,
+                        targetCookies: sessionStats.targetCookies,
+                        sitesVisited: sessionStats.sitesVisited,
+                        currentSite: website.domain || website.url,
+                        progress: Math.min((sessionStats.cookiesCollected / sessionStats.targetCookies) * 100, 100)
+                    });
+
                     // Registrar visita en base de datos
                     await this.registerSiteVisit(sessionStats, website, siteResult);
 
@@ -260,6 +275,14 @@ class NavigationController extends EventEmitter {
             console.log(`   ⏱️ Tiempo: ${Math.round(totalTime/60000)} minutos`);
             console.log(`   🎭 Puntuación humana: ${sessionStats.humanBehaviorScore}/100`);
 
+            // Emitir evento de sesión completada
+            this.emitSessionCompleted(sessionId, profileId, {
+                cookiesCollected: sessionStats.cookiesCollected,
+                sitesVisited: sessionStats.sitesVisited,
+                duration: Date.now() - startTime,
+                success: sessionStats.cookiesCollected >= sessionStats.targetCookies
+            });
+
             return {
                 profileId,
                 success: true,
@@ -276,6 +299,9 @@ class NavigationController extends EventEmitter {
             sessionStats.endTime = new Date();
             
             console.error(`❌ [${profileId}] Error en sesión: ${error.message}`);
+
+            // Emitir evento de error de sesión
+            this.emitSessionError(sessionId, profileId, error);
             
             return {
                 profileId,
