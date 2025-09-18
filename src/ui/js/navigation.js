@@ -57,8 +57,6 @@ class NavigationManager {
      * @param {Object} data - Datos de progreso
      */
     updateProgress(data) {
-        console.log('🔄 [NavigationManager] Procesando evento:', data.type, data);
-
         // Procesar según tipo de evento
         switch (data.type) {
             case 'session_started':
@@ -219,8 +217,6 @@ class NavigationManager {
      * @param {Object} data - Datos del evento
      */
     handleSessionProgress(data) {
-        console.log('📊 [NavigationManager] Progreso:', data.profileId, `${data.cookies || 0} cookies`);
-        
         const session = this.sessions.get(data.sessionId);
         if (session) {
             session.cookiesCollected = data.cookies || 0;
