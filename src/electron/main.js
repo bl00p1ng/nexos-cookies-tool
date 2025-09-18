@@ -655,42 +655,47 @@ class ElectronApp {
 
     //#region NAVEGACIÓN
     /**
-    * Inicia navegación
-    * @param {Object} event - Evento IPC
-    * @param {Object} config - Configuración de navegación
-    * @returns {Promise<Object>} Resultado de la operación
-    */
+     * Inicia navegación automatizada usando el NavigationController
+     * @param {Object} event - Evento IPC
+     * @param {Object} config - Configuración de navegación
+     * @returns {Promise<Object>} Resultado de la operación
+     */
     async startNavigation(event, config) {
         try {
-            console.log('🚀 Iniciando navegación desde UI:', config);
+            console.log('🚀 Recibida solicitud de navegación desde UI:', config);
 
-            // Validar configuración
-            if (!config.profileIds || config.profileIds.length === 0) {
-                return {
-                    success: false,
-                    error: 'Se requiere al menos un perfil de Ads Power'
-                };
+            // Validar configuración recibida
+            if (!config || !config.profileIds || !Array.isArray(config.profileIds)) {
+                throw new Error('Configuración inválida: se requiere array de profileIds');
             }
 
-            // Parsear y validar perfiles
-            const profileIds = this.parseAndValidateProfiles(config.profileIds);
-            const targetCookies = parseInt(config.targetCookies) || 2500;
+            const { profileIds, targetCookies = 2500 } = config;
 
-            console.log(`📋 Perfiles: ${profileIds.length}`);
-            console.log(`🎯 Objetivo por perfil: ${targetCookies} cookies`);
-            console.log(`📊 Total objetivo: ${targetCookies * profileIds.length} cookies`);
+            if (profileIds.length === 0) {
+                throw new Error('Se requiere al menos un perfil para iniciar navegación');
+            }
 
-            // Verificar que Ads Power esté disponible
-            const adsPowerStatus = await this.adsPowerManager.checkAdsPowerStatus();
-            if (!adsPowerStatus) {
-                return {
-                    success: false,
-                    error: 'Ads Power no está disponible. Verifica que esté ejecutándose.'
-                };
+            console.log(`📋 Configuración validada: ${profileIds.length} perfiles, ${targetCookies} cookies objetivo`);
+
+            // Verificar disponibilidad del NavigationController
+            if (!this.navigationController) {
+                console.error('❌ NavigationController no está disponible');
+                throw new Error('NavigationController no está inicializado');
+            }
+
+            // Verificar estado de Ads Power (opcional pero recomendado)
+            if (this.adsPowerManager) {
+                const adsPowerStatus = await this.adsPowerManager.checkAdsPowerStatus();
+                if (!adsPowerStatus) {
+                    console.warn('⚠️ Ads Power no está disponible');
+                } else {
+                    console.log('✅ Ads Power está disponible');
+                }
             }
 
             // Validar perfiles si se solicita
             if (config.validateProfiles !== false) {
+                console.log('🔍 Validando perfiles...');
                 await this.validateProfilesForNavigation(profileIds);
             }
 
@@ -699,6 +704,8 @@ class ElectronApp {
 
             // Configurar eventos de progreso para la UI
             this.setupNavigationProgressEvents();
+
+            console.log('⏳ Iniciando NavigationController...');
 
             // Iniciar navegación usando el NavigationController
             const navigationPromise = this.navigationController.startMultipleNavigationSessions(
@@ -717,6 +724,8 @@ class ElectronApp {
             // Esperar el resultado en background y manejar la finalización
             this.handleNavigationCompletion(navigationPromise, profileIds);
 
+            console.log('✅ Navegación iniciada exitosamente');
+
             return {
                 success: true,
                 message: 'Navegación iniciada correctamente',
@@ -729,6 +738,7 @@ class ElectronApp {
 
         } catch (error) {
             console.error('❌ Error iniciando navegación:', error.message);
+            console.error('Stack trace:', error.stack);
             
             // Notificar error a la UI
             this.sendNavigationStatusUpdate({
