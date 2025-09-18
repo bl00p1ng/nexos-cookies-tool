@@ -30,7 +30,7 @@ class AdsPowerManager {
      */
     async getAvailableProfiles() {
         try {
-            const response = await fetch(`${this.baseUrl}/user/list`);
+            const response = await fetch(`${this.baseUrl}/user/list?page_size=100`);
             const data = await response.json();
             
             if (data.code !== 0) {
