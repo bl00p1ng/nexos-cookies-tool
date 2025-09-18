@@ -442,20 +442,24 @@ class DashboardManager {
      * Actualiza estado del botón de navegación
      */
     updateNavigationButtonState() {
-        if (!this.elements.startNavigationBtn) return;
+        if (!this.elements.startNavigationBtn || !this.elements.stopNavigationBtn) return;
 
         // Obtener perfiles directamente desde los inputs del formulario
         const profileInputs = document.querySelectorAll('.profile-id-input');
         const hasValidProfiles = Array.from(profileInputs).some(input => input.value.trim() !== '');
         
         const adsPowerConnected = this.state.adsPowerConnected;
-        const canStart = hasValidProfiles && adsPowerConnected && !this.state.navigationRunning;
+        const navigationRunning = this.state.navigationRunning;
+        const canStart = hasValidProfiles && adsPowerConnected && !navigationRunning;
+        const canStop = navigationRunning;
 
+        // Actualizar botón de iniciar navegación
         this.elements.startNavigationBtn.disabled = !canStart;
+        
+        // Actualizar botón de detener navegación
+        this.elements.stopNavigationBtn.disabled = !canStop;
 
-        if (this.elements.stopNavigationBtn) {
-            this.elements.stopNavigationBtn.disabled = !this.state.navigationRunning;
-        }
+        console.log(`🔄 [DEBUG] Button states updated: canStart=${canStart}, canStop=${canStop}, navigationRunning=${navigationRunning}`);
     }
 
     /**
