@@ -91,6 +91,7 @@ class DashboardManager {
         }
     }
 
+    //#region Eventos
     /**
      * Configura event listeners
      */
@@ -149,7 +150,33 @@ class DashboardManager {
         document.addEventListener('keydown', (event) => {
             this.handleKeyboardShortcuts(event);
         });
+
+        // Event listeners para inputs de perfiles (detectar cambios)
+        document.addEventListener('input', (event) => {
+            if (event.target && event.target.classList.contains('profile-id-input')) {
+                this.updateNavigationButtonState();
+            }
+        });
+
+        // Event listeners para cambios dinámicos en el DOM (cuando se agregan/quitan inputs)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // Si se agregaron o quitaron inputs de perfiles, actualizar botón
+                    this.updateNavigationButtonState();
+                }
+            });
+        });
+
+        const profileContainer = document.getElementById('profile-inputs');
+        if (profileContainer) {
+            observer.observe(profileContainer, { 
+                childList: true, 
+                subtree: true 
+            });
+        }
     }
+    //#endregion Eventos
 
     /**
      * Actualiza información del usuario en el header
@@ -417,9 +444,12 @@ class DashboardManager {
     updateNavigationButtonState() {
         if (!this.elements.startNavigationBtn) return;
 
-        const hasProfiles = this.state.selectedProfiles.size > 0;
+        // Obtener perfiles directamente desde los inputs del formulario
+        const profileInputs = document.querySelectorAll('.profile-id-input');
+        const hasValidProfiles = Array.from(profileInputs).some(input => input.value.trim() !== '');
+        
         const adsPowerConnected = this.state.adsPowerConnected;
-        const canStart = hasProfiles && adsPowerConnected && !this.state.navigationRunning;
+        const canStart = hasValidProfiles && adsPowerConnected && !this.state.navigationRunning;
 
         this.elements.startNavigationBtn.disabled = !canStart;
 
@@ -433,11 +463,32 @@ class DashboardManager {
      */
     async handleStartNavigation() {
         try {
+            // Obtener datos del formulario
             const formData = new FormData(this.elements.navigationForm);
+            
+            // Obtener perfiles desde los inputs del formulario
+            const profileInputs = document.querySelectorAll('.profile-id-input');
+            const profileIds = [];
+            
+            profileInputs.forEach(input => {
+                const profileId = input.value.trim();
+                if (profileId) {
+                    profileIds.push(profileId);
+                }
+            });
+
+            // Validar que se ingresaron perfiles
+            if (profileIds.length === 0) {
+                this.app.showError('Debes ingresar al menos un ID de perfil');
+                return;
+            }
+
             const config = {
-                profileIds: Array.from(this.state.selectedProfiles),
+                profileIds: profileIds,
                 targetCookies: parseInt(formData.get('targetCookies')) || 2500
             };
+
+            console.log('🚀 Iniciando navegación con configuración:', config);
 
             this.setNavigationLoading(true);
 
