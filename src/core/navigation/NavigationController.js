@@ -206,7 +206,9 @@ class NavigationController extends EventEmitter {
                     const siteResult = await this.processSiteWithHumanBehavior(
                         page, 
                         website, 
-                        sessionStats
+                        sessionStats,
+                        profileId,
+                        sessionId
                     );
 
                     // Verificar si hubo error de conexión
@@ -408,9 +410,11 @@ class NavigationController extends EventEmitter {
      * @param {Object} page - Página de Playwright
      * @param {Object} website - Datos del sitio web
      * @param {Object} sessionStats - Estadísticas de la sesión
+     * @param {string} profileId - ID del perfil
+     * @param {string} sessionId - ID de la sesión
      * @returns {Promise<Object>} Resultado del procesamiento
      */
-    async processSiteWithHumanBehavior(page, website, sessionStats) {
+    async processSiteWithHumanBehavior(page, website, sessionStats, profileId, sessionId) {
         const cookiesBefore = await this.cookieDetector.getCookieCount(page);
         let visitSuccess = false;
         let errorMessage = null;
@@ -504,7 +508,7 @@ class NavigationController extends EventEmitter {
             }
 
             // Verificar si se debe detener la sesión antes de simular comportamiento humano
-            if (this.shouldStopSession(sessionStats.profileId)) {
+            if (this.shouldStopSession(profileId || sessionStats.profileId)) {
                 console.log(`🛑 [${sessionStats.profileId}] Simulación humana interrumpida por flag de detención`);
                 return {
                     success: false,
