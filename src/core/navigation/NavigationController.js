@@ -17,6 +17,7 @@ class NavigationController extends EventEmitter {
         this.cookieDetector = new CookieDetector();
         this.humanBehaviorSimulator = new HumanBehaviorSimulator();
         this.activeSessions = new Map();
+        this.stopFlags = new Map(); // Flags para detener sesiones individualmente
         this.globalStats = {
             totalSessions: 0,
             completedSessions: 0,
@@ -27,6 +28,18 @@ class NavigationController extends EventEmitter {
         };
     }
 
+    //#region Setters
+    /**
+     * Establece flag de detención para una sesión específica
+     * @param {string} profileId - ID del perfil a detener
+     */
+    setStopFlag(profileId) {
+        this.stopFlags.set(profileId, true);
+        console.log(`🚩 [${profileId}] Flag de detención establecido`);
+    }
+    //#endregion Setters
+
+    //#region Starters
     /**
      * Inicia múltiples sesiones de navegación en paralelo
      * @param {Array|string} profileIds - Array de IDs o ID único de perfil
@@ -159,7 +172,12 @@ class NavigationController extends EventEmitter {
             while (sessionStats.cookiesCollected < targetCookies && 
                    Date.now() < endTime && 
                    siteIndex < websites.length) {
-                
+                // Verificar si se debe detener la sesión
+                if (this.shouldStopSession(profileId)) {
+                    console.log(`🛑 [${profileId}] Sesión interrumpida por flag de detención`);
+                    break;
+                }
+
                 const website = websites[siteIndex];
                 sessionStats.currentSite = website.domain;
                 
@@ -216,6 +234,12 @@ class NavigationController extends EventEmitter {
                             
                             // Esperar antes de reconectar
                             await this.sleep(5000);
+
+                            // Verificar si se debe detener la sesión antes de reconectar
+                            if (this.shouldStopSession(profileId)) {
+                                console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
+                                break;
+                            }
                             
                             // Reconectar
                             browserInstance = await this.startProfile(profileId);
@@ -259,6 +283,11 @@ class NavigationController extends EventEmitter {
                     // Pausa entre sitios para parecer humano
                     const pauseTime = this.randomBetween(3000, 8000);
                     await this.sleep(pauseTime);
+
+                    if (this.shouldStopSession(profileId)) {
+                        console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
+                        break;
+                    }
 
                 } catch (siteError) {
                     console.warn(`⚠️ [${profileId}] Error en ${website.domain}: ${siteError.message}`);
@@ -343,6 +372,38 @@ class NavigationController extends EventEmitter {
     }
 
     /**
+     * Inicializa un perfil de AdsPower
+     * @param {string} profileId - ID del perfil
+     * @returns {Promise<Object>} Instancia del navegador
+     */
+    async initializeProfile(profileId) {
+        // Obtener AdsPowerManager desde main.js (se pasa como dependencia)
+        const adsPowerManager = global.adsPowerManager;
+        if (!adsPowerManager) {
+            throw new Error('AdsPowerManager no disponible');
+        }
+        
+        return await adsPowerManager.startProfile(profileId);
+    }
+
+    /**
+     * Inicia un perfil usando AdsPowerManager global
+     * @param {string} profileId - ID del perfil
+     * @returns {Promise<Object>} Instancia del navegador
+     */
+    async startProfile(profileId) {
+        // Obtener AdsPowerManager
+        const adsPowerManager = this.adsPowerManager;
+
+        if (!adsPowerManager) {
+            throw new Error('AdsPowerManager no disponible');
+        }
+        
+        return await adsPowerManager.startProfile(profileId);
+    }
+    //#endregion Starters
+
+    /**
      * Procesa un sitio web con comportamiento humano realista
      * @param {Object} page - Página de Playwright
      * @param {Object} website - Datos del sitio web
@@ -407,15 +468,15 @@ class NavigationController extends EventEmitter {
                 } catch (navError) {
                     console.warn(`⚠️ [${sessionStats.profileId}] Error navegación intento ${navAttempt}: ${navError.message}`);
                     
-                    // Si es error de conexión cerrada, no reintentar
-                    // if (navError.message.includes('Target page, context or browser has been closed') ||
-                    //     navError.message.includes('Browser has been closed')) {
-                    //     throw new Error('Navegador desconectado durante navegación');
-                    // }
-                    
                     // Si no es el último intento, esperar antes del siguiente
                     if (navAttempt < maxNavAttempts) {
                         await this.sleep(2000);
+
+                        // Verificar si se debe detener la sesión antes de reintentar
+                        if (this.shouldStopSession(profileId)) {
+                            console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
+                            break;
+                        }
                     }
                 }
             }
@@ -440,6 +501,18 @@ class NavigationController extends EventEmitter {
             const cookieResult = await this.cookieDetector.acceptCookies(page);
             if (cookieResult.success) {
                 console.log(`🍪 [${sessionStats.profileId}] Cookies aceptadas: ${cookieResult.method}`);
+            }
+
+            // Verificar si se debe detener la sesión antes de simular comportamiento humano
+            if (this.shouldStopSession(sessionStats.profileId)) {
+                console.log(`🛑 [${sessionStats.profileId}] Simulación humana interrumpida por flag de detención`);
+                return {
+                    success: false,
+                    error: 'SESION_DETENIDA: Navegación interrumpida por usuario',
+                    cookiesGained: 0,
+                    interactions: 0,
+                    humanScore: 0
+                };
             }
 
             // Simular navegación humana en el sitio
@@ -502,37 +575,6 @@ class NavigationController extends EventEmitter {
         
         // Mínimo 45 minutos, máximo 3 horas
         return Math.max(45 * 60 * 1000, Math.min(3 * 60 * 60 * 1000, calculatedTime));
-    }
-
-    /**
-     * Inicia un perfil usando AdsPowerManager global
-     * @param {string} profileId - ID del perfil
-     * @returns {Promise<Object>} Instancia del navegador
-     */
-    async startProfile(profileId) {
-        // Obtener AdsPowerManager
-        const adsPowerManager = this.adsPowerManager;
-
-        if (!adsPowerManager) {
-            throw new Error('AdsPowerManager no disponible');
-        }
-        
-        return await adsPowerManager.startProfile(profileId);
-    }
-
-    /**
-     * Inicializa un perfil de AdsPower
-     * @param {string} profileId - ID del perfil
-     * @returns {Promise<Object>} Instancia del navegador
-     */
-    async initializeProfile(profileId) {
-        // Obtener AdsPowerManager desde main.js (se pasa como dependencia)
-        const adsPowerManager = global.adsPowerManager;
-        if (!adsPowerManager) {
-            throw new Error('AdsPowerManager no disponible');
-        }
-        
-        return await adsPowerManager.startProfile(profileId);
     }
 
     /**
@@ -697,16 +739,6 @@ class NavigationController extends EventEmitter {
     }
 
     /**
-     * Limpia un perfil de AdsPower
-     */
-    async cleanupProfile(profileId, browserInstance) {
-        const adsPowerManager = global.adsPowerManager;
-        if (adsPowerManager) {
-            await adsPowerManager.stopProfile(profileId);
-        }
-    }
-
-    /**
      * Muestra progreso global de todas las sesiones
      */
     showGlobalProgress() {
@@ -796,24 +828,6 @@ class NavigationController extends EventEmitter {
     }
 
     /**
-     * Detiene todas las sesiones activas
-     */
-    async stopAllSessions() {
-        // Detener todas las sesiones activas
-        this.activeSessions.forEach(async (session, profileId) => {
-            try {
-                console.log(`🛑 Deteniendo sesión de perfil ${profileId}...`);
-                await this.cleanupProfile(profileId, null);
-                console.log(`✅ Sesión de perfil ${profileId} detenida`);
-            } catch (error) {
-                console.warn(`⚠️ Error deteniendo perfil ${profileId}:`, error.message);
-            }
-        });
-        
-        this.activeSessions.clear();
-    }
-
-    /**
      * Emite evento de progreso de sesión
      * @param {string} sessionId - ID de la sesión
      * @param {string} profileId - ID del perfil
@@ -898,6 +912,195 @@ class NavigationController extends EventEmitter {
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+
+    //#region Stop
+    /**
+     * Detiene todas las sesiones activas de forma segura y completa
+     * @returns {Promise<void>}
+     */
+    async stopAllSessions() {
+        console.log(`🛑 Iniciando detención de ${this.activeSessions.size} sesiones activas...`);
+        
+        if (this.activeSessions.size === 0) {
+            console.log('✅ No hay sesiones activas para detener');
+            return;
+        }
+        
+        // PASO 1: Establecer flags de detención para todas las sesiones
+        const profileIds = Array.from(this.activeSessions.keys());
+        profileIds.forEach(profileId => {
+            this.setStopFlag(profileId);
+            console.log(`🚩 [${profileId}] Flag de detención establecido`);
+        });
+        
+        // PASO 2: Crear array de promesas para limpiar todas las sesiones en paralelo
+        const cleanupPromises = profileIds.map(async (profileId) => {
+            try {
+                console.log(`🛑 Deteniendo sesión de perfil ${profileId}...`);
+                
+                // Obtener datos de la sesión activa
+                const sessionData = this.activeSessions.get(profileId);
+                const browserInstance = sessionData?.browserInstance || sessionData;
+                
+                // Llamar a cleanupProfile con la instancia correcta del navegador
+                await this.cleanupProfile(profileId, browserInstance);
+                
+                console.log(`✅ Sesión de perfil ${profileId} detenida`);
+                return { profileId, success: true };
+                
+            } catch (error) {
+                console.warn(`⚠️ Error deteniendo perfil ${profileId}: ${error.message}`);
+                return { profileId, success: false, error: error.message };
+            }
+        });
+        
+        // PASO 3: Esperar a que todas las operaciones de limpieza terminen
+        try {
+            const results = await Promise.allSettled(cleanupPromises);
+            
+            // PASO 4: Reportar resultados
+            let successCount = 0;
+            let errorCount = 0;
+            
+            results.forEach((result, index) => {
+                const profileId = profileIds[index];
+                
+                if (result.status === 'fulfilled' && result.value.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    const error = result.status === 'rejected' ? result.reason : result.value.error;
+                    console.error(`❌ [${profileId}] Falló detención: ${error}`);
+                }
+            });
+            
+            console.log(`📊 Detención completada: ${successCount} exitosas, ${errorCount} con errores`);
+            
+        } catch (error) {
+            console.error(`❌ Error crítico durante detención masiva: ${error.message}`);
+        }
+        
+        // PASO 5: Limpiar todas las estructuras internas como failsafe
+        this.activeSessions.clear();
+        this.stopFlags.clear();
+        
+        // PASO 6: Reiniciar estadísticas globales
+        this.globalStats = {
+            totalSessions: 0,
+            completedSessions: 0,
+            totalCookiesCollected: 0,
+            totalSitesVisited: 0,
+            errors: 0,
+            startTime: null
+        };
+        
+        console.log('🧹 Todas las sesiones han sido procesadas y recursos limpiados');
+    }
+
+    /**
+     * Verifica si una sesión debe detenerse
+     * @param {string} profileId - ID del perfil
+     * @returns {boolean} True si debe detenerse
+     */
+    shouldStopSession(profileId) {
+        return this.stopFlags.get(profileId) === true;
+    }
+
+    /**
+     * Limpia flag de detención para una sesión
+     * @param {string} profileId - ID del perfil
+     */
+    clearStopFlag(profileId) {
+        this.stopFlags.delete(profileId);
+    }
+
+    /**
+     * Limpia completamente un perfil y sus recursos asociados
+     * @param {string} profileId - ID del perfil a limpiar
+     * @param {Object} browserInstance - Instancia del navegador (opcional)
+     * @returns {Promise<void>}
+     */
+    async cleanupProfile(profileId, browserInstance = null) {
+        console.log(`🧹 [${profileId}] Iniciando limpieza completa del perfil...`);
+        
+        try {
+            // PASO 1: Establecer flag de detención inmediatamente
+            this.setStopFlag(profileId);
+            
+            // PASO 2: Obtener instancia del navegador si no se proporcionó
+            if (!browserInstance && this.activeSessions.has(profileId)) {
+                const sessionData = this.activeSessions.get(profileId);
+                browserInstance = sessionData.browserInstance || sessionData;
+            }
+            
+            // PASO 3: Cerrar navegador de Playwright si existe
+            if (browserInstance) {
+                try {
+                    // Cerrar todas las páginas primero
+                    if (browserInstance.context) {
+                        const pages = browserInstance.context.pages();
+                        for (const page of pages) {
+                            try {
+                                if (!page.isClosed()) {
+                                    await page.close();
+                                }
+                            } catch (pageError) {
+                                console.warn(`⚠️ [${profileId}] Error cerrando página: ${pageError.message}`);
+                            }
+                        }
+                    }
+                    
+                    // Cerrar el navegador completo
+                    if (browserInstance.browser && !browserInstance.browser.isConnected || !browserInstance.browser.isConnected()) {
+                        await browserInstance.browser.close();
+                        console.log(`🔌 [${profileId}] Navegador Playwright cerrado`);
+                    } else {
+                        console.log(`🔌 [${profileId}] Navegador ya estaba cerrado`);
+                    }
+                    
+                } catch (browserError) {
+                    console.warn(`⚠️ [${profileId}] Error cerrando navegador Playwright: ${browserError.message}`);
+                }
+            }
+            
+            // PASO 4: Detener perfil en Ads Power
+            try {
+                if (this.adsPowerManager) {
+                    await this.adsPowerManager.stopProfile(profileId);
+                    console.log(`🔌 [${profileId}] Perfil detenido en Ads Power`);
+                } else {
+                    console.warn(`⚠️ [${profileId}] AdsPowerManager no disponible`);
+                }
+            } catch (adsPowerError) {
+                console.warn(`⚠️ [${profileId}] Error deteniendo perfil en Ads Power: ${adsPowerError.message}`);
+            }
+            
+            // PASO 5: Limpiar de sesiones activas
+            this.activeSessions.delete(profileId);
+            
+            // PASO 6: Limpiar flag de detención
+            this.clearStopFlag(profileId);
+            
+            // PASO 7: Emitir evento de sesión detenida
+            this.emit('session:stopped', {
+                profileId,
+                timestamp: new Date().toISOString(),
+                reason: 'manual_stop'
+            });
+            
+            console.log(`✅ [${profileId}] Limpieza completa finalizada`);
+            
+        } catch (error) {
+            console.error(`❌ [${profileId}] Error durante limpieza: ${error.message}`);
+            
+            // Asegurar que al menos se limpie de las estructuras internas
+            this.activeSessions.delete(profileId);
+            this.clearStopFlag(profileId);
+            
+            throw error;
+        }
+    }
+    //#endregion Stop
 }
 
 export default NavigationController;
