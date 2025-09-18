@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import CookieDetector from './CookieDetector.js';
 import HumanBehaviorSimulator from './HumanBehaviorSimulator.js';
 
@@ -6,8 +7,10 @@ import HumanBehaviorSimulator from './HumanBehaviorSimulator.js';
  * Coordina la navegación automática entre sitios web y recolección de cookies
  * Soporta múltiples perfiles simultáneos
  */
-class NavigationController {
+class NavigationController extends EventEmitter {
     constructor(databaseManager, configManager) {
+        super(); // Llamar constructor de EventEmitter
+
         this.databaseManager = databaseManager;
         this.configManager = configManager;
         this.cookieDetector = new CookieDetector();
@@ -758,6 +761,74 @@ class NavigationController {
         });
         
         this.activeSessions.clear();
+    }
+
+    /**
+     * Emite evento de progreso de sesión
+     * @param {string} sessionId - ID de la sesión
+     * @param {string} profileId - ID del perfil
+     * @param {Object} data - Datos del progreso
+     */
+    emitSessionProgress(sessionId, profileId, data) {
+        this.emit('session:progress', {
+            sessionId,
+            profileId,
+            ...data
+        });
+    }
+
+    /**
+     * Emite evento de sesión iniciada
+     * @param {string} sessionId - ID de la sesión
+     * @param {string} profileId - ID del perfil
+     */
+    emitSessionStarted(sessionId, profileId) {
+        this.emit('session:started', {
+            sessionId,
+            profileId,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Emite evento de sesión completada
+     * @param {string} sessionId - ID de la sesión
+     * @param {string} profileId - ID del perfil
+     * @param {Object} finalStats - Estadísticas finales
+     */
+    emitSessionCompleted(sessionId, profileId, finalStats) {
+        this.emit('session:completed', {
+            sessionId,
+            profileId,
+            finalStats,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Emite evento de error de sesión
+     * @param {string} sessionId - ID de la sesión
+     * @param {string} profileId - ID del perfil
+     * @param {Error|string} error - Error ocurrido
+     */
+    emitSessionError(sessionId, profileId, error) {
+        this.emit('session:error', {
+            sessionId,
+            profileId,
+            error: error.message || error,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Emite estadísticas globales
+     * @param {Object} stats - Estadísticas globales
+     */
+    emitGlobalStats(stats) {
+        this.emit('global:stats', {
+            ...stats,
+            timestamp: new Date().toISOString()
+        });
     }
 
     /**
