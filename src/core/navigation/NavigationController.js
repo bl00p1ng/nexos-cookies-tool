@@ -164,6 +164,15 @@ class NavigationController extends EventEmitter {
                 sessionStats.currentSite = website.domain;
                 
                 console.log(`\n🌐 [${profileId}] Sitio ${siteIndex + 1}: ${website.domain}`);
+
+                // Emitir progreso inmediatamente cuando comience navegación a un sitio
+                this.emitSessionProgress(sessionId, profileId, {
+                    cookiesCollected: sessionStats.cookiesCollected,
+                    targetCookies: sessionStats.targetCookies,
+                    sitesVisited: sessionStats.sitesVisited,
+                    currentSite: website.domain || website.url,
+                    progress: Math.min((sessionStats.cookiesCollected / sessionStats.targetCookies) * 100, 100)
+                });
                 
                 try {
                     // Verificar que el navegador sigue conectado antes de procesar
@@ -382,6 +391,15 @@ class NavigationController extends EventEmitter {
                     if (currentUrl && currentUrl !== 'about:blank') {
                         navigationSuccess = true;
                         console.log(`✅ [${sessionStats.profileId}] Navegación exitosa a ${website.domain}`);
+
+                        // Actualizar sitio actual antes de intentar navegar
+                        this.emitSessionProgress(sessionId, profileId, {
+                            cookiesCollected: sessionStats.cookiesCollected,
+                            targetCookies: sessionStats.targetCookies,
+                            sitesVisited: sessionStats.sitesVisited,
+                            currentSite: `Navegando a ${website.domain}...`,
+                            progress: Math.min((sessionStats.cookiesCollected / sessionStats.targetCookies) * 100, 100)
+                        });
                     } else {
                         throw new Error('Navegación resultó en página en blanco');
                     }
