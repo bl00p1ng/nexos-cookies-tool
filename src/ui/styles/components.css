@@ -2,20 +2,20 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    background-color: var(--nexos-white);
+    background-color: var(--hexzor-white);
 }
 
 .table th,
 .table td {
     padding: var(--spacing-3) var(--spacing-4);
     text-align: left;
-    border-bottom: 1px solid var(--nexos-gray-200);
+    border-bottom: 1px solid var(--hexzor-gray-200);
 }
 
 .table th {
-    background-color: var(--nexos-gray-50);
+    background-color: var(--hexzor-gray-50);
     font-weight: 600;
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.025em;
@@ -23,15 +23,15 @@
 
 .table td {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
 }
 
 .table tbody tr:hover {
-    background-color: var(--nexos-gray-50);
+    background-color: var(--hexzor-gray-50);
 }
 
 .table-striped tbody tr:nth-child(even) {
-    background-color: var(--nexos-gray-50);
+    background-color: var(--hexzor-gray-50);
 }
 
 /* Badges y Etiquetas */
@@ -47,47 +47,47 @@
 }
 
 .badge-success {
-    background-color: var(--nexos-success-light);
-    color: var(--nexos-success);
-    border: 1px solid var(--nexos-success);
+    background-color: var(--hexzor-success-light);
+    color: var(--hexzor-success);
+    border: 1px solid var(--hexzor-success);
 }
 
 .badge-warning {
-    background-color: var(--nexos-warning-light);
-    color: var(--nexos-warning);
-    border: 1px solid var(--nexos-warning);
+    background-color: var(--hexzor-warning-light);
+    color: var(--hexzor-warning);
+    border: 1px solid var(--hexzor-warning);
 }
 
 .badge-error {
-    background-color: var(--nexos-error-light);
-    color: var(--nexos-error);
-    border: 1px solid var(--nexos-error);
+    background-color: var(--hexzor-error-light);
+    color: var(--hexzor-error);
+    border: 1px solid var(--hexzor-error);
 }
 
 .badge-info {
-    background-color: var(--nexos-blue-light);
-    color: var(--nexos-blue);
-    border: 1px solid var(--nexos-blue);
+    background-color: var(--hexzor-blue-light);
+    color: var(--hexzor-blue);
+    border: 1px solid var(--hexzor-blue);
 }
 
 .badge-neutral {
-    background-color: var(--nexos-gray-100);
-    color: var(--nexos-gray-600);
-    border: 1px solid var(--nexos-gray-300);
+    background-color: var(--hexzor-gray-100);
+    color: var(--hexzor-gray-600);
+    border: 1px solid var(--hexzor-gray-300);
 }
 
 /* Progress Bars */
 .progress {
     width: 100%;
     height: 8px;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--nexos-blue) 0%, var(--nexos-blue-hover) 100%);
+    background: linear-gradient(90deg, var(--hexzor-blue) 0%, var(--hexzor-blue-hover) 100%);
     border-radius: 4px;
     transition: width 0.3s ease;
     position: relative;
@@ -115,15 +115,15 @@
 }
 
 .progress-success .progress-bar {
-    background: linear-gradient(90deg, var(--nexos-success) 0%, #047857 100%);
+    background: linear-gradient(90deg, var(--hexzor-success) 0%, #047857 100%);
 }
 
 .progress-warning .progress-bar {
-    background: linear-gradient(90deg, var(--nexos-warning) 0%, #b45309 100%);
+    background: linear-gradient(90deg, var(--hexzor-warning) 0%, #b45309 100%);
 }
 
 .progress-error .progress-bar {
-    background: linear-gradient(90deg, var(--nexos-error) 0%, #b91c1c 100%);
+    background: linear-gradient(90deg, var(--hexzor-error) 0%, #b91c1c 100%);
 }
 
 /* Modales */
@@ -142,7 +142,7 @@
 }
 
 .modal {
-    background-color: var(--nexos-white);
+    background-color: var(--hexzor-white);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-xl);
     max-width: 500px;
@@ -154,7 +154,7 @@
 
 .modal-header {
     padding: var(--spacing-5);
-    border-bottom: 1px solid var(--nexos-gray-200);
+    border-bottom: 1px solid var(--hexzor-gray-200);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -163,22 +163,22 @@
 .modal-title {
     font-size: var(--font-size-lg);
     font-weight: 600;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0;
 }
 
 .modal-close {
     background: none;
     border: none;
-    color: var(--nexos-gray-400);
+    color: var(--hexzor-gray-400);
     cursor: pointer;
     padding: var(--spacing-1);
     border-radius: var(--border-radius-sm);
 }
 
 .modal-close:hover {
-    color: var(--nexos-gray-600);
-    background-color: var(--nexos-gray-100);
+    color: var(--hexzor-gray-600);
+    background-color: var(--hexzor-gray-100);
 }
 
 .modal-body {
@@ -187,11 +187,11 @@
 
 .modal-footer {
     padding: var(--spacing-5);
-    border-top: 1px solid var(--nexos-gray-200);
+    border-top: 1px solid var(--hexzor-gray-200);
     display: flex;
     justify-content: flex-end;
     gap: var(--spacing-3);
-    background-color: var(--nexos-gray-50);
+    background-color: var(--hexzor-gray-50);
 }
 
 @keyframes modal-fade-in {
@@ -221,16 +221,16 @@
     align-items: center;
     gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-3);
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-300);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-300);
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: var(--transition);
 }
 
 .dropdown-toggle:hover {
-    background-color: var(--nexos-gray-50);
-    border-color: var(--nexos-gray-400);
+    background-color: var(--hexzor-gray-50);
+    border-color: var(--hexzor-gray-400);
 }
 
 .dropdown-menu {
@@ -238,8 +238,8 @@
     top: 100%;
     left: 0;
     min-width: 200px;
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);
     z-index: 100;
@@ -262,7 +262,7 @@
     gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-3);
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     text-decoration: none;
     border-radius: var(--border-radius-sm);
     cursor: pointer;
@@ -270,13 +270,13 @@
 }
 
 .dropdown-item:hover {
-    background-color: var(--nexos-gray-100);
-    color: var(--nexos-gray-800);
+    background-color: var(--hexzor-gray-100);
+    color: var(--hexzor-gray-800);
 }
 
 .dropdown-divider {
     height: 1px;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
     margin: var(--spacing-2) 0;
 }
 
@@ -291,8 +291,8 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background-color: var(--nexos-gray-800);
-    color: var(--nexos-white);
+    background-color: var(--hexzor-gray-800);
+    color: var(--hexzor-white);
     font-size: var(--font-size-xs);
     padding: var(--spacing-2) var(--spacing-3);
     border-radius: var(--border-radius);
@@ -311,7 +311,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 4px solid transparent;
-    border-top-color: var(--nexos-gray-800);
+    border-top-color: var(--hexzor-gray-800);
 }
 
 .tooltip:hover .tooltip-content {
@@ -321,14 +321,14 @@
 
 /* Acordeones */
 .accordion {
-    border: 1px solid var(--nexos-gray-200);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius-lg);
     overflow: hidden;
-    background-color: var(--nexos-white);
+    background-color: var(--hexzor-white);
 }
 
 .accordion-item {
-    border-bottom: 1px solid var(--nexos-gray-200);
+    border-bottom: 1px solid var(--hexzor-gray-200);
 }
 
 .accordion-item:last-child {
@@ -337,7 +337,7 @@
 
 .accordion-header {
     padding: var(--spacing-4) var(--spacing-5);
-    background-color: var(--nexos-gray-50);
+    background-color: var(--hexzor-gray-50);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -346,12 +346,12 @@
 }
 
 .accordion-header:hover {
-    background-color: var(--nexos-gray-100);
+    background-color: var(--hexzor-gray-100);
 }
 
 .accordion-title {
     font-weight: 600;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0;
 }
 
@@ -376,22 +376,22 @@
 
 .accordion-body {
     padding: var(--spacing-5);
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     line-height: 1.6;
 }
 
 /* Tabs */
 .tabs {
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius-lg);
     overflow: hidden;
 }
 
 .tabs-nav {
     display: flex;
-    background-color: var(--nexos-gray-50);
-    border-bottom: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-50);
+    border-bottom: 1px solid var(--hexzor-gray-200);
 }
 
 .tab-button {
@@ -400,7 +400,7 @@
     border: none;
     font-size: var(--font-size-sm);
     font-weight: 500;
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: var(--transition);
@@ -408,14 +408,14 @@
 }
 
 .tab-button:hover {
-    color: var(--nexos-gray-800);
-    background-color: var(--nexos-gray-100);
+    color: var(--hexzor-gray-800);
+    background-color: var(--hexzor-gray-100);
 }
 
 .tab-button.active {
-    color: var(--nexos-blue);
-    border-bottom-color: var(--nexos-blue);
-    background-color: var(--nexos-white);
+    color: var(--hexzor-blue);
+    border-bottom-color: var(--hexzor-blue);
+    background-color: var(--hexzor-white);
 }
 
 .tab-content {
@@ -438,8 +438,8 @@
 
 /* Cards de Estadísticas */
 .stat-card {
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-5);
     box-shadow: var(--shadow);
@@ -456,25 +456,25 @@
     width: 48px;
     height: 48px;
     margin: 0 auto var(--spacing-3);
-    background-color: var(--nexos-blue-light);
+    background-color: var(--hexzor-blue-light);
     border-radius: var(--border-radius);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--nexos-blue);
+    color: var(--hexzor-blue);
 }
 
 .stat-card-value {
     font-size: var(--font-size-3xl);
     font-weight: 700;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0 0 var(--spacing-1);
     line-height: 1;
 }
 
 .stat-card-label {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.025em;
@@ -490,13 +490,13 @@
 }
 
 .stat-card-change.positive {
-    background-color: var(--nexos-success-light);
-    color: var(--nexos-success);
+    background-color: var(--hexzor-success-light);
+    color: var(--hexzor-success);
 }
 
 .stat-card-change.negative {
-    background-color: var(--nexos-error-light);
-    color: var(--nexos-error);
+    background-color: var(--hexzor-error-light);
+    color: var(--hexzor-error);
 }
 
 /* Alertas */
@@ -511,27 +511,27 @@
 }
 
 .alert-success {
-    background-color: var(--nexos-success-light);
-    border-color: var(--nexos-success);
-    color: var(--nexos-success);
+    background-color: var(--hexzor-success-light);
+    border-color: var(--hexzor-success);
+    color: var(--hexzor-success);
 }
 
 .alert-warning {
-    background-color: var(--nexos-warning-light);
-    border-color: var(--nexos-warning);
-    color: var(--nexos-warning);
+    background-color: var(--hexzor-warning-light);
+    border-color: var(--hexzor-warning);
+    color: var(--hexzor-warning);
 }
 
 .alert-error {
-    background-color: var(--nexos-error-light);
-    border-color: var(--nexos-error);
-    color: var(--nexos-error);
+    background-color: var(--hexzor-error-light);
+    border-color: var(--hexzor-error);
+    color: var(--hexzor-error);
 }
 
 .alert-info {
-    background-color: var(--nexos-blue-light);
-    border-color: var(--nexos-blue);
-    color: var(--nexos-blue);
+    background-color: var(--hexzor-blue-light);
+    border-color: var(--hexzor-blue);
+    color: var(--hexzor-blue);
 }
 
 .alert-icon {
@@ -576,9 +576,9 @@
 .skeleton {
     background: linear-gradient(
         90deg,
-        var(--nexos-gray-200) 25%,
-        var(--nexos-gray-100) 50%,
-        var(--nexos-gray-200) 75%
+        var(--hexzor-gray-200) 25%,
+        var(--hexzor-gray-100) 50%,
+        var(--hexzor-gray-200) 75%
     );
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
@@ -625,7 +625,7 @@
 /* Separadores */
 .divider {
     height: 1px;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
     margin: var(--spacing-6) 0;
     border: none;
 }
@@ -633,7 +633,7 @@
 .divider-vertical {
     width: 1px;
     height: auto;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
     margin: 0 var(--spacing-4);
 }
 
@@ -641,7 +641,7 @@
     display: flex;
     align-items: center;
     margin: var(--spacing-6) 0;
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
     font-size: var(--font-size-sm);
     font-weight: 500;
 }
@@ -651,7 +651,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
 }
 
 .divider-text::before {
@@ -744,11 +744,11 @@
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
 
-.text-gray-500 { color: var(--nexos-gray-500); }
-.text-gray-600 { color: var(--nexos-gray-600); }
-.text-gray-700 { color: var(--nexos-gray-700); }
-.text-gray-800 { color: var(--nexos-gray-800); }
-.text-blue { color: var(--nexos-blue); }
-.text-success { color: var(--nexos-success); }
-.text-warning { color: var(--nexos-warning); }
-.text-error { color: var(--nexos-error); }
+.text-gray-500 { color: var(--hexzor-gray-500); }
+.text-gray-600 { color: var(--hexzor-gray-600); }
+.text-gray-700 { color: var(--hexzor-gray-700); }
+.text-gray-800 { color: var(--hexzor-gray-800); }
+.text-blue { color: var(--hexzor-blue); }
+.text-success { color: var(--hexzor-success); }
+.text-warning { color: var(--hexzor-warning); }
+.text-error { color: var(--hexzor-error); }

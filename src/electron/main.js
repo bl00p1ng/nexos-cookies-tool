@@ -1092,7 +1092,7 @@ class ElectronApp {
     async exportLogs() {
         try {
             const result = await dialog.showSaveDialog(this.mainWindow, {
-                defaultPath: `nexos-logs-${new Date().toISOString().split('T')[0]}.txt`,
+                defaultPath: `hexzor-logs-${new Date().toISOString().split('T')[0]}.txt`,
                 filters: [
                     { name: 'Archivos de texto', extensions: ['txt'] },
                     { name: 'Todos los archivos', extensions: ['*'] }

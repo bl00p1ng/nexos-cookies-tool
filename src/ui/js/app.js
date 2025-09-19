@@ -2,7 +2,7 @@
  * Aplicación principal de Cookies Hexzor
  * Maneja la inicialización y coordinación de todos los módulos
  */
-class NexosApp {
+class HexzorApp {
     constructor() {
         this.isElectron = window.electronAPI && window.electronAPI.utils.isElectron;
         this.currentUser = null;
@@ -529,7 +529,7 @@ let app = null;
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        app = new NexosApp();
+        app = new HexzorApp();
         await app.initialize();
     } catch (error) {
         console.error('Error fatal inicializando aplicación:', error);

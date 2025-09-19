@@ -1,33 +1,33 @@
-/* Variables CSS - Paleta de Colores de nexos */
+/* Variables CSS - Paleta de Colores de hexzor */
 :root {
     /* Colores Primarios */
-    --nexos-blue: #2563eb;
-    --nexos-blue-hover: #1d4ed8;
-    --nexos-blue-light: #dbeafe;
+    --hexzor-blue: #2563eb;
+    --hexzor-blue-hover: #1d4ed8;
+    --hexzor-blue-light: #dbeafe;
     
     /* Grises */
-    --nexos-gray-900: #111827;
-    --nexos-gray-800: #1f2937;
-    --nexos-gray-700: #374151;
-    --nexos-gray-600: #4b5563;
-    --nexos-gray-500: #6b7280;
-    --nexos-gray-400: #9ca3af;
-    --nexos-gray-300: #d1d5db;
-    --nexos-gray-200: #e5e7eb;
-    --nexos-gray-100: #f3f4f6;
-    --nexos-gray-50: #f9fafb;
+    --hexzor-gray-900: #111827;
+    --hexzor-gray-800: #1f2937;
+    --hexzor-gray-700: #374151;
+    --hexzor-gray-600: #4b5563;
+    --hexzor-gray-500: #6b7280;
+    --hexzor-gray-400: #9ca3af;
+    --hexzor-gray-300: #d1d5db;
+    --hexzor-gray-200: #e5e7eb;
+    --hexzor-gray-100: #f3f4f6;
+    --hexzor-gray-50: #f9fafb;
     
     /* Blancos */
-    --nexos-white: #ffffff;
-    --nexos-white-alpha: rgba(255, 255, 255, 0.8);
+    --hexzor-white: #ffffff;
+    --hexzor-white-alpha: rgba(255, 255, 255, 0.8);
     
     /* Estados */
-    --nexos-success: #059669;
-    --nexos-success-light: #d1fae5;
-    --nexos-warning: #d97706;
-    --nexos-warning-light: #fef3c7;
-    --nexos-error: #dc2626;
-    --nexos-error-light: #fee2e2;
+    --hexzor-success: #059669;
+    --hexzor-success-light: #d1fae5;
+    --hexzor-warning: #d97706;
+    --hexzor-warning-light: #fef3c7;
+    --hexzor-error: #dc2626;
+    --hexzor-error-light: #fee2e2;
     
     /* Sombras */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -85,8 +85,8 @@ body {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     line-height: 1.6;
-    color: var(--nexos-gray-800);
-    background-color: var(--nexos-gray-50);
+    color: var(--hexzor-gray-800);
+    background-color: var(--hexzor-gray-50);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
@@ -154,41 +154,41 @@ body {
 }
 
 .btn:focus {
-    outline: 2px solid var(--nexos-blue);
+    outline: 2px solid var(--hexzor-blue);
     outline-offset: 2px;
 }
 
 /* Variantes de Botones */
 .btn-primary {
-    background-color: var(--nexos-blue);
-    color: var(--nexos-white);
-    border-color: var(--nexos-blue);
+    background-color: var(--hexzor-blue);
+    color: var(--hexzor-white);
+    border-color: var(--hexzor-blue);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--nexos-blue-hover);
-    border-color: var(--nexos-blue-hover);
+    background-color: var(--hexzor-blue-hover);
+    border-color: var(--hexzor-blue-hover);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-    background-color: var(--nexos-white);
-    color: var(--nexos-gray-700);
-    border-color: var(--nexos-gray-300);
+    background-color: var(--hexzor-white);
+    color: var(--hexzor-gray-700);
+    border-color: var(--hexzor-gray-300);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: var(--nexos-gray-50);
-    border-color: var(--nexos-gray-400);
+    background-color: var(--hexzor-gray-50);
+    border-color: var(--hexzor-gray-400);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
 
 .btn-danger {
-    background-color: var(--nexos-error);
-    color: var(--nexos-white);
-    border-color: var(--nexos-error);
+    background-color: var(--hexzor-error);
+    color: var(--hexzor-white);
+    border-color: var(--hexzor-error);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -200,25 +200,25 @@ body {
 
 .btn-outline {
     background-color: transparent;
-    color: var(--nexos-blue);
-    border-color: var(--nexos-blue);
+    color: var(--hexzor-blue);
+    border-color: var(--hexzor-blue);
 }
 
 .btn-outline:hover:not(:disabled) {
-    background-color: var(--nexos-blue);
-    color: var(--nexos-white);
+    background-color: var(--hexzor-blue);
+    color: var(--hexzor-white);
 }
 
 .btn-link {
     background: none;
     border: none;
-    color: var(--nexos-blue);
+    color: var(--hexzor-blue);
     text-decoration: underline;
     padding: var(--spacing-1) var(--spacing-2);
 }
 
 .btn-link:hover:not(:disabled) {
-    color: var(--nexos-blue-hover);
+    color: var(--hexzor-blue-hover);
     text-decoration: none;
 }
 
@@ -272,7 +272,7 @@ label {
     display: block;
     font-size: var(--font-size-sm);
     font-weight: 500;
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     margin-bottom: var(--spacing-2);
 }
 
@@ -285,10 +285,10 @@ textarea {
     width: 100%;
     padding: var(--spacing-3);
     font-size: var(--font-size-base);
-    border: 1px solid var(--nexos-gray-300);
+    border: 1px solid var(--hexzor-gray-300);
     border-radius: var(--border-radius);
-    background-color: var(--nexos-white);
-    color: var(--nexos-gray-800);
+    background-color: var(--hexzor-white);
+    color: var(--hexzor-gray-800);
     transition: var(--transition);
 }
 
@@ -296,18 +296,18 @@ input:focus,
 select:focus,
 textarea:focus {
     outline: none;
-    border-color: var(--nexos-blue);
-    box-shadow: 0 0 0 3px var(--nexos-blue-light);
+    border-color: var(--hexzor-blue);
+    box-shadow: 0 0 0 3px var(--hexzor-blue-light);
 }
 
 input::placeholder {
-    color: var(--nexos-gray-400);
+    color: var(--hexzor-gray-400);
 }
 
 .form-hint {
     display: block;
     font-size: var(--font-size-xs);
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
     margin-top: var(--spacing-1);
 }
 
@@ -335,9 +335,9 @@ select {
 
 /* Mensajes de Error */
 .error-message {
-    background-color: var(--nexos-error-light);
-    border: 1px solid var(--nexos-error);
-    color: var(--nexos-error);
+    background-color: var(--hexzor-error-light);
+    border: 1px solid var(--hexzor-error);
+    color: var(--hexzor-error);
     padding: var(--spacing-3);
     border-radius: var(--border-radius);
     font-size: var(--font-size-sm);
@@ -346,8 +346,8 @@ select {
 
 /* Cards */
 .card {
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
@@ -355,14 +355,14 @@ select {
 
 .card-header {
     padding: var(--spacing-5);
-    border-bottom: 1px solid var(--nexos-gray-200);
-    background-color: var(--nexos-gray-50);
+    border-bottom: 1px solid var(--hexzor-gray-200);
+    background-color: var(--hexzor-gray-50);
 }
 
 .card-header h3 {
     font-size: var(--font-size-lg);
     font-weight: 600;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0;
 }
 
@@ -380,27 +380,27 @@ select {
 }
 
 .status-indicator.active {
-    background-color: var(--nexos-success);
+    background-color: var(--hexzor-success);
 }
 
 .status-indicator.inactive {
-    background-color: var(--nexos-gray-400);
+    background-color: var(--hexzor-gray-400);
 }
 
 .status-indicator.error {
-    background-color: var(--nexos-error);
+    background-color: var(--hexzor-error);
 }
 
 .status-indicator.warning {
-    background-color: var(--nexos-warning);
+    background-color: var(--hexzor-warning);
 }
 
 /* Loading Spinners */
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid var(--nexos-gray-200);
-    border-top: 4px solid var(--nexos-blue);
+    border: 4px solid var(--hexzor-gray-200);
+    border-top: 4px solid var(--hexzor-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -408,8 +408,8 @@ select {
 .loading-spinner-sm {
     width: 16px;
     height: 16px;
-    border: 2px solid var(--nexos-gray-200);
-    border-top: 2px solid var(--nexos-blue);
+    border: 2px solid var(--hexzor-gray-200);
+    border-top: 2px solid var(--hexzor-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -430,7 +430,7 @@ select {
 .loading-dots span {
     width: 6px;
     height: 6px;
-    background-color: var(--nexos-blue);
+    background-color: var(--hexzor-blue);
     border-radius: 50%;
     animation: loading-dots 1.4s ease-in-out infinite both;
 }
@@ -462,8 +462,8 @@ select {
 }
 
 .toast {
-    background-color: var(--nexos-white);
-    border: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-white);
+    border: 1px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);
     padding: var(--spacing-4);
@@ -473,30 +473,30 @@ select {
 }
 
 .toast.success {
-    border-left: 4px solid var(--nexos-success);
+    border-left: 4px solid var(--hexzor-success);
 }
 
 .toast.error {
-    border-left: 4px solid var(--nexos-error);
+    border-left: 4px solid var(--hexzor-error);
 }
 
 .toast.warning {
-    border-left: 4px solid var(--nexos-warning);
+    border-left: 4px solid var(--hexzor-warning);
 }
 
 .toast.info {
-    border-left: 4px solid var(--nexos-blue);
+    border-left: 4px solid var(--hexzor-blue);
 }
 
 .toast-title {
     font-weight: 600;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin-bottom: var(--spacing-1);
 }
 
 .toast-message {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
 }
 
 .toast-close {
@@ -505,15 +505,15 @@ select {
     right: var(--spacing-2);
     background: none;
     border: none;
-    color: var(--nexos-gray-400);
+    color: var(--hexzor-gray-400);
     cursor: pointer;
     padding: var(--spacing-1);
     border-radius: var(--border-radius-sm);
 }
 
 .toast-close:hover {
-    color: var(--nexos-gray-600);
-    background-color: var(--nexos-gray-100);
+    color: var(--hexzor-gray-600);
+    background-color: var(--hexzor-gray-100);
 }
 
 @keyframes toast-enter {
@@ -531,24 +531,24 @@ select {
 .empty-state {
     text-align: center;
     padding: var(--spacing-12) var(--spacing-8);
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
 }
 
 .empty-state svg {
     margin-bottom: var(--spacing-4);
-    color: var(--nexos-gray-300);
+    color: var(--hexzor-gray-300);
 }
 
 .empty-state h3 {
     font-size: var(--font-size-lg);
     font-weight: 600;
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     margin-bottom: var(--spacing-2);
 }
 
 .empty-state p {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
 }
 
 /* Utilidades de Responsive */
@@ -579,16 +579,16 @@ select {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--nexos-gray-100);
+    background: var(--hexzor-gray-100);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--nexos-gray-300);
+    background: var(--hexzor-gray-300);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--nexos-gray-400);
+    background: var(--hexzor-gray-400);
 }
 
 /* Transiciones globales */

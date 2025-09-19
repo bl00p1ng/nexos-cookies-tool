@@ -1,5 +1,5 @@
 {
-  "name": "nexos-cookies-tool",
+  "name": "hexzor-cookies-tool",
   "version": "1.0.0",
   "description": "Aplicación de escritorio para Windows y Mac OS que se integra con el navegador de Ads Power de forma que abra perfiles del navegador y navegue por una serie de sitios web con el fin de solictar cookies",
   "main": "src/electron/main.js",
@@ -34,7 +34,7 @@
     "wait-on": "^8.0.5"
   },
   "build": {
-    "appId": "com.nexos.cookies-tool",
+    "appId": "com.hexzor.cookies-tool",
     "productName": "Cookies Hexzor",
     "directories": {
       "output": "dist"

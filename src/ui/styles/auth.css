@@ -5,7 +5,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, var(--nexos-blue) 0%, var(--nexos-blue-hover) 100%);
+    background: linear-gradient(135deg, var(--hexzor-blue) 0%, var(--hexzor-blue-hover) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,7 +14,7 @@
 
 .loading-content {
     text-align: center;
-    color: var(--nexos-white);
+    color: var(--hexzor-white);
 }
 
 .loading-content h2 {
@@ -32,7 +32,7 @@
 
 .loading-content .loading-spinner {
     border-color: rgba(255, 255, 255, 0.3);
-    border-top-color: var(--nexos-white);
+    border-top-color: var(--hexzor-white);
     width: 48px;
     height: 48px;
     border-width: 3px;
@@ -45,7 +45,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, var(--nexos-gray-50) 0%, var(--nexos-white) 100%);
+    background: linear-gradient(135deg, var(--hexzor-gray-50) 0%, var(--hexzor-white) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,19 +55,19 @@
 .auth-container {
     width: 100%;
     max-width: 420px;
-    background: var(--nexos-white);
+    background: var(--hexzor-white);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
-    border: 1px solid var(--nexos-gray-200);
+    border: 1px solid var(--hexzor-gray-200);
 }
 
 /* Header de Autenticación */
 .auth-header {
     padding: var(--spacing-8) var(--spacing-6) var(--spacing-6);
     text-align: center;
-    background: linear-gradient(135deg, var(--nexos-gray-50) 0%, var(--nexos-white) 100%);
-    border-bottom: 1px solid var(--nexos-gray-200);
+    background: linear-gradient(135deg, var(--hexzor-gray-50) 0%, var(--hexzor-white) 100%);
+    border-bottom: 1px solid var(--hexzor-gray-200);
 }
 
 .logo {
@@ -84,14 +84,14 @@
 .auth-header h1 {
     font-size: var(--font-size-2xl);
     font-weight: 700;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0 0 var(--spacing-2);
     letter-spacing: -0.025em;
 }
 
 .auth-header p {
     font-size: var(--font-size-base);
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
     margin: 0;
     line-height: 1.5;
 }
@@ -111,27 +111,27 @@
 
 .auth-form label {
     font-weight: 600;
-    color: var(--nexos-gray-700);
+    color: var(--hexzor-gray-700);
     margin-bottom: var(--spacing-2);
 }
 
 .auth-form input {
     padding: var(--spacing-4);
     font-size: var(--font-size-base);
-    border: 2px solid var(--nexos-gray-200);
+    border: 2px solid var(--hexzor-gray-200);
     border-radius: var(--border-radius);
     transition: var(--transition);
-    background-color: var(--nexos-white);
+    background-color: var(--hexzor-white);
 }
 
 .auth-form input:focus {
-    border-color: var(--nexos-blue);
-    box-shadow: 0 0 0 4px var(--nexos-blue-light);
+    border-color: var(--hexzor-blue);
+    box-shadow: 0 0 0 4px var(--hexzor-blue-light);
     outline: none;
 }
 
 .auth-form input:invalid {
-    border-color: var(--nexos-error);
+    border-color: var(--hexzor-error);
 }
 
 /* Código de verificación con estilo especial */
@@ -155,7 +155,7 @@
 }
 
 .auth-form .btn-primary {
-    background: linear-gradient(135deg, var(--nexos-blue) 0%, var(--nexos-blue-hover) 100%);
+    background: linear-gradient(135deg, var(--hexzor-blue) 0%, var(--hexzor-blue-hover) 100%);
     border: none;
     box-shadow: var(--shadow);
 }
@@ -189,12 +189,12 @@
     text-align: center;
     margin-top: var(--spacing-6);
     padding-top: var(--spacing-4);
-    border-top: 1px solid var(--nexos-gray-200);
+    border-top: 1px solid var(--hexzor-gray-200);
 }
 
 .resend-code p {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
     margin: 0 0 var(--spacing-2);
 }
 
@@ -204,7 +204,7 @@
 }
 
 .resend-code .btn-link:disabled {
-    color: var(--nexos-gray-400);
+    color: var(--hexzor-gray-400);
     cursor: not-allowed;
     text-decoration: none;
 }
@@ -222,39 +222,39 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--nexos-success-light);
+    background: var(--hexzor-success-light);
     border-radius: 50%;
 }
 
 .auth-success h3 {
     font-size: var(--font-size-xl);
     font-weight: 700;
-    color: var(--nexos-gray-800);
+    color: var(--hexzor-gray-800);
     margin: 0 0 var(--spacing-2);
 }
 
 .auth-success p {
     font-size: var(--font-size-base);
-    color: var(--nexos-gray-600);
+    color: var(--hexzor-gray-600);
     margin: 0 0 var(--spacing-6);
 }
 
 /* Footer de autenticación */
 .auth-footer {
     padding: var(--spacing-4) var(--spacing-6);
-    background-color: var(--nexos-gray-50);
-    border-top: 1px solid var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-50);
+    border-top: 1px solid var(--hexzor-gray-200);
     text-align: center;
 }
 
 .auth-footer p {
     font-size: var(--font-size-sm);
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
     margin: 0;
 }
 
 .auth-footer a {
-    color: var(--nexos-blue);
+    color: var(--hexzor-blue);
     text-decoration: none;
     font-weight: 500;
 }
@@ -269,9 +269,9 @@
     font-size: var(--font-size-sm);
     padding: var(--spacing-3);
     border-radius: var(--border-radius);
-    background-color: var(--nexos-error-light);
-    border: 1px solid var(--nexos-error);
-    color: var(--nexos-error);
+    background-color: var(--hexzor-error-light);
+    border: 1px solid var(--hexzor-error);
+    color: var(--hexzor-error);
     animation: shake 0.5s ease-in-out;
 }
 
@@ -284,7 +284,7 @@
 /* Hints mejorados */
 .form-hint {
     font-size: var(--font-size-xs);
-    color: var(--nexos-gray-500);
+    color: var(--hexzor-gray-500);
     margin-top: var(--spacing-2);
     line-height: 1.4;
 }
@@ -359,7 +359,7 @@
 .password-strength {
     margin-top: var(--spacing-2);
     height: 4px;
-    background-color: var(--nexos-gray-200);
+    background-color: var(--hexzor-gray-200);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -372,15 +372,15 @@
 
 .password-strength-weak .password-strength-bar {
     width: 33%;
-    background-color: var(--nexos-error);
+    background-color: var(--hexzor-error);
 }
 
 .password-strength-medium .password-strength-bar {
     width: 66%;
-    background-color: var(--nexos-warning);
+    background-color: var(--hexzor-warning);
 }
 
 .password-strength-strong .password-strength-bar {
     width: 100%;
-    background-color: var(--nexos-success);
+    background-color: var(--hexzor-success);
 }

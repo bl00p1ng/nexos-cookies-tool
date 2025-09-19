@@ -254,9 +254,9 @@ class ProfileInputManager {
         
         // Actualizar color según validez
         if (validProfiles.length === 0) {
-            this.elements.profileCount.style.color = 'var(--nexos-error)';
+            this.elements.profileCount.style.color = 'var(--hexzor-error)';
         } else {
-            this.elements.profileCount.style.color = 'var(--nexos-success)';
+            this.elements.profileCount.style.color = 'var(--hexzor-success)';
         }
     }
 
@@ -288,7 +288,7 @@ class ProfileInputManager {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: var(--nexos-error);
+            background: var(--hexzor-error);
             color: white;
             padding: 12px 16px;
             border-radius: 6px;
