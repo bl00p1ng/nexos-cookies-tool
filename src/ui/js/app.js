@@ -2,6 +2,8 @@
  * Aplicación principal de Cookies Hexzor
  * Maneja la inicialización y coordinación de todos los módulos
  */
+
+import ReportsManager from './reports.js';
 class NexosApp {
     constructor() {
         this.isElectron = window.electronAPI && window.electronAPI.utils.isElectron;
@@ -114,6 +116,10 @@ class NexosApp {
 
         // Navigation Manager
         this.navigationManager = new NavigationManager(this);
+
+        // Reports Manager
+        this.reportsManager = new ReportsManager(this);
+        window.reportsManager = this.reportsManager;
     }
 
     /**
