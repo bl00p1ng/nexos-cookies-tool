@@ -172,16 +172,17 @@ class NavigationManager {
 
     //#region Handlers de eventos
     /**
-     * Maneja evento de sesión iniciada
-     * @param {Object} data - Datos del evento
-     */
+ * Maneja evento de sesión iniciada
+    * @param {Object} data - Datos del evento
+    */
     handleSessionStarted(data) {
-        console.log('🚀 [NavigationManager] Sesión iniciada:', data.profileId);
+        console.log('🚀 [NavigationManager] Sesión iniciada:', data.profileId, 'Target:', data.targetCookies);
         
-        // Inicializar sesión
+        // Inicializar sesión con targetCookies incluido
         this.sessions.set(data.sessionId, {
             sessionId: data.sessionId,
             profileId: data.profileId,
+            targetCookies: data.targetCookies || 2500, // Usar valor del evento o fallback
             cookiesCollected: 0,
             sitesVisited: 0,
             currentSite: 'Iniciando...',

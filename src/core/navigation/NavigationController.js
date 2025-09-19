@@ -119,7 +119,7 @@ class NavigationController extends EventEmitter {
         }
 
         // Emitir evento de sesión iniciada
-        this.emitSessionStarted(sessionId, profileId);
+        this.emitSessionStarted(sessionId, profileId, targetCookies);
         
         const sessionStats = {
             sessionId,
@@ -851,13 +851,15 @@ class NavigationController extends EventEmitter {
      * Emite evento de sesión iniciada
      * @param {string} sessionId - ID de la sesión
      * @param {string} profileId - ID del perfil
+     * @param {number} targetCookies - Objetivo de cookies para esta sesión
      */
-    emitSessionStarted(sessionId, profileId) {
-        console.log(`📡 [DEBUG] Emitiendo session:started para ${profileId}`);
+    emitSessionStarted(sessionId, profileId, targetCookies) {
+        console.log(`📡 [DEBUG] Emitiendo session:started para ${profileId} con objetivo ${targetCookies} cookies`);
 
         this.emit('session:started', {
             sessionId,
             profileId,
+            targetCookies,
             timestamp: new Date().toISOString()
         });
     }
