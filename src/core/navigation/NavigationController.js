@@ -159,23 +159,44 @@ class NavigationController extends EventEmitter {
 
             console.log(`📂 [${profileId}] ${websites.length} sitios disponibles`);
 
-            // Calcular tiempo mínimo (1 hora para 2500 cookies)
+            // Calcular tiempo mínimo para navegación realista
             const minimumTime = this.calculateMinimumNavigationTime(targetCookies);
             console.log(`⏱️ [${profileId}] Tiempo mínimo: ${Math.round(minimumTime/60000)} minutos`);
 
-            // Navegar por sitios hasta alcanzar objetivo
+            // Navegar por sitios hasta alcanzar objetivo Y tiempo mínimo
             let siteIndex = 0;
             const endTime = startTime + minimumTime;
             let consecutiveConnectionErrors = 0;
             const maxConnectionErrors = 3;
 
-            while (sessionStats.cookiesCollected < targetCookies && 
-                   Date.now() < endTime && 
-                   siteIndex < websites.length) {
-                // Verificar si se debe detener la sesión
+            // BUCLE PRINCIPAL: Continuar hasta cumplir AMBAS condiciones
+            while (true) {
+                // Verificar interrupción manual PRIMERO
                 if (this.shouldStopSession(profileId)) {
                     console.log(`🛑 [${profileId}] Sesión interrumpida por flag de detención`);
                     break;
+                }
+
+                const cookiesReached = sessionStats.cookiesCollected >= targetCookies;
+                const timeReached = Date.now() >= endTime;
+                
+                // Solo terminar si se cumplieron AMBAS condiciones
+                if (cookiesReached && timeReached) {
+                    console.log(`✅ [${profileId}] Objetivos completados: ${sessionStats.cookiesCollected}/${targetCookies} cookies en ${Math.round((Date.now() - startTime)/60000)} minutos`);
+                    break;
+                }
+                
+                // Mostrar progreso si ya alcanzó cookies pero sigue por tiempo
+                if (cookiesReached && !timeReached) {
+                    const remainingMinutes = Math.round((endTime - Date.now()) / 60000);
+                    console.log(`🎯 [${profileId}] Objetivo alcanzado, continuando ${remainingMinutes} min más por realismo`);
+                }
+
+                // Si se acabaron los sitios, reiniciar la lista
+                if (siteIndex >= websites.length) {
+                    console.log(`🔄 [${profileId}] Reiniciando lista de sitios`);
+                    siteIndex = 0;
+                    websites = await this.databaseManager.getRandomWebsites(100);
                 }
 
                 const website = websites[siteIndex];
@@ -317,7 +338,7 @@ class NavigationController extends EventEmitter {
             console.log(`\n✅ [${profileId}] Sesión completada:`);
             console.log(`   🍪 Cookies: ${sessionStats.cookiesCollected}/${targetCookies}`);
             console.log(`   🌐 Sitios: ${sessionStats.sitesVisited}`);
-            console.log(`   ⏱️ Tiempo: ${Math.round(totalTime/60000)} minutos`);
+            console.log(`   ⏱️ Tiempo: ${Math.round(totalTime/60000)} minutos (mín: ${Math.round(minimumTime/60000)})`);
             console.log(`   🎭 Puntuación humana: ${sessionStats.humanBehaviorScore}/100`);
 
             // Emitir evento de sesión completada
@@ -565,20 +586,22 @@ class NavigationController extends EventEmitter {
     }
 
     /**
-     * Calcula tiempo mínimo de navegación (1 hora para 2500 cookies)
-     * @param {number} targetCookies - Cantidad objetivo de cookies
-     * @returns {number} Tiempo en millisegundos
+     * Calcula tiempo mínimo realista para navegación humana
+     * @param {number} targetCookies - Objetivo de cookies
+     * @returns {number} Tiempo mínimo en milisegundos
      */
     calculateMinimumNavigationTime(targetCookies) {
-        // Tiempo base: 1 hora para 2500 cookies
-        const baseTime = 60 * 60 * 1000; // 1 hora
-        const baseCookies = 2500;
+        // Tiempo base: 1-2 horas (aleatorio para cada sesión)
+        const baseTimeMinutes = this.randomBetween(60, 120); // 1-2 horas
         
-        // Escalar proporcionalmente
-        const calculatedTime = (targetCookies / baseCookies) * baseTime;
+        // Si el objetivo es mayor a 2500, aumentar tiempo proporcionalmente
+        let adjustedTimeMinutes = baseTimeMinutes;
+        if (targetCookies > 2500) {
+            const extraRatio = targetCookies / 2500;
+            adjustedTimeMinutes = baseTimeMinutes * extraRatio;
+        }
         
-        // Mínimo 45 minutos, máximo 3 horas
-        return Math.max(45 * 60 * 1000, Math.min(3 * 60 * 60 * 1000, calculatedTime));
+        return adjustedTimeMinutes * 60 * 1000; // Convertir a milisegundos
     }
 
     /**
