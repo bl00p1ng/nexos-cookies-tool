@@ -457,7 +457,7 @@ class DashboardManager {
         this.elements.startNavigationBtn.disabled = !canStart;
         
         // Actualizar botón de detener navegación
-        this.elements.stopNavigationBtn.disabled = !canStop;
+        this.elements.stopNavigationBtn.disabled = !navigationRunning;
 
         console.log(`🔄 [DEBUG] Button states updated: canStart=${canStart}, canStop=${canStop}, navigationRunning=${navigationRunning}`);
     }
@@ -495,6 +495,9 @@ class DashboardManager {
             console.log('🚀 Iniciando navegación con configuración:', config);
 
             this.setNavigationLoading(true);
+
+            // Habilitar inmediatamente el botón de detener
+            this.elements.stopNavigationBtn.disabled = false;
 
             const result = await window.electronAPI.navigation.start(config);
 
