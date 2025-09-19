@@ -316,10 +316,6 @@ class AuthManager {
         this.currentStep = 'success';
         this.hideAllForms();
         this.elements.authSuccess.classList.remove('hidden');
-        
-        if (this.elements.welcomeMessage && user) {
-            this.elements.welcomeMessage.textContent = `Bienvenido, ${user.name || user.email}`;
-        }
     }
 
     /**

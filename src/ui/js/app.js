@@ -230,10 +230,6 @@ class HexzorApp {
 
             // Inicializar dashboard
             await this.dashboardManager.initialize();
-
-            // Mostrar notificación de bienvenida
-            this.showSuccess(`¡Bienvenido, ${data.user.name || data.user.email}!`);
-
         } catch (error) {
             console.error('Error manejando autenticación exitosa:', error);
             this.showError('Error inicializando el dashboard');
