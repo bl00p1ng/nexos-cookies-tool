@@ -44,7 +44,7 @@ class NavigationManager {
                 <div class="progress-bar-container">
                     <div class="progress-bar-fill" style="width: ${session.progress || 0}%"></div>
                 </div>
-                <div class="progress-percentage">${Math.round(session.progress || 0)}%</div>
+                <div class="progress-percentage ${(session.progress || 0) >= 100 ? 'completed' : ''}">${Math.round(session.progress || 0)}%</div>
             </div>
         `;
         return div;

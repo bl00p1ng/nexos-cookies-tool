@@ -416,12 +416,10 @@
 }
 
 .profile-progress-bar {
-    width: 100%;
-    height: 8px;
-    background-color: var(--nexos-gray-200);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: var(--spacing-2);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-3);
 }
 
 .profile-progress-fill {
@@ -634,10 +632,11 @@
 
 .progress-bar-container {
     flex: 1;
-    height: 8px;
+    height: 10px;
     background-color: var(--nexos-gray-200);
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
+    position: relative;
 }
 
 .progress-bar-fill {
@@ -645,14 +644,28 @@
     background-color: var(--nexos-blue);
     border-radius: 4px;
     transition: width 0.3s ease;
+    min-width: 0%;
+}
+
+/* Asegurar que la barra se llene completamente al 100% */
+.progress-bar-fill[style*="100%"] {
+    width: 100% !important;
+    background: linear-gradient(90deg, var(--nexos-success) 0%, #047857 100%);
 }
 
 .progress-percentage {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--nexos-gray-700);
-    min-width: 35px;
+    min-width: 45px;
     text-align: right;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+/* Estado completado */
+.progress-percentage.completed {
+    color: var(--nexos-success);
+    font-weight: 700;
 }
 
 /* Estados de progreso adicionales */
