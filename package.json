@@ -50,12 +50,15 @@
         "to": "app/ui"
       }
     ],
+    "icon": "assets/icons/hexzor-logo.svg",
     "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": "dmg"
+      "category": "public.app-category.business",
+      "target": "dmg",
+      "icon": "assets/icons/icon.icns"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icons/icon.ico"
     },
     "nsis": {
       "oneClick": false,
