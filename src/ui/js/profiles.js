@@ -75,7 +75,7 @@ class ProfileInputManager {
             <input 
                 type="text" 
                 class="profile-id-input" 
-                placeholder="Ej: k1a2b3c4, profile-xyz-123"
+                placeholder="Ej: k1a2b3c4"
                 value="${value}"
                 data-profile-number="${profileNumber}"
             >
