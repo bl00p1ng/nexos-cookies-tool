@@ -743,6 +743,40 @@ class NavigationController extends EventEmitter {
     }
 
     /**
+     * Marca una sesión como interrumpida en la base de datos
+     * @param {Object} sessionStats - Estadísticas de la sesión
+     * @param {string} reason - Razón de la interrupción (ej: "stopped_manually", "error")
+     */
+    async markSessionStopped(sessionStats, reason = 'stopped_manually') {
+        try {
+            const currentTime = new Date().toISOString();
+            const status = reason === 'error' ? 'error' : 'stopped';
+            
+            await this.databaseManager.db.runAsync(`
+                UPDATE navigation_sessions 
+                SET completed_at = ?, 
+                    cookies_collected = ?, 
+                    sites_visited = ?, 
+                    status = ?,
+                    error_log = ?
+                WHERE session_id = ?
+            `, [
+                currentTime,
+                sessionStats.cookiesCollected || 0,
+                sessionStats.sitesVisited || 0,
+                status,
+                reason,
+                sessionStats.sessionId
+            ]);
+            
+            console.log(`📊 [${sessionStats.profileId}] Sesión marcada como ${status} en BD`);
+            
+        } catch (error) {
+            console.warn(`⚠️ Error marcando sesión como detenida:`, error.message);
+        }
+    }
+
+    /**
      * Muestra progreso global de todas las sesiones
      */
     showGlobalProgress() {
@@ -985,12 +1019,23 @@ class NavigationController extends EventEmitter {
         } catch (error) {
             console.error(`❌ Error crítico durante detención masiva: ${error.message}`);
         }
+
+        // PASO 5: Actualizar base de datos para sesiones no completadas
+        console.log('📊 Actualizando base de datos para sesiones interrumpidas...');
+        for (const [profileId, sessionStats] of this.activeSessions) {
+            try {
+                // Marcar sesión como detenida manualmente
+                await this.markSessionStopped(sessionStats, 'stopped_manually');
+            } catch (error) {
+                console.warn(`⚠️ Error actualizando sesión ${profileId} en BD:`, error.message);
+            }
+        }
         
-        // PASO 5: Limpiar todas las estructuras internas como failsafe
+        // PASO 6: Limpiar todas las estructuras internas como failsafe
         this.activeSessions.clear();
         this.stopFlags.clear();
         
-        // PASO 6: Reiniciar estadísticas globales
+        // PASO 7: Reiniciar estadísticas globales
         this.globalStats = {
             totalSessions: 0,
             completedSessions: 0,
