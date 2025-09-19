@@ -276,6 +276,9 @@ class DatabaseManager {
                     case 'month':
                         whereClause += ' AND DATE(started_at) >= DATE("now", "-30 days")';
                         break;
+                    case 'all':
+                        // No aplicar filtro
+                        break;
                     case 'custom':
                         if (filters.startDate) {
                             whereClause += ' AND DATE(started_at) >= ?';
