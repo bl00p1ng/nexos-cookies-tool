@@ -201,6 +201,11 @@ npm run dev
 ```
 Ejecuta la aplicación en modo desarrollo con recarga automática.
 
+### Reiniciar tablas de las bases de datos
+```bash
+sqlite3 data/loadtest.db "DELETE FROM site_visits; DELETE FROM navigation_sessions; DELETE FROM sqlite_sequence WHERE name IN ('navigation_sessions', 'site_visits');"
+```
+
 ### Estructura Modular
 El código está organizado siguiendo:
 - **Principios SOLID**
@@ -208,23 +213,6 @@ El código está organizado siguiendo:
 - **Separación de responsabilidades**
 - **Comentarios en tercera persona**
 - **Indentación de 4 espacios**
-
-## Próximas Funcionalidades
-
-### Sprint Actual (MVP)
-- [x] Integración con Ads Power
-- [x] Gestión de base de datos
-- [x] CLI básica
-- [x] Detección inteligente de cookies
-- [x] Navegación automatizada
-- [x] Aceptación automática de avisos de cookies
-
-### Sprints Futuros
-- [ ] Simulación de comportamiento humano
-- [ ] Interfaz gráfica de usuario
-- [ ] Reportes avanzados
-- [ ] Sistema de autenticación
-- [ ] Modelo SaaS
 
 ## Troubleshooting
 
