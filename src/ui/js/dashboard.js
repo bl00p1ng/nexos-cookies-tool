@@ -457,7 +457,7 @@ class DashboardManager {
         this.elements.startNavigationBtn.disabled = !canStart;
         
         // Actualizar botón de detener navegación
-        this.elements.stopNavigationBtn.disabled = !navigationRunning;
+        this.elements.stopNavigationBtn.disabled = false;
 
         console.log(`🔄 [DEBUG] Button states updated: canStart=${canStart}, canStop=${canStop}, navigationRunning=${navigationRunning}`);
     }
@@ -528,6 +528,15 @@ class DashboardManager {
      */
     async handleStopNavigation() {
         try {
+            // Validar si hay sesiones activas
+            if (!this.state.navigationRunning) {
+                this.app.showError('No hay sesiones de navegación activas para detener');
+                return;
+            }
+
+            // Resto del código existente...
+            console.log('🛑 Deteniendo navegación...');
+
             const result = await window.electronAPI.navigation.stop();
 
             if (result.success) {
