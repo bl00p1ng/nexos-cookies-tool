@@ -237,6 +237,8 @@ class ElectronApp {
         // Base de datos
         ipcMain.handle('database:get-stats', this.getDatabaseStats.bind(this));
         ipcMain.handle('database:get-sites', this.getRandomSites.bind(this));
+        ipcMain.handle('reports:get', this.getReports.bind(this));
+        ipcMain.handle('reports:summary', this.getReportsSummary.bind(this));
 
         // Configuración
         ipcMain.handle('config:get', this.getConfiguration.bind(this));
@@ -974,6 +976,76 @@ class ElectronApp {
         }
     }
     //#endregion DB
+
+    //#region REPORTES
+    /**
+     * Obtiene reportes de navegación con filtros y paginación
+     * @param {Object} event - Evento IPC
+     * @param {Object} options - Opciones de consulta
+     * @returns {Promise<Object>} Reportes con paginación
+     */
+    async getReports(event, options = {}) {
+        try {
+            const {
+                filters = {},
+                page = 1,
+                limit = 10
+            } = options;
+
+            console.log('📊 Obteniendo reportes con filtros:', filters);
+
+            const result = await this.databaseManager.getNavigationReports(filters, page, limit);
+            
+            return {
+                success: true,
+                ...result
+            };
+
+        } catch (error) {
+            console.error('❌ Error obteniendo reportes:', error.message);
+            return {
+                success: false,
+                error: error.message,
+                data: [],
+                pagination: {
+                    currentPage: 1,
+                    totalPages: 0,
+                    totalRecords: 0,
+                    recordsPerPage: limit,
+                    hasNextPage: false,
+                    hasPreviousPage: false
+                }
+            };
+        }
+    }
+
+    /**
+     * Obtiene resumen estadístico de reportes
+     * @param {Object} event - Evento IPC
+     * @param {Object} filters - Filtros para el resumen
+     * @returns {Promise<Object>} Resumen estadístico
+     */
+    async getReportsSummary(event, filters = {}) {
+        try {
+            console.log('📈 Obteniendo resumen de reportes con filtros:', filters);
+
+            const result = await this.databaseManager.getReportsSummary(filters);
+            
+            return {
+                success: true,
+                ...result
+            };
+
+        } catch (error) {
+            console.error('❌ Error obteniendo resumen de reportes:', error.message);
+            return {
+                success: false,
+                error: error.message,
+                summary: {}
+            };
+        }
+    }
+    //#endregion REPORTES
 
     //#region CONFIGURACIÓN
     /**
