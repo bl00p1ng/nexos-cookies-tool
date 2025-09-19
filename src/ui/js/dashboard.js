@@ -295,7 +295,7 @@ class DashboardManager {
                 await this.loadDatabasePreview();
                 break;
             case 'reports':
-                await this.loadReports();
+                //Los reportes se cargan on-demand cuando el usuario hace clic en "Generar Reporte"
                 break;
         }
     }
@@ -713,14 +713,6 @@ class DashboardManager {
         if (electronVersionElement) {
             electronVersionElement.textContent = platformInfo.version || 'N/A';
         }
-    }
-
-    /**
-     * Carga reportes
-     */
-    async loadReports() {
-        // Implementar carga de reportes cuando esté disponible
-        console.log('Cargando reportes...');
     }
 
     /**

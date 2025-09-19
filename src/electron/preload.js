@@ -75,6 +75,12 @@ const electronAPI = {
         isElectron: true,
         platform: process.platform,
         version: process.versions.electron
+    },
+
+    // Reportes
+    reports: {
+        get: (options) => ipcRenderer.invoke('reports:get', options),
+        summary: (filters) => ipcRenderer.invoke('reports:summary', filters)
     }
 };
 
