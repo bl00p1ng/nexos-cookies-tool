@@ -21,6 +21,10 @@ class ConfigManager {
      */
     getDefaultConfig() {
         return {
+            "auth": {
+                "backendUrl": "https://623b432ec95e.ngrok-free.app",
+                "timeout": 30000
+            },
             "adspower": {
                 "baseUrl": "http://local.adspower.com:50325/api/v1",
                 "timeout": 30000,

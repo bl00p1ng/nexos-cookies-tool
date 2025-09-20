@@ -39,15 +39,19 @@
     "directories": {
       "output": "dist"
     },
-    "icon": "assets/icons/icon.icns",
+    "icon": "./assets/icons/icon.icns",
     "files": [
       "src/**/*",
-      "config/**/*", 
+      "config/config.json", 
       "data/loadtest.db",
       "node_modules/**/*",
       "package.json"
     ],
     "extraFiles": [
+      {
+        "from": "config/config.json",
+        "to": "config/config.json"
+      },
       {
         "from": "data/loadtest.db",
         "to": "data/loadtest.db"
@@ -57,11 +61,19 @@
       {
         "from": "src/ui",
         "to": "app/ui"
+      },
+      {
+        "from": "config",
+        "to": "config"
       }
+    ],
+    "asarUnpack": [
+      "config/**/*",
+      "data/**/*"
     ],
     "compression": "maximum",
     "mac": {
-      "icon": "assets/icons/icon.icns",
+      "icon": "./assets/icons/icon.icns",
       "target": [
         {"target": "dmg", "arch": ["x64", "arm64"]},
         {"target": "zip", "arch": ["x64"]}
@@ -69,7 +81,7 @@
       "category": "public.app-category.business"
     },
     "win": {
-      "icon": "assets/icons/icon.ico",
+      "icon": "./assets/icons/icon.ico",
       "target": [
         {"target": "nsis", "arch": ["x64"]},
         {"target": "portable", "arch": ["x64"]}
