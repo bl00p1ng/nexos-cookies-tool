@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { app } from 'electron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,7 +12,19 @@ const __dirname = dirname(__filename);
  */
 class ConfigManager {
     constructor() {
-        this.configPath = join(__dirname, '../../../config/config.json');
+        const isPackaged = app ? app.isPackaged : false;
+
+        if (isPackaged) {
+            // En aplicación empaquetada
+            const userDataPath = app.getPath('userData');
+            this.configPath = path.join(userDataPath, 'config', 'config.json');
+            console.log('⚙️ Modo empaquetado - Config en:', this.configPath);
+        } else {
+            // En desarrollo
+            this.configPath = join(__dirname, '../../../config/config.json');
+            console.log('⚙️ Modo desarrollo - Config en:', this.configPath);
+        }
+        
         this.config = this.getDefaultConfig();
     }
 

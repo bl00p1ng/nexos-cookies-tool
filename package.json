@@ -65,6 +65,10 @@
       {
         "from": "config",
         "to": "config"
+      },
+      {
+        "from": "data",
+        "to": "data"
       }
     ],
     "asarUnpack": [

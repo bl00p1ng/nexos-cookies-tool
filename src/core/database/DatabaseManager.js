@@ -2,6 +2,8 @@ import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
+import { app } from 'electron';
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,7 +14,20 @@ const __dirname = dirname(__filename);
  */
 class DatabaseManager {
     constructor(dbPath = null) {
-        this.dbPath = dbPath || join(__dirname, '../../../data/loadtest.db');
+        // Detectar si es la aplicación empaquetada
+        const isDev = process.env.NODE_ENV === 'development';
+        const isPackaged = app ? app.isPackaged : false;
+
+        if (isPackaged) {
+            // En aplicación empaquetada, usar directorio userData
+            const userDataPath = app.getPath('userData');
+            this.dbPath = path.join(userDataPath, 'data', 'loadtest.db');
+            console.log('🗄️ Modo empaquetado - DB en:', this.dbPath);
+        } else {
+            // En desarrollo, usar la ruta relativa normal
+            this.dbPath = dbPath || join(__dirname, '../../../data/loadtest.db');
+            console.log('🗄️ Modo desarrollo - DB en:', this.dbPath);
+        }
         this.db = null;
     }
 
@@ -25,6 +40,25 @@ class DatabaseManager {
             // Crear directorio de datos si no existe
             const dataDir = dirname(this.dbPath);
             await fs.mkdir(dataDir, { recursive: true });
+
+            // Si el entorno es la app empaquetada y no existe la DB, copiarla desde recursos
+            if (app && app.isPackaged) {
+                try {
+                    await fs.access(this.dbPath);
+                    console.log('✅ Base de datos ya existe en userData');
+                } catch {
+                    // La DB no existe, intentar copiarla desde recursos
+                    const resourceDbPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'data', 'loadtest.db');
+                    try {
+                        await fs.copyFile(resourceDbPath, this.dbPath);
+                        console.log('📋 Base de datos copiada desde recursos');
+                    } catch (copyError) {
+                        console.log('⚠️ No se pudo copiar DB desde recursos, creando nueva');
+                        // Crear DB vacía
+                        await this.createDatabase();
+                    }
+                }
+            }
 
             // Abrir conexión a la base de datos
             this.db = new sqlite3.Database(this.dbPath);
