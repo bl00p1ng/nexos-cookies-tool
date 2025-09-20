@@ -27,8 +27,11 @@ class ElectronApp {
 
         // Cargar variables de entorno
         dotenv.config();
-        this.authBackendUrl = process.env.AUTH_BACKEND_URL;
-        
+
+        const authConfig = configManager.getAuthConfig();
+        const backendUrl = authConfig.backendUrl;
+        this.authBackendUrl = backendUrl;
+
         // Store para persistir configuración y autenticación
         this.store = new Store({
             schema: {

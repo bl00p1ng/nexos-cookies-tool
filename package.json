@@ -41,6 +41,7 @@
     },
     "files": [
       "src/**/*",
+      "config/**/*",
       "node_modules/**/*",
       "package.json"
     ],
@@ -50,15 +51,19 @@
         "to": "app/ui"
       }
     ],
-    "icon": "assets/icons/hexzor-logo.svg",
+    "compression": "maximum",
     "mac": {
-      "category": "public.app-category.business",
-      "target": "dmg",
-      "icon": "assets/icons/icon.icns"
+      "target": [
+        {"target": "dmg", "arch": ["x64", "arm64"]},
+        {"target": "zip", "arch": ["x64"]}
+      ],
+      "category": "public.app-category.business"
     },
     "win": {
-      "target": "nsis",
-      "icon": "assets/icons/icon.ico"
+      "target": [
+        {"target": "nsis", "arch": ["x64"]},
+        {"target": "portable", "arch": ["x64"]}
+      ]
     },
     "nsis": {
       "oneClick": false,

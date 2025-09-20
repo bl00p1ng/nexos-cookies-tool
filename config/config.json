@@ -1,0 +1,163 @@
+{
+    "auth": {
+        "backendUrl": "https://623b432ec95e.ngrok-free.app",
+        "timeout": 30000
+    },
+    "adspower": {
+        "baseUrl": "http://local.adspower.com:50325/api/v1",
+        "timeout": 30000,
+        "retryAttempts": 3,
+        "retryDelay": 5000,
+        "maxConcurrentProfiles": 10,
+        "profileStartupDelay": 2000,
+        "healthCheckInterval": 60000
+    },
+    "navigation": {
+        "defaultCookieTarget": 2500,
+        "maxPagesPerSite": 10,
+        "minTimePerPage": 2000,
+        "maxTimePerPage": 15000,
+        "scrollDepthMin": 0.3,
+        "scrollDepthMax": 0.9,
+        "interSiteDelayMin": 2000,
+        "interSiteDelayMax": 8000,
+        "maxRetries": 3,
+        "retryDelay": 5000,
+        "requestTimeout": 30000,
+        "navigationTimeout": 30000
+    },
+    "database": {
+        "path": "./data/loadtest.db",
+        "backupInterval": 86400000,
+        "maxRetries": 3,
+        "connectionTimeout": 10000,
+        "autoBackup": true,
+        "compressionEnabled": false
+    },
+    "system": {
+        "maxWorkers": 10,
+        "memoryLimitMB": 8192,
+        "cpuUsageLimit": 80,
+        "diskSpaceLimit": 1024,
+        "enableResourceMonitoring": true,
+        "cleanupInterval": 300000,
+        "maxLogFiles": 10,
+        "logRotationSize": 10485760
+    },
+    "logging": {
+        "level": "info",
+        "saveToFile": true,
+        "maxLogFiles": 5,
+        "maxFileSize": 10485760,
+        "logDirectory": "./logs",
+        "console": {
+            "enabled": true,
+            "colorize": true,
+            "timestamp": true
+        },
+        "file": {
+            "enabled": true,
+            "filename": "loadtest.log",
+            "datePattern": "YYYY-MM-DD",
+            "maxFiles": "14d"
+        }
+    },
+    "humanBehavior": {
+        "enabled": true,
+        "profiles": {
+            "casual": {
+                "timeMultiplier": 1,
+                "scrollDepthMultiplier": 0.8,
+                "clickProbability": 0.6,
+                "readingSpeed": 200
+            },
+            "power": {
+                "timeMultiplier": 0.7,
+                "scrollDepthMultiplier": 1.2,
+                "clickProbability": 0.9,
+                "readingSpeed": 300
+            },
+            "researcher": {
+                "timeMultiplier": 1.5,
+                "scrollDepthMultiplier": 1.1,
+                "clickProbability": 0.8,
+                "readingSpeed": 150
+            }
+        },
+        "defaultProfile": "casual",
+        "mouseMovement": {
+            "enabled": true,
+            "naturalCurves": true,
+            "varianceMin": 2,
+            "varianceMax": 15
+        },
+        "typing": {
+            "enabled": false,
+            "wpmMin": 30,
+            "wpmMax": 80,
+            "errorRate": 0.02
+        }
+    },
+    "cookieDetection": {
+        "enabled": true,
+        "strategies": [
+            "known_selectors",
+            "intelligent_analysis",
+            "overlay_detection"
+        ],
+        "timeouts": {
+            "detection": 5000,
+            "interaction": 10000,
+            "verification": 3000
+        },
+        "scoring": {
+            "position": 15,
+            "visibility": 20,
+            "textContent": 25,
+            "styling": 10,
+            "size": 8,
+            "keywords": 22
+        },
+        "fallbackMethods": [
+            "escape_key",
+            "click_overlay"
+        ],
+        "maxAttemptsPerBanner": 3
+    },
+    "reporting": {
+        "enabled": false,
+        "autoGenerate": true,
+        "formats": [
+            "json",
+            "html"
+        ],
+        "outputDirectory": "./reports",
+        "retention": {
+            "maxFiles": 50,
+            "maxDays": 30,
+            "autoCleanup": true
+        },
+        "includeCharts": true,
+        "includeRecommendations": true
+    },
+    "monitoring": {
+        "enabled": true,
+        "metrics": {
+            "system": true,
+            "workers": true,
+            "cookies": true,
+            "errors": true
+        },
+        "alerts": {
+            "highErrorRate": 10,
+            "lowCookieYield": 5,
+            "highMemoryUsage": 90,
+            "slowResponseTime": 30000
+        },
+        "intervals": {
+            "systemMetrics": 30000,
+            "workerStatus": 10000,
+            "healthCheck": 60000
+        }
+    }
+}

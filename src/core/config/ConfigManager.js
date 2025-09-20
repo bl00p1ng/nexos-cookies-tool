@@ -96,6 +96,17 @@ class ConfigManager {
     }
 
     /**
+     * Obtiene configuración de autenticación con fallback
+     * @returns {Object} Configuración de autenticación
+     */
+    getAuthConfig() {
+        return {
+            backendUrl: this.config.auth?.backendUrl,
+            timeout: this.config.auth?.timeout || 30000
+        };
+    }
+
+    /**
      * Guarda la configuración actual al archivo
      * @returns {Promise<void>}
      */
