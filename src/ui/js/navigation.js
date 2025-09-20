@@ -92,6 +92,13 @@ class NavigationManager {
             this.startTime = new Date();
         } else if (!data.running) {
             this.startTime = null;
+
+            // Si la navegación se detiene, asegurar que el estado se actualice
+            const statusElement = document.getElementById('session-status');
+            if (statusElement && this.sessions.size > 0) {
+                // Verificar si se completó o se detuvo manualmente
+                this.checkAllSessionsCompleted();
+            }
         }
 
         // Actualizar estado en la aplicación
@@ -237,12 +244,25 @@ class NavigationManager {
     handleSessionCompleted(data) {
         console.log('✅ [NavigationManager] Sesión completada:', data.profileId);
         
+        // Actualizar sesión como completada
         const session = this.sessions.get(data.sessionId);
         if (session) {
             session.status = 'completed';
+            session.progress = 100;
             session.endTime = new Date(data.timestamp);
-            session.finalStats = data.finalStats;
+            
+            // Actualizar con estadísticas finales si están disponibles
+            if (data.finalStats) {
+                session.cookiesCollected = data.finalStats.cookiesCollected || session.cookiesCollected;
+                session.sitesVisited = data.finalStats.sitesVisited || session.sitesVisited;
+            }
         }
+
+        // Verificar si todas las sesiones están completadas
+        this.checkAllSessionsCompleted();
+        
+        // Actualizar estadísticas globales
+        this.updateGlobalStats();
     }
 
     /**
@@ -250,14 +270,21 @@ class NavigationManager {
      * @param {Object} data - Datos del evento
      */
     handleSessionError(data) {
-        console.log('❌ [NavigationManager] Error en sesión:', data.profileId, data.error);
+        console.error('❌ [NavigationManager] Error en sesión:', data.profileId, data.error);
         
+        // Actualizar sesión con error
         const session = this.sessions.get(data.sessionId);
         if (session) {
             session.status = 'error';
             session.error = data.error;
             session.endTime = new Date(data.timestamp);
         }
+
+        // Verificar si todas las sesiones han terminado (completadas o con error)
+        this.checkAllSessionsCompleted();
+        
+        // Actualizar estadísticas globales
+        this.updateGlobalStats();
     }
 
     /**
@@ -336,6 +363,41 @@ class NavigationManager {
             startTime: this.startTime,
             uptime: this.startTime ? Date.now() - this.startTime.getTime() : 0
         };
+    }
+
+    /**
+     * Verifica si todas las sesiones han completado y actualiza el estado global
+     */
+    checkAllSessionsCompleted() {
+        const totalSessions = this.sessions.size;
+        const completedSessions = Array.from(this.sessions.values()).filter(
+            session => session.status === 'completed' || session.progress >= 100
+        ).length;
+
+        console.log(`🔍 [NavigationManager] Sesiones completadas: ${completedSessions}/${totalSessions}`);
+
+        // Si todas las sesiones están completadas, cambiar estado global
+        if (totalSessions > 0 && completedSessions === totalSessions) {
+            console.log('✅ [NavigationManager] Todas las sesiones completadas, actualizando estado global');
+            
+            this.isRunning = false;
+            
+            // Detener cronómetro
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+            
+            // Actualizar estado en la UI
+            const statusElement = document.getElementById('session-status');
+            if (statusElement) {
+                statusElement.textContent = 'Completado';
+                statusElement.className = 'stat-value status-completed';
+            }
+            
+            // Actualizar estado global en la aplicación
+            this.app.updateState('navigation.running', false);
+        }
     }
     //#endregion Getters
 }
