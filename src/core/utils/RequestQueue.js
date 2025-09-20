@@ -294,10 +294,21 @@ class RequestQueue {
     /**
      * Log de debug para monitoreo
      * @param {string} message - Mensaje a loggear
+     * @param {Object} data - Datos adicionales opcionales
      */
-    logDebug(message) {
+    logDebug(message, data = null) {
         if (process.env.NODE_ENV === 'development' || this.config.debug) {
-            console.log(`[RequestQueue] ${new Date().toISOString()} - ${message}`);
+            const timestamp = new Date().toISOString();
+            const queueInfo = `Queue: ${this.queue.length}`;
+            const statsInfo = `Success: ${this.stats.successfulRequests}/${this.stats.totalRequests}`;
+            
+            let logMessage = `[RequestQueue] ${timestamp} - ${message} | ${queueInfo} | ${statsInfo}`;
+            
+            if (data) {
+                logMessage += ` | Data: ${JSON.stringify(data)}`;
+            }
+            
+            console.log(logMessage);
         }
     }
 
