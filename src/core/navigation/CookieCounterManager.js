@@ -27,12 +27,12 @@ class CookieCounterManager {
     }
 
     /**
-     * Cuenta cookies de forma robusta con reintentos y fallbacks
+     * Cuenta la cantidad de cookies recolectadas
      * @param {Object} page - Instancia de página de Playwright
      * @param {string} profileId - ID del perfil para logging
      * @returns {Promise<Object>} Resultado con count y metadata
      */
-    async getRobustCookieCount(page, profileId = 'unknown') {
+    async getCookieCount(page, profileId = 'unknown') {
         this.metrics.totalRequests++;
         
         // Generar clave única para este contexto

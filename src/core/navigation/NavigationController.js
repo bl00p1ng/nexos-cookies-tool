@@ -436,7 +436,8 @@ class NavigationController extends EventEmitter {
      * @returns {Promise<Object>} Resultado del procesamiento
      */
     async processSiteWithHumanBehavior(page, website, sessionStats, profileId, sessionId) {
-        const cookiesBefore = await this.cookieDetector.getCookieCount(page);
+        const cookiesBefore = await this.cookieDetector.getCookieCount(page, sessionStats.profileId);
+
         let visitSuccess = false;
         let errorMessage = null;
         let interactions = 0;
@@ -570,8 +571,23 @@ class NavigationController extends EventEmitter {
             }
         }
 
-        const cookiesAfter = await this.cookieDetector.getCookieCount(page);
-        const cookiesGained = cookiesAfter - cookiesBefore;
+        const cookiesAfter = await this.cookieDetector.getCookieCount(page, sessionStats.profileId);
+        
+        const cookieDiff = this.cookieDetector.cookieCounterManager.calculateSafeCookieDifference(
+            cookiesBefore, 
+            cookiesAfter, 
+            { 
+                profileId: sessionStats.profileId,
+                allowNegative: false,
+                maxNegativeDiff: -50
+            }
+        );
+
+        const cookiesGained = cookieDiff.safeDifference;
+
+        if (cookieDiff.wasAdjusted) {
+            console.warn(`🔧 [${sessionStats.profileId}] Diferencia ajustada: ${cookieDiff.rawDifference} → ${cookieDiff.safeDifference} (${cookieDiff.adjustmentReason})`);
+        }
 
         return {
             cookiesBefore,

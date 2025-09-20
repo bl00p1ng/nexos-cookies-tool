@@ -2,9 +2,12 @@
  * Detector inteligente de avisos de cookies
  * Implementa estrategia de múltiples capas para detectar y aceptar banners de cookies
  */
+
+import CookieCounterManager from './CookieCounterManager.js';
 class CookieDetector {
     constructor() {
         this.cookiePatterns = this.initializeCookiePatterns();
+        this.cookieCounterManager = new CookieCounterManager();
     }
 
     /**
@@ -594,51 +597,25 @@ class CookieDetector {
     }
 
     /**
-     * Cuenta las cookies actuales en el contexto
+     * Cuenta las cookies actuales
      * @param {Object} page - Instancia de página de Playwright
+     * @param {string} profileId - ID del perfil para logging
      * @returns {Promise<number>} Cantidad de cookies
      */
-    async getCookieCount(page) {
+    async getCookieCount(page, profileId = 'unknown') {
         try {
-            // Verificar si la página y el contexto siguen disponibles
-            if (!page) {
-                console.warn('⚠️ Página no disponible para contar cookies');
-                return 0;
-            }
-
-            // Verificar si el navegador no se ha cerrado
-            if (page.isClosed && page.isClosed()) {
-                console.warn('⚠️ Página cerrada, no se pueden contar cookies');
-                return 0;
-            }
-
-            const context = page.context();
-            if (!context) {
-                console.warn('⚠️ Contexto no disponible para contar cookies');
-                return 0;
-            }
-
-            // Intentar obtener cookies con timeout
-            const cookies = await Promise.race([
-                context.cookies(),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Timeout obteniendo cookies')), 5000)
-                )
-            ]);
+            const result = await this.cookieCounterManager.getCookieCount(page, profileId);
             
-            return cookies.length;
+            if (result.warning) {
+                console.warn(`⚠️ [${profileId}] ${result.warning}`);
+            }
+            
+            return result.count;
             
         } catch (error) {
-            // Verificar si el error es por navegador cerrado
-            if (error.message.includes('Target page, context or browser has been closed') ||
-                error.message.includes('Browser has been closed') ||
-                error.message.includes('Target closed') ||
-                error.message.includes('Session closed')) {
-                console.warn('⚠️ Navegador cerrado, no se pueden obtener cookies');
-                return 0;
-            }
+            console.error(`❌ [${profileId}] Error crítico en conteo de cookies: ${error.message}`);
             
-            console.error('Error obteniendo cookies:', error.message);
+            // Último recurso: retornar 0 de forma segura
             return 0;
         }
     }
@@ -654,6 +631,14 @@ class CookieDetector {
         const variation = delay * 0.2; // ±20% de variación
         const finalDelay = delay + Math.floor(Math.random() * (variation * 2)) - variation;
         await this.sleep(Math.max(finalDelay, min));
+    }
+
+    /**
+     * Obtiene métricas del contador de cookies
+     * @returns {Object} Métricas detalladas
+     */
+    getCookieCountMetrics() {
+        return this.cookieCounterManager.getMetrics();
     }
 
     /**
