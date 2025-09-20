@@ -39,6 +39,7 @@
     "directories": {
       "output": "dist"
     },
+    "icon": "assets/icons/icon.icns",
     "files": [
       "src/**/*",
       "config/**/*", 
@@ -60,6 +61,7 @@
     ],
     "compression": "maximum",
     "mac": {
+      "icon": "assets/icons/icon.icns",
       "target": [
         {"target": "dmg", "arch": ["x64", "arm64"]},
         {"target": "zip", "arch": ["x64"]}
@@ -67,6 +69,7 @@
       "category": "public.app-category.business"
     },
     "win": {
+      "icon": "assets/icons/icon.ico",
       "target": [
         {"target": "nsis", "arch": ["x64"]},
         {"target": "portable", "arch": ["x64"]}
