@@ -24,14 +24,14 @@ class ElectronApp {
         this.isAuthenticated = false;
         this.userToken = null;
         this.userData = null;
+        this.authBackendUrl = null;
 
         // Cargar variables de entorno
         dotenv.config();
 
-        const authConfig = configManager.getAuthConfig();
-        const backendUrl = authConfig.backendUrl;
-        this.authBackendUrl = backendUrl;
-
+        // Inicializar ConfigManager
+        this.configManager = new ConfigManager();
+        
         // Store para persistir configuración y autenticación
         this.store = new Store({
             schema: {
@@ -53,8 +53,6 @@ class ElectronApp {
             }
         });
 
-        // Inicializar servicios del core
-        this.configManager = new ConfigManager();
         this.databaseManager = null;
         this.adsPowerManager = null;
         this.navigationController = null;
@@ -67,9 +65,18 @@ class ElectronApp {
         try {
             console.log('🚀 Iniciando Cookies Hexzor...');
 
+            // Cargar configuración
+            console.log('📋 Cargando configuración...');
+            await this.configManager.loadConfig();
+
+            // obtener la URL del backend
+            const authConfig = this.configManager.getAuthConfig();
+
+            this.authBackendUrl = authConfig.backendUrl;
+
             // Verificar que la URL del backend esté configurada
             if (!this.authBackendUrl) {
-                throw new Error('La URL del backend de autenticación no está configurada. Por favor revisa el archivo .env');
+                throw new Error('La URL del backend de autenticación no está configurada');
             }
 
             // Configurar eventos de la aplicación
