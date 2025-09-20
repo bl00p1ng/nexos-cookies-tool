@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { app } from 'electron';
+import path from 'path';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,15 +13,33 @@ const __dirname = dirname(__filename);
  */
 class ConfigManager {
     constructor() {
-        const isPackaged = app ? app.isPackaged : false;
+        const isPackaged = process.mainModule && process.mainModule.filename.includes('app.asar');
 
         if (isPackaged) {
-            // En aplicación empaquetada
-            const userDataPath = app.getPath('userData');
-            this.configPath = path.join(userDataPath, 'config', 'config.json');
-            console.log('⚙️ Modo empaquetado - Config en:', this.configPath);
+            // Directorio de configuración multiplataforma
+            const homeDir = os.homedir();
+            let configDir;
+            
+            switch (process.platform) {
+                case 'win32':
+                    configDir = path.join(homeDir, 'AppData', 'Roaming', 'Cookies Hexzor');
+                    break;
+                case 'darwin':
+                    configDir = path.join(homeDir, 'Library', 'Application Support', 'Cookies Hexzor');
+                    break;
+                case 'linux':
+                    configDir = path.join(homeDir, '.config', 'Cookies Hexzor');
+                    break;
+                default:
+                    configDir = path.join(homeDir, '.cookies-hexzor');
+            }
+            
+            this.configPath = path.join(configDir, 'config.json');
+            console.log(`⚙️ Modo empaquetado (${process.platform}) - Config en:`, this.configPath);
         } else {
             // En desarrollo
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = dirname(__filename);
             this.configPath = join(__dirname, '../../../config/config.json');
             console.log('⚙️ Modo desarrollo - Config en:', this.configPath);
         }

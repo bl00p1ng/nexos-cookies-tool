@@ -2,8 +2,8 @@ import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
-import { app } from 'electron';
 import path from 'path';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,18 +16,40 @@ class DatabaseManager {
     constructor(dbPath = null) {
         // Detectar si es la aplicación empaquetada
         const isDev = process.env.NODE_ENV === 'development';
-        const isPackaged = app ? app.isPackaged : false;
-
+        
+        const isPackaged = process.mainModule && process.mainModule.filename.includes('app.asar');
+        
         if (isPackaged) {
-            // En aplicación empaquetada, usar directorio userData
-            const userDataPath = app.getPath('userData');
-            this.dbPath = path.join(userDataPath, 'data', 'loadtest.db');
-            console.log('🗄️ Modo empaquetado - DB en:', this.dbPath);
+            // Usar directorio de datos apropiado para cada OS
+            const homeDir = os.homedir();
+            let appDataDir;
+            
+            switch (process.platform) {
+                case 'win32':
+                    // Windows: %APPDATA%/Cookies Hexzor
+                    appDataDir = path.join(homeDir, 'AppData', 'Roaming', 'Cookies Hexzor');
+                    break;
+                case 'darwin':
+                    // macOS: ~/Library/Application Support/Cookies Hexzor
+                    appDataDir = path.join(homeDir, 'Library', 'Application Support', 'Cookies Hexzor');
+                    break;
+                case 'linux':
+                    // Linux: ~/.config/Cookies Hexzor
+                    appDataDir = path.join(homeDir, '.config', 'Cookies Hexzor');
+                    break;
+                default:
+                    // Fallback
+                    appDataDir = path.join(homeDir, '.cookies-hexzor');
+            }
+            
+            this.dbPath = path.join(appDataDir, 'loadtest.db');
+            console.log(`🗄️ Modo empaquetado (${process.platform}) - DB en:`, this.dbPath);
         } else {
             // En desarrollo, usar la ruta relativa normal
-            this.dbPath = dbPath || join(__dirname, '../../../data/loadtest.db');
+            this.dbPath = './data/loadtest.db';
             console.log('🗄️ Modo desarrollo - DB en:', this.dbPath);
         }
+
         this.db = null;
     }
 
