@@ -41,9 +41,16 @@
     },
     "files": [
       "src/**/*",
-      "config/**/*",
+      "config/**/*", 
+      "data/loadtest.db",
       "node_modules/**/*",
       "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "data/loadtest.db",
+        "to": "data/loadtest.db"
+      }
     ],
     "extraResources": [
       {
