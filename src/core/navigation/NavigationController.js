@@ -651,7 +651,7 @@ class NavigationController extends EventEmitter {
         const minimumAllowed = Math.max(0, baseline - 100);
         
         // Validación 2: No permitir saltos irreales
-        const maximumGainPerSite = 5000; // Máximo realista por sitio
+        const maximumGainPerSite = 500; // Máximo realista por sitio
         
         // Validación 3: Detectar patrones sospechosos
         const isSuspiciousLoss = siteGained < -50;
