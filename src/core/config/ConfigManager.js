@@ -21,10 +21,20 @@ class ConfigManager {
      */
     getDefaultConfig() {
         return {
-            adspower: {
-                baseUrl: 'http://local.adspower.net:50325/api/v1',
-                timeout: 30000,
-                retryAttempts: 3
+            "adspower": {
+                "baseUrl": "http://local.adspower.com:50325/api/v1",
+                "timeout": 30000,
+                "retryAttempts": 3,
+                
+                // Rate Limiting
+                "rateLimit": {
+                    "requestsPerSecond": 1,
+                    "queueTimeout": 30000,
+                    "retryAttempts": 3,
+                    "retryDelay": 2000,
+                    "debug": false,
+                    "maxQueueSize": 1000
+                }
             },
             navigation: {
                 defaultCookieTarget: 2500,
@@ -234,6 +244,38 @@ class ConfigManager {
      */
     getNavigationParams() {
         return this.config.navigation;
+    }
+
+    /**
+     * Obtiene la configuración específica de rate limiting para Ads Power
+     * @returns {Object} Configuración de rate limiting
+     */
+    getRateLimitConfig() {
+        return this.config.adspower?.rateLimit || {
+            requestsPerSecond: 1,
+            queueTimeout: 30000,
+            retryAttempts: 3,
+            retryDelay: 2000,
+            debug: false,
+            maxQueueSize: 100
+        };
+    }
+
+    /**
+     * Actualiza configuración de rate limiting dinámicamente
+     * @param {Object} rateLimitConfig - Nueva configuración
+     */
+    updateRateLimitConfig(rateLimitConfig) {
+        if (!this.config.adspower) {
+            this.config.adspower = {};
+        }
+        
+        this.config.adspower.rateLimit = {
+            ...this.config.adspower.rateLimit,
+            ...rateLimitConfig
+        };
+        
+        console.log('📊 Configuración de rate limiting actualizada:', this.config.adspower.rateLimit);
     }
 }
 
