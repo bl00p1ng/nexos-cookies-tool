@@ -151,6 +151,11 @@ class NavigationController extends EventEmitter {
             
             console.log(`✅ [${profileId}] Navegador iniciado`);
 
+            // Establecer baseline inicial de cookies del perfil
+            const initialCookieCount = await this.cookieDetector.getCookieCount(page, profileId);
+            sessionStats.initialCookieBaseline = initialCookieCount;
+            console.log(`📊 [${profileId}] Baseline inicial: ${initialCookieCount} cookies`);
+
             // Obtener sitios web para navegar
             const websites = await this.databaseManager.getRandomWebsites(100);
             if (websites.length === 0) {
@@ -283,8 +288,18 @@ class NavigationController extends EventEmitter {
                         consecutiveConnectionErrors = 0;
                     }
 
-                    // Actualizar estadísticas
-                    sessionStats.cookiesCollected += siteResult.cookiesGained;
+                    // Validar progreso antes de acumular
+                    const progressValidation = this.validateCookieProgress(sessionStats, siteResult.cookiesGained);
+
+                    // Aplicar ganancia validada
+                    sessionStats.cookiesCollected += progressValidation.validatedGain;
+
+                    // Log de ajustes si hubo cambios
+                    if (progressValidation.wasAdjusted) {
+                        console.warn(`🔧 [${profileId}] Progreso ajustado: ${progressValidation.originalGain} → ${progressValidation.validatedGain} (${progressValidation.adjustmentReason})`);
+                        console.log(`   📊 Total resultante: ${progressValidation.newTotal} (baseline: ${progressValidation.baseline})`);
+                    }
+
                     sessionStats.sitesVisited++;
                     sessionStats.totalInteractions += siteResult.interactions || 0;
                     sessionStats.humanBehaviorScore += siteResult.humanScore || 0;
@@ -618,6 +633,55 @@ class NavigationController extends EventEmitter {
         }
         
         return adjustedTimeMinutes * 60 * 1000; // Convertir a milisegundos
+    }
+
+    /**
+     * Valida que el progreso de cookies sea consistente y realista
+     * @param {Object} sessionStats - Estadísticas de la sesión
+     * @param {number} siteGained - Cookies ganadas en el sitio actual
+     * @returns {Object} Resultado de validación con valor seguro
+     */
+    validateCookieProgress(sessionStats, siteGained) {
+        const currentTotal = sessionStats.cookiesCollected;
+        const proposedTotal = currentTotal + siteGained;
+        const baseline = sessionStats.initialCookieBaseline || 0;
+        const profileId = sessionStats.profileId;
+        
+        // Validación 1: No permitir caídas drásticas
+        const minimumAllowed = Math.max(0, baseline - 100);
+        
+        // Validación 2: No permitir saltos irreales
+        const maximumGainPerSite = 5000; // Máximo realista por sitio
+        
+        // Validación 3: Detectar patrones sospechosos
+        const isSuspiciousLoss = siteGained < -50;
+        const isSuspiciousGain = siteGained > maximumGainPerSite;
+        
+        let validatedGain = siteGained;
+        let adjustmentReason = null;
+        
+        if (isSuspiciousLoss) {
+            console.warn(`🚨 [${profileId}] Pérdida sospechosa detectada: ${siteGained} cookies`);
+            validatedGain = 0; // No aplicar pérdidas grandes
+            adjustmentReason = 'suspicious_loss_prevented';
+        } else if (isSuspiciousGain) {
+            console.warn(`🚨 [${profileId}] Ganancia sospechosa detectada: ${siteGained} cookies`);
+            validatedGain = Math.min(siteGained, 100); // Limitar a ganancia realista
+            adjustmentReason = 'excessive_gain_capped';
+        } else if (proposedTotal < minimumAllowed) {
+            console.warn(`🛡️ [${profileId}] Total propuesto (${proposedTotal}) menor que mínimo (${minimumAllowed})`);
+            validatedGain = minimumAllowed - currentTotal; // Ajustar para alcanzar mínimo
+            adjustmentReason = 'minimum_threshold_enforced';
+        }
+        
+        return {
+            originalGain: siteGained,
+            validatedGain: validatedGain,
+            wasAdjusted: validatedGain !== siteGained,
+            adjustmentReason: adjustmentReason,
+            newTotal: currentTotal + validatedGain,
+            baseline: baseline
+        };
     }
 
     /**
