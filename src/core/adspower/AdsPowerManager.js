@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import RequestQueue from '../utils/RequestQueue.js';
 
 /**
  * Gestor principal para la integración con Ads Power
@@ -8,6 +9,15 @@ class AdsPowerManager {
     constructor() {
         this.baseUrl = 'http://local.adspower.net:50325/api/v1';
         this.activeBrowsers = new Map();
+        
+        // Inicializar RequestQueue con configuración para Ads Power
+        this.requestQueue = RequestQueue.getInstance({
+            requestsPerSecond: 1,           // Rate limit de Ads Power
+            queueTimeout: 30000,            // 30 segundos timeout
+            retryAttempts: 3,               // 3 reintentos
+            retryDelay: 2000,               // 2 segundos entre reintentos
+            debug: process.env.NODE_ENV === 'development'
+        });
     }
 
     /**
@@ -16,8 +26,8 @@ class AdsPowerManager {
      */
     async checkAdsPowerStatus() {
         try {
-            const response = await fetch(`${this.baseUrl}/browser/active`);
-            return response.ok;
+            await this._makeRequest(`${this.baseUrl}/browser/active`);
+            return true;
         } catch (error) {
             console.error('Error verificando estado de Ads Power:', error.message);
             return false;
@@ -30,8 +40,7 @@ class AdsPowerManager {
      */
     async getAvailableProfiles() {
         try {
-            const response = await fetch(`${this.baseUrl}/user/list?page_size=100`);
-            const data = await response.json();
+            const data = await this._makeRequest(`${this.baseUrl}/user/list?page_size=100`);
             
             if (data.code !== 0) {
                 throw new Error(`Error obteniendo perfiles: ${data.msg}`);
@@ -73,9 +82,8 @@ class AdsPowerManager {
                         await this.sleep(delayMs);
                     }
                     
-                    // Solicitar inicio del perfil a Ads Power
-                    const response = await fetch(`${this.baseUrl}/browser/start?user_id=${profileId}`);
-                    const data = await response.json();
+                    // Iniciar perfil en Ads Power  
+                    const data = await this._makeRequest(`${this.baseUrl}/browser/start?user_id=${profileId}`);
                     
                     if (data.code !== 0) {
                         // Si es error de rate limiting, reintentar
@@ -183,8 +191,7 @@ class AdsPowerManager {
             }
             
             // Detener el perfil en Ads Power
-            const response = await fetch(`${this.baseUrl}/browser/stop?user_id=${profileId}`);
-            const data = await response.json();
+            const data = await this._makeRequest(`${this.baseUrl}/browser/stop?user_id=${profileId}`);
             
             if (data.code !== 0) {
                 console.warn(`Advertencia deteniendo perfil ${profileId}: ${data.msg}`);
@@ -204,8 +211,7 @@ class AdsPowerManager {
      */
     async getProfileInfo(profileId) {
         try {
-            const response = await fetch(`${this.baseUrl}/user/list?user_id=${profileId}`);
-            const data = await response.json();
+            const data = await this._makeRequest(`${this.baseUrl}/user/list?user_id=${profileId}`);
             
             if (data.code !== 0) {
                 throw new Error(`Error obteniendo info del perfil ${profileId}: ${data.msg}`);
@@ -288,6 +294,51 @@ class AdsPowerManager {
      */
     getActiveBrowsers() {
         return this.activeBrowsers;
+    }
+
+    /**
+     * Método privado para hacer requests HTTP a través de la RequestQueue
+     * Reemplaza todas las llamadas directas a fetch() con rate limiting
+     * @param {string} url - URL completa a consultar
+     * @param {Object} options - Opciones de fetch (opcional)
+     * @returns {Promise<Object>} Respuesta parseada como JSON
+     */
+    async _makeRequest(url, options = {}) {
+        // Crear función de request que será encolada
+        const requestFunction = async () => {
+            const response = await fetch(url, {
+                timeout: 15000, // 15 segundos timeout por request
+                ...options
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        };
+
+        // Encolar request y esperar resultado
+        return await this.requestQueue.enqueue(requestFunction, {
+            timeout: 30000, // 30 segundos timeout total
+            priority: 'normal'
+        });
+    }
+
+    /**
+     * Obtiene estadísticas de la RequestQueue para monitoreo
+     * @returns {Object} Estadísticas detalladas de la cola
+     */
+    getRequestQueueStats() {
+        return this.requestQueue.getStats();
+    }
+
+    /**
+     * Limpia la cola de requests pendientes
+     */
+    clearRequestQueue() {
+        this.requestQueue.clearQueue();
+        console.log('🚨 Cola de requests limpiada');
     }
 }
 
