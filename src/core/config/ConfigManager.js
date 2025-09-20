@@ -33,7 +33,7 @@ class ConfigManager {
                     "retryAttempts": 3,
                     "retryDelay": 2000,
                     "debug": false,
-                    "maxQueueSize": 1000
+                    "maxQueueSize": 2000
                 }
             },
             navigation: {

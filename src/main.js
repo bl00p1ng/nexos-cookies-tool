@@ -16,7 +16,7 @@ const program = new Command();
 class CookiesTool {
     constructor() {
         this.configManager = new ConfigManager();
-        this.adsPowerManager = new AdsPowerManager();
+        this.adsPowerManager = new AdsPowerManager(this.configManager);
         this.databaseManager = new DatabaseManager();
         this.csvLoader = new CsvLoader(this.databaseManager);
         this.navigationController = null; // Se inicializa después de cargar config

@@ -6,18 +6,20 @@ import RequestQueue from '../utils/RequestQueue.js';
  * Maneja la inicialización y control de perfiles de navegador
  */
 class AdsPowerManager {
-    constructor() {
+    constructor(configManager = null) {
         this.baseUrl = 'http://local.adspower.net:50325/api/v1';
         this.activeBrowsers = new Map();
+        this.configManager = configManager;
         
-        // Inicializar RequestQueue con configuración para Ads Power
-        this.requestQueue = RequestQueue.getInstance({
-            requestsPerSecond: 1,           // Rate limit de Ads Power
-            queueTimeout: 30000,            // 30 segundos timeout
-            retryAttempts: 3,               // 3 reintentos
-            retryDelay: 2000,               // 2 segundos entre reintentos
-            debug: process.env.NODE_ENV === 'development'
-        });
+        // Obtener configuración de rate limiting
+        const rateLimitConfig = this.configManager ? 
+            this.configManager.getRateLimitConfig() : 
+            this.getDefaultRateLimitConfig();
+        
+        // Inicializar RequestQueue con configuración
+        this.requestQueue = RequestQueue.getInstance(rateLimitConfig);
+        
+        console.log('🚦 AdsPowerManager inicializado con rate limiting:', rateLimitConfig);
     }
 
     /**
@@ -32,6 +34,21 @@ class AdsPowerManager {
             console.error('Error verificando estado de Ads Power:', error.message);
             return false;
         }
+    }
+
+    /**
+     * Configuración por defecto si no hay ConfigManager
+     * @returns {Object} Configuración por defecto
+     */
+    getDefaultRateLimitConfig() {
+        return {
+            requestsPerSecond: 1,
+            queueTimeout: 30000,
+            retryAttempts: 3,
+            retryDelay: 2000,
+            debug: process.env.NODE_ENV === 'development',
+            maxQueueSize: 2000
+        };
     }
 
     /**
