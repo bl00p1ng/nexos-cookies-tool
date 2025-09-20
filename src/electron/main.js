@@ -499,8 +499,6 @@ class ElectronApp {
                 }
             });
 
-            console.log('🔐 Respuesta del backend:', response.data);
-
             if (response.data.success) {
                 const { data } = response.data;
                 const token = data.token;
