@@ -210,13 +210,16 @@ class DashboardManager {
 
             const result = await window.electronAPI.adspower.checkStatus();
             
-            if (result.success) {
+            if (result.success && result.available) {
+                // Ads Power está disponible
                 this.showAdsPowerConnected(result.status);
                 this.app.updateState('adspower.connected', true);
                 this.app.updateState('adspower.status', result.status);
 
             } else {
-                this.showAdsPowerDisconnected(result.error);
+                // Ads Power no está disponible o hay error
+                const errorMsg = result.error || 'Ads Power no está ejecutándose o no está disponible';
+                this.showAdsPowerDisconnected(errorMsg);
                 this.app.updateState('adspower.connected', false);
                 this.clearProfiles();
             }
