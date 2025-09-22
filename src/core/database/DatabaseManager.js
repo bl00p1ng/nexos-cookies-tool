@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
 import path from 'path';
-import os from 'os';
+import { app } from 'electron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,38 +14,18 @@ const __dirname = dirname(__filename);
  */
 class DatabaseManager {
     constructor(dbPath = null) {
-        // Detectar si es la aplicación empaquetada
-        const isDev = process.env.NODE_ENV === 'development';
-        
-        const isPackaged = process.mainModule && process.mainModule.filename.includes('app.asar');
-        
-        if (isPackaged) {
-            // Usar directorio de datos apropiado para cada OS
-            const homeDir = os.homedir();
-            let appDataDir;
-            
-            switch (process.platform) {
-                case 'win32':
-                    // Windows: %APPDATA%/Cookies Hexzor
-                    appDataDir = path.join(homeDir, 'AppData', 'Roaming', 'Cookies Hexzor');
-                    break;
-                case 'darwin':
-                    // macOS: ~/Library/Application Support/Cookies Hexzor
-                    appDataDir = path.join(homeDir, 'Library', 'Application Support', 'Cookies Hexzor');
-                    break;
-                case 'linux':
-                    // Linux: ~/.config/Cookies Hexzor
-                    appDataDir = path.join(homeDir, '.config', 'Cookies Hexzor');
-                    break;
-                default:
-                    // Fallback
-                    appDataDir = path.join(homeDir, '.cookies-hexzor');
-            }
-            
-            this.dbPath = path.join(appDataDir, 'loadtest.db');
-            console.log(`🗄️ Modo empaquetado (${process.platform}) - DB en:`, this.dbPath);
+        if (dbPath) {
+            // Si se proporciona un path específico, usarlo
+            this.dbPath = dbPath;
+            console.log('🗄️ Usando DB path personalizado:', this.dbPath);
+        } else if (app && app.isPackaged) {
+            // Aplicación empaquetada - usar directorio userData de Electron
+            const userDataPath = app.getPath('userData');
+            const dataDir = path.join(userDataPath, 'data');
+            this.dbPath = path.join(dataDir, 'loadtest.db');
+            console.log(`🗄️ Modo empaquetado - DB en: ${this.dbPath}`);
         } else {
-            // En desarrollo, usar la ruta relativa normal
+            // Desarrollo - usar ruta relativa
             this.dbPath = './data/loadtest.db';
             console.log('🗄️ Modo desarrollo - DB en:', this.dbPath);
         }
@@ -69,15 +49,37 @@ class DatabaseManager {
                     await fs.access(this.dbPath);
                     console.log('✅ Base de datos ya existe en userData');
                 } catch {
-                    // La DB no existe, intentar copiarla desde recursos
-                    const resourceDbPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'data', 'loadtest.db');
-                    try {
-                        await fs.copyFile(resourceDbPath, this.dbPath);
-                        console.log('📋 Base de datos copiada desde recursos');
-                    } catch (copyError) {
-                        console.log('⚠️ No se pudo copiar DB desde recursos, creando nueva');
-                        // Crear DB vacía
-                        await this.createDatabase();
+                    // La DB no existe, copiarla desde recursos
+                    console.log('📋 DB no encontrada, copiando desde recursos...');
+                    
+                    // Intentar múltiples paths posibles de recursos
+                    const possiblePaths = [
+                        path.join(process.resourcesPath, 'data', 'loadtest.db'),
+                        path.join(process.resourcesPath, 'app', 'data', 'loadtest.db'),
+                        path.join(process.resourcesPath, 'extraResources', 'data', 'loadtest.db')
+                    ];
+                    
+                    let copySuccess = false;
+                    let lastError = null;
+                    
+                    for (const resourceDbPath of possiblePaths) {
+                        try {
+                            console.log(`🔍 Intentando copiar desde: ${resourceDbPath}`);
+                            await fs.access(resourceDbPath);
+                            await fs.copyFile(resourceDbPath, this.dbPath);
+                            console.log('✅ Base de datos copiada exitosamente desde recursos');
+                            copySuccess = true;
+                            break;
+                        } catch (error) {
+                            lastError = error;
+                            console.log(`❌ Falló path: ${resourceDbPath} - ${error.message}`);
+                        }
+                    }
+                    
+                    if (!copySuccess) {
+                        console.error('❌ CRÍTICO: No se pudo copiar la base de datos desde recursos');
+                        console.error('❌ Último error:', lastError.message);
+                        throw new Error(`No se pudo encontrar o copiar la base de datos desde recursos. App no puede funcionar sin la DB original.`);
                     }
                 }
             }

@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import path from 'path';
-import os from 'os';
+import { app } from 'electron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,31 +13,14 @@ const __dirname = dirname(__filename);
  */
 class ConfigManager {
     constructor() {
-        const isPackaged = process.mainModule && process.mainModule.filename.includes('app.asar');
-
-        if (isPackaged) {
-            // Directorio de configuración multiplataforma
-            const homeDir = os.homedir();
-            let configDir;
-            
-            switch (process.platform) {
-                case 'win32':
-                    configDir = path.join(homeDir, 'AppData', 'Roaming', 'Cookies Hexzor');
-                    break;
-                case 'darwin':
-                    configDir = path.join(homeDir, 'Library', 'Application Support', 'Cookies Hexzor');
-                    break;
-                case 'linux':
-                    configDir = path.join(homeDir, '.config', 'Cookies Hexzor');
-                    break;
-                default:
-                    configDir = path.join(homeDir, '.cookies-hexzor');
-            }
-            
+        if (app && app.isPackaged) {
+            // Aplicación empaquetada - usar directorio userData de Electron
+            const userDataPath = app.getPath('userData');
+            const configDir = path.join(userDataPath, 'config');
             this.configPath = path.join(configDir, 'config.json');
-            console.log(`⚙️ Modo empaquetado (${process.platform}) - Config en:`, this.configPath);
+            console.log(`⚙️ Modo empaquetado - Config en: ${this.configPath}`);
         } else {
-            // En desarrollo
+            // En desarrollo - usar ruta relativa
             const __filename = fileURLToPath(import.meta.url);
             const __dirname = dirname(__filename);
             this.configPath = join(__dirname, '../../../config/config.json');
@@ -81,7 +64,9 @@ class ConfigManager {
                 scrollDepthMax: 0.9
             },
             database: {
-                path: './data/loadtest.db',
+                path: app && app.isPackaged ? 
+                    path.join(app.getPath('userData'), 'data', 'loadtest.db') : 
+                    './data/loadtest.db',
                 backupInterval: 24 * 60 * 60 * 1000, // 24 horas en ms
                 maxRetries: 3
             },
