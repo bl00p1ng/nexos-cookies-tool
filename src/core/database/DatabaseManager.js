@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { app } from 'electron';
+import initialWebsites from './initialWebsites.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -277,32 +278,29 @@ class DatabaseManager {
      * @returns {Promise<void>}
      */
     async seedInitialWebsites() {
-        const initialWebsites = [
-            // Sitios de noticias
-            { url: 'https://www.bbc.com', domain: 'bbc.com', category: 'news' },
-            { url: 'https://www.cnn.com', domain: 'cnn.com', category: 'news' },
-            { url: 'https://www.theguardian.com', domain: 'theguardian.com', category: 'news' },
-            
-            // Sitios de e-commerce
-            { url: 'https://www.walmart.com', domain: 'walmart.com', category: 'ecommerce' },
-            
-            
-            // Sitios generales
-            { url: 'https://www.stackoverflow.com', domain: 'stackoverflow.com', category: 'tech' },
-        ];
-
+        console.log(`📂 Cargando ${initialWebsites.length} sitios web iniciales...`);
+        
+        let insertedCount = 0;
+        let skippedCount = 0;
+        
         for (const site of initialWebsites) {
             try {
-                await this.db.runAsync(
+                const result = await this.db.runAsync(
                     'INSERT OR IGNORE INTO websites (url, domain, category) VALUES (?, ?, ?)',
                     [site.url, site.domain, site.category]
                 );
+                
+                if (result.changes > 0) {
+                    insertedCount++;
+                } else {
+                    skippedCount++;
+                }
             } catch (error) {
-                console.warn(`Error insertando sitio ${site.url}:`, error.message);
+                console.error(`Error insertando sitio ${site.url}:`, error);
             }
         }
-
-        console.log(`Insertados ${initialWebsites.length} sitios web iniciales`);
+        
+        console.log(`✅ Sitios web iniciales cargados: ${insertedCount} nuevos, ${skippedCount} ya existían`);
     }
 
     //#region REPORTES
