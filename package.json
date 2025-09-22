@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Aplicación de escritorio para Windows y Mac OS que se integra con el navegador de Ads Power de forma que abra perfiles del navegador y navegue por una serie de sitios web con el fin de solictar cookies",
   "main": "src/electron/main.js",
+  "overrides": {
+    "fsevents": "$fsevents"
+  },
   "scripts": {
     "start": "node src/main.js",
     "dev": "node --watch src/main.js",
