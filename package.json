@@ -26,13 +26,14 @@
     "axios": "^1.12.2",
     "commander": "^14.0.0",
     "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.2",
     "electron-store": "^10.1.0",
     "playwright": "^1.55.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "electron": "^38.1.0",
     "concurrently": "^9.2.1",
+    "electron": "^38.1.0",
     "electron-builder": "^26.0.12",
     "wait-on": "^8.0.5"
   },
@@ -40,42 +41,63 @@
     "appId": "com.hexzor.cookies-tool",
     "productName": "Cookies Hexzor",
     "directories": {
-        "output": "dist"
+      "output": "dist"
     },
     "files": [
-        "src/**/*",
-        "node_modules/**/*",
-        "package.json"
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
     ],
     "extraResources": [
-        {
-            "from": "data/loadtest.db",
-            "to": "data/loadtest.db"
-        },
-        {
-            "from": "config",
-            "to": "config"
-        }
+      {
+        "from": "data/loadtest.db",
+        "to": "data/loadtest.db"
+      },
+      {
+        "from": "config",
+        "to": "config"
+      }
     ],
     "compression": "maximum",
     "mac": {
-        "icon": "src/assets/icons/icon.icns",
-        "target": [
-            {"target": "dmg", "arch": ["x64", "arm64"]},
-            {"target": "zip", "arch": ["x64"]}
-        ],
-        "category": "public.app-category.business"
+      "icon": "src/assets/icons/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.business"
     },
     "win": {
-        "icon": "src/assets/icons/icon.ico",
-        "target": [
-            {"target": "nsis", "arch": ["x64"]},
-            {"target": "portable", "arch": ["x64"]}
-        ]
+      "icon": "src/assets/icons/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "nsis": {
-        "oneClick": false,
-        "allowToChangeInstallationDirectory": true
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
