@@ -196,6 +196,18 @@ class ElectronApp {
                 ]
             },
             {
+                label: 'Edición',
+                submenu: [
+                    { role: 'undo', label: 'Deshacer' },
+                    { role: 'redo', label: 'Rehacer' },
+                    { type: 'separator' },
+                    { role: 'cut', label: 'Cortar' },
+                    { role: 'copy', label: 'Copiar' },
+                    { role: 'paste', label: 'Pegar' },
+                    { role: 'selectall', label: 'Seleccionar todo' }
+                ]
+            },
+            {
                 label: 'Ver',
                 submenu: [
                     { role: 'reload' },
