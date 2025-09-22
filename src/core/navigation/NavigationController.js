@@ -157,7 +157,7 @@ class NavigationController extends EventEmitter {
             console.log(`📊 [${profileId}] Baseline inicial: ${initialCookieCount} cookies`);
 
             // Obtener sitios web para navegar
-            const websites = await this.databaseManager.getRandomWebsites(100);
+            let websites = await this.databaseManager.getRandomWebsites(100);
             if (websites.length === 0) {
                 throw new Error('No hay sitios web disponibles en la base de datos');
             }
