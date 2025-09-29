@@ -50,7 +50,10 @@ const electronAPI = {
             ipcRenderer.removeAllListeners('navigation:progress');
             ipcRenderer.removeAllListeners('navigation:status-change');
             ipcRenderer.removeAllListeners('navigation:error');
-        }
+            ipcRenderer.removeAllListeners('navigation:sync-required');
+        },
+        // Listener para sincronización requerida
+        onSyncRequired: (callback) => ipcRenderer.on('navigation:sync-required', callback),
     },
 
     // Base de datos

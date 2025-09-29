@@ -785,39 +785,133 @@ class ElectronApp {
      */
     async stopNavigation(event) {
         try {
-            console.log('🛑 Deteniendo navegación desde UI...');
+            console.log('Deteniendo navegación desde UI...');
 
+            // PASO 1: Verificar disponibilidad del NavigationController
             if (!this.navigationController) {
+                console.error('NavigationController no disponible');
                 return {
                     success: false,
                     error: 'NavigationController no está disponible'
                 };
             }
 
-            // Llamar al método de cleanup del NavigationController
+            // PASO 2: Verificar estado ANTES de detener
+            const sessionsBeforeStop = this.navigationController.activeSessions.size;
+            console.log(`Sesiones activas antes de detener: ${sessionsBeforeStop}`);
+
+            if (sessionsBeforeStop === 0) {
+                console.warn('No hay sesiones activas para detener');
+                
+                // Notificar a la UI de todas formas para sincronizar
+                this.sendNavigationStatusUpdate({
+                    status: 'stopped',
+                    timestamp: new Date().toISOString()
+                });
+
+                return {
+                    success: true,
+                    message: 'No había sesiones activas',
+                    sessionsStoppedCount: 0
+                };
+            }
+
+            // PASO 3: Ejecutar detención de todas las sesiones
+            console.log('Llamando a stopAllSessions()...');
             await this.navigationController.stopAllSessions();
 
-            // Notificar a la UI
+            // PASO 4: Dar tiempo al NavigationController para limpiar completamente
+            console.log('⏱Esperando limpieza completa...');
+            await this.sleep(500); // 500ms para asegurar limpieza
+
+            // PASO 5: Verificar estado DESPUÉS de detener
+            const sessionsAfterStop = this.navigationController.activeSessions.size;
+            console.log(`Sesiones activas después de detener: ${sessionsAfterStop}`);
+
+            // PASO 6: Detectar sesiones que no se limpiaron correctamente
+            if (sessionsAfterStop > 0) {
+                console.warn(`ADVERTENCIA: ${sessionsAfterStop} sesiones no se limpiaron correctamente`);
+                console.log('Intentando limpieza forzada...');
+                
+                // Limpieza forzada como failsafe
+                try {
+                    this.navigationController.activeSessions.clear();
+                    this.navigationController.stopFlags.clear();
+                    console.log('Limpieza forzada completada');
+                } catch (cleanupError) {
+                    console.error('Error en limpieza forzada:', cleanupError.message);
+                }
+            }
+
+            // PASO 7: Verificación final
+            const finalSessionCount = this.navigationController.activeSessions.size;
+            console.log(`📊 Verificación final: ${finalSessionCount} sesiones activas`);
+
+            // PASO 8: Notificar a la UI con información detallada
             this.sendNavigationStatusUpdate({
                 status: 'stopped',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                sessionsStoppedCount: sessionsBeforeStop,
+                cleanupSuccess: finalSessionCount === 0
             });
 
-            console.log('✅ Navegación detenida correctamente');
+            // PASO 9: Enviar evento de sincronización a la UI
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send('navigation:sync-required', {
+                    hasActiveSessions: finalSessionCount > 0,
+                    sessionCount: finalSessionCount,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            console.log('Navegación detenida correctamente');
+            console.log(`   → ${sessionsBeforeStop} sesiones fueron detenidas`);
+            console.log(`   → Estado final limpio: ${finalSessionCount === 0 ? 'SÍ' : 'NO'}`);
 
             return {
                 success: true,
-                message: 'Navegación detenida correctamente'
+                message: 'Navegación detenida correctamente',
+                sessionsStoppedCount: sessionsBeforeStop,
+                cleanupSuccess: finalSessionCount === 0
             };
 
         } catch (error) {
-            console.error('❌ Error deteniendo navegación:', error.message);
+            console.error('Error deteniendo navegación:', error.message);
+            console.error('Stack trace:', error.stack);
+            
+            // Intentar limpieza de emergencia
+            try {
+                if (this.navigationController) {
+                    console.log('Intentando limpieza de emergencia...');
+                    this.navigationController.activeSessions.clear();
+                    this.navigationController.stopFlags.clear();
+                    console.log('Limpieza de emergencia completada');
+                }
+            } catch (emergencyError) {
+                console.error('Falló limpieza de emergencia:', emergencyError.message);
+            }
+            
+            // Notificar error a la UI
+            this.sendNavigationStatusUpdate({
+                status: 'error',
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
             
             return {
                 success: false,
                 error: error.message
             };
         }
+    }
+
+    /**
+     * Función auxiliar sleep para esperas asíncronas
+     * @param {number} ms - Milisegundos a esperar
+     * @returns {Promise<void>}
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**

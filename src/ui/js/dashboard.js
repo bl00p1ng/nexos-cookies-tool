@@ -141,6 +141,23 @@ class DashboardManager {
             });
         }
 
+        // Listener para sincronización requerida desde el backend
+        window.electronAPI.navigation.onSyncRequired((event, data) => {
+            console.log('🔄 Sincronización requerida desde backend:', data);
+            
+            // Actualizar estado local con información del backend
+            this.state.navigationRunning = data.hasActiveSessions;
+            this.app.updateState('navigation.running', data.hasActiveSessions);
+            
+            if (!data.hasActiveSessions) {
+                this.hideProgressMonitor();
+            }
+            
+            this.updateNavigationButtonState();
+            
+            console.log('✅ Estado sincronizado desde backend');
+        });
+
         // Eventos de estado de la aplicación
         document.addEventListener('stateChange', (event) => {
             this.handleStateChange(event.detail);
@@ -531,33 +548,136 @@ class DashboardManager {
      */
     async handleStopNavigation() {
         try {
-            // Validar si hay sesiones activas
-            if (!this.state.navigationRunning) {
+            console.log('Solicitud de detención de navegación recibida');
+            console.log(`Estado local: navigationRunning = ${this.state.navigationRunning}`);
+
+            // PASO 1: Consultar estado REAL en el backend (fuente de verdad)
+            console.log('Consultando estado real en NavigationController...');
+            const activeSessionsInfo = await window.electronAPI.navigation.getActiveSessions();
+
+            console.log('Respuesta del backend:', activeSessionsInfo);
+
+            // PASO 2: Validar si realmente hay sesiones activas
+            if (!activeSessionsInfo.success) {
+                console.error('Error consultando sesiones activas:', activeSessionsInfo.error);
+                this.app.showError('Error verificando estado de navegación');
+                return;
+            }
+
+            // PASO 3: Verificar si hay sesiones para detener
+            if (!activeSessionsInfo.hasActiveSessions || activeSessionsInfo.sessionCount === 0) {
+                console.warn('No hay sesiones activas en el backend');
+                console.log(`Estado local estaba en: ${this.state.navigationRunning}`);
+                
+                // Sincronizar estado local con la realidad del backend
+                if (this.state.navigationRunning) {
+                    console.log('Sincronizando estado local con backend (ajustando a false)');
+                    this.state.navigationRunning = false;
+                    this.app.updateState('navigation.running', false);
+                    this.hideProgressMonitor();
+                    this.updateNavigationButtonState();
+                }
+                
                 this.app.showError('No hay sesiones de navegación activas para detener');
                 return;
             }
 
-            // Resto del código existente...
-            console.log('🛑 Deteniendo navegación...');
+            // PASO 4: Hay sesiones activas, proceder a detener
+            console.log(`Sesiones activas detectadas: ${activeSessionsInfo.sessionCount}`);
+            console.log(`   Perfiles: ${activeSessionsInfo.sessions.map(s => s.profileId).join(', ')}`);
+            console.log('Procediendo a detener navegación...');
 
+            // Deshabilitar botón durante la operación
+            if (this.elements.stopNavigationBtn) {
+                this.elements.stopNavigationBtn.disabled = true;
+            }
+
+            // PASO 5: Llamar al método de detención del backend
             const result = await window.electronAPI.navigation.stop();
 
             if (result.success) {
+                console.log('Navegación detenida exitosamente');
+                
+                // Actualizar estado local
                 this.state.navigationRunning = false;
                 this.app.updateState('navigation.running', false);
                 this.hideProgressMonitor();
-                this.app.showInfo('Navegación detenida');
+                this.app.showSuccess('Navegación detenida correctamente');
                 
                 // Actualizar UI
                 this.updateNavigationButtonState();
                 
             } else {
+                console.error('Error al detener navegación:', result.error);
                 this.app.showError('Error deteniendo navegación: ' + result.error);
+                
+                // Re-verificar estado después del error
+                await this.syncNavigationState();
             }
 
         } catch (error) {
-            console.error('Error deteniendo navegación:', error);
+            console.error('Excepción al detener navegación:', error);
             this.app.showError('Error de conexión al detener navegación');
+            
+            // Intentar sincronizar estado después del error
+            try {
+                await this.syncNavigationState();
+            } catch (syncError) {
+                console.error('Error sincronizando estado:', syncError);
+            }
+            
+        } finally {
+            // Asegurar que el botón se rehabilite
+            if (this.elements.stopNavigationBtn) {
+                this.elements.stopNavigationBtn.disabled = false;
+            }
+        }
+    }
+
+    /**
+     * Sincroniza el estado local de navegación con el estado real del backend
+     * Se usa para recuperarse de desincronizaciones
+     */
+    async syncNavigationState() {
+        try {
+            console.log('Sincronizando estado de navegación con backend...');
+            
+            const activeSessionsInfo = await window.electronAPI.navigation.getActiveSessions();
+            
+            if (activeSessionsInfo.success) {
+                const backendHasSessions = activeSessionsInfo.hasActiveSessions;
+                const localHasSessions = this.state.navigationRunning;
+                
+                console.log(`Backend: ${backendHasSessions} sesiones activas`);
+                console.log(`Local: navigationRunning = ${localHasSessions}`);
+                
+                // Detectar desincronización
+                if (backendHasSessions !== localHasSessions) {
+                    console.warn('DESINCRONIZACIÓN DETECTADA');
+                    console.log(`   Ajustando estado local de ${localHasSessions} a ${backendHasSessions}`);
+                    
+                    this.state.navigationRunning = backendHasSessions;
+                    this.app.updateState('navigation.running', backendHasSessions);
+                    
+                    if (!backendHasSessions) {
+                        this.hideProgressMonitor();
+                    }
+                    
+                    this.updateNavigationButtonState();
+                    
+                    console.log('Estado sincronizado correctamente');
+                } else {
+                    console.log('Estados ya están sincronizados');
+                }
+                
+                return true;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('Error sincronizando estado:', error);
+            return false;
         }
     }
 
