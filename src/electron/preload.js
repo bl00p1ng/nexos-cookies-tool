@@ -38,6 +38,7 @@ const electronAPI = {
         start: (config) => ipcRenderer.invoke('navigation:start', config),
         stop: () => ipcRenderer.invoke('navigation:stop'),
         getStatus: () => ipcRenderer.invoke('navigation:get-status'),
+        getActiveSessions: () => ipcRenderer.invoke('navigation:get-active-sessions'),
         
         // Listeners para eventos de navegación
         onProgressUpdate: (callback) => ipcRenderer.on('navigation:progress', callback),

@@ -255,6 +255,7 @@ class ElectronApp {
         ipcMain.handle('navigation:start', this.startNavigation.bind(this));
         ipcMain.handle('navigation:stop', this.stopNavigation.bind(this));
         ipcMain.handle('navigation:get-status', this.getNavigationStatus.bind(this));
+        ipcMain.handle('navigation:get-active-sessions', this.getActiveNavigationSessions.bind(this));
 
         // Base de datos
         ipcMain.handle('database:get-stats', this.getDatabaseStats.bind(this));
@@ -967,6 +968,71 @@ class ElectronApp {
     sendNavigationProgressUpdate(progressData) {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             this.mainWindow.webContents.send('navigation:progress', progressData);
+        }
+    }
+
+    /**
+     * Obtiene información detallada sobre sesiones de navegación activas
+     * Consulta directamente al NavigationController (fuente de verdad)
+     * @param {Object} event - Evento IPC
+     * @returns {Promise<Object>} Estado real de las sesiones activas
+     */
+    async getActiveNavigationSessions(event) {
+        try {
+            console.log('🔍 Consultando sesiones activas en NavigationController...');
+
+            // Verificar que NavigationController esté disponible
+            if (!this.navigationController) {
+                return {
+                    success: true,
+                    hasActiveSessions: false,
+                    sessionCount: 0,
+                    sessions: [],
+                    message: 'NavigationController no disponible'
+                };
+            }
+
+            // Consultar directamente al NavigationController
+            const activeSessions = this.navigationController.activeSessions;
+            const sessionCount = activeSessions.size;
+            const hasActiveSessions = sessionCount > 0;
+
+            // Convertir Map a Array con información relevante
+            const sessionsInfo = [];
+            activeSessions.forEach((sessionData, profileId) => {
+                sessionsInfo.push({
+                    profileId: profileId,
+                    sessionId: sessionData.sessionId,
+                    cookiesCollected: sessionData.cookiesCollected || 0,
+                    targetCookies: sessionData.targetCookies || 0,
+                    sitesVisited: sessionData.sitesVisited || 0,
+                    status: sessionData.status || 'running'
+                });
+            });
+
+            console.log(`✅ Sesiones activas encontradas: ${sessionCount}`);
+            if (sessionCount > 0) {
+                console.log('📋 Perfiles activos:', sessionsInfo.map(s => s.profileId).join(', '));
+            }
+
+            return {
+                success: true,
+                hasActiveSessions: hasActiveSessions,
+                sessionCount: sessionCount,
+                sessions: sessionsInfo,
+                timestamp: new Date().toISOString()
+            };
+
+        } catch (error) {
+            console.error('❌ Error consultando sesiones activas:', error.message);
+            
+            return {
+                success: false,
+                hasActiveSessions: false,
+                sessionCount: 0,
+                sessions: [],
+                error: error.message
+            };
         }
     }
     //#endregion NAVEGACIÓN
