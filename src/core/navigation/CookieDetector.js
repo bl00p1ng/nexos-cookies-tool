@@ -89,6 +89,7 @@ class CookieDetector {
                     /we use cookies/i, /this site uses cookies/i, /cookies help us/i,
                     /by continuing/i, /by using this site/i, /cookie policy/i,
                     /privacy policy/i, /data processing/i, /personal data/i,
+                    /it's your choice/i, /your choice/i, /your preferences/i,
                     
                     // Español
                     /utilizamos cookies/i, /usamos cookies/i, /este sitio usa cookies/i,
