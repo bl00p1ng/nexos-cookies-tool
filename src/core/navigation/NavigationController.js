@@ -177,9 +177,13 @@ class NavigationController extends EventEmitter {
             // BUCLE PRINCIPAL: Continuar hasta cumplir AMBAS condiciones
             while (true) {
                 // Verificar interrupción manual PRIMERO
-                if (this.shouldStopSession(profileId)) {
-                    console.log(`🛑 [${profileId}] Sesión interrumpida por flag de detención`);
-                    break;
+                try {
+                    this.checkStopFlagOrThrow(profileId);
+                } catch (stopError) {
+                    if (stopError.code === 'STOP_REQUESTED') {
+                        console.log(`[${profileId}] Sesión interrumpida por flag de detención`);
+                        throw stopError; // Propagar para salir completamente
+                    }
                 }
 
                 const cookiesReached = sessionStats.cookiesCollected >= targetCookies;
@@ -224,9 +228,37 @@ class NavigationController extends EventEmitter {
                         await page.evaluate(() => document.readyState);
                     } catch (evalError) {
                         if (evalError.message.includes('Target page, context or browser has been closed')) {
-                            throw new Error('CONEXION_PERDIDA: Navegador desconectado antes de procesar sitio');
+                            // Antes de intentar reconectar, verificar si fue detención manual
+                            if (this.shouldStopSession(profileId)) {
+                                console.log(`[${profileId}] Navegador cerrado debido a detención manual`);
+                                const stopError = new Error('Sesión detenida por solicitud del usuario');
+                                stopError.code = 'STOP_REQUESTED';
+                                stopError.profileId = profileId;
+                                throw stopError;
+                            }
+                            
+                            consecutiveConnectionErrors++;
+                            
+                            if (consecutiveConnectionErrors >= maxConnectionErrors) {
+                                throw new Error('CONEXION_PERDIDA: Navegador perdió conexión permanentemente');
+                            }
+                            
+                            console.warn(`[${profileId}] Conexión perdida temporalmente, reintentando...`);
+                            await this.sleep(2000);
+                            
+                            // Verificar otra vez después del sleep
+                            this.checkStopFlagOrThrow(profileId);
+                            
+                            continue;
                         }
+                        throw evalError;
                     }
+
+                    // Resetear contador si la conexión está bien
+                    consecutiveConnectionErrors = 0;
+                    
+                    // VERIFICACIÓN: Después de confirmar conexión
+                    this.checkStopFlagOrThrow(profileId);
 
                     // Procesar sitio con comportamiento humano
                     const siteResult = await this.processSiteWithHumanBehavior(
@@ -313,22 +345,46 @@ class NavigationController extends EventEmitter {
                         progress: Math.min((sessionStats.cookiesCollected / sessionStats.targetCookies) * 100, 100)
                     });
 
-                    // Registrar visita en base de datos
                     await this.registerSiteVisit(sessionStats, website, siteResult);
 
                     console.log(`📈 [${profileId}] +${siteResult.cookiesGained} cookies (Total: ${sessionStats.cookiesCollected}/${targetCookies})`);
 
+                    // VERIFICACIÓN: Después de procesar sitio exitosamente
+                    this.checkStopFlagOrThrow(profileId);
+
                     // Pausa entre sitios para parecer humano
                     const pauseTime = this.randomBetween(3000, 8000);
-                    await this.sleep(pauseTime);
-
-                    if (this.shouldStopSession(profileId)) {
-                        console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
-                        break;
+                    console.log(`⏸️ [${profileId}] Pausa de ${Math.round(pauseTime/1000)}s antes del siguiente sitio`);
+                    
+                    // Hacer la pausa en incrementos pequeños para poder interrumpir rápidamente
+                    const pauseIncrements = 500; // Verificar cada 500ms
+                    const totalIncrements = Math.ceil(pauseTime / pauseIncrements);
+                    
+                    for (let i = 0; i < totalIncrements; i++) {
+                        const currentIncrement = Math.min(pauseIncrements, pauseTime - (i * pauseIncrements));
+                        await this.sleep(currentIncrement);
+                        
+                        // VERIFICACIÓN: Durante la pausa, cada 500ms
+                        this.checkStopFlagOrThrow(profileId);
                     }
 
                 } catch (siteError) {
-                    console.warn(`⚠️ [${profileId}] Error en ${website.domain}: ${siteError.message}`);
+                    // VERIFICACIÓN: Si el error es detención manual, propagar inmediatamente
+                    if (siteError.code === 'STOP_REQUESTED') {
+                        console.log(`[${profileId}] Detención detectada durante procesamiento de sitio`);
+                        throw siteError;
+                    }
+                    
+                    console.warn(`[${profileId}] Error en ${website.domain}: ${siteError.message}`);
+                    
+                    // VERIFICACIÓN: Antes de continuar con el siguiente sitio después de un error
+                    if (this.shouldStopSession(profileId)) {
+                        console.log(`[${profileId}] Detención solicitada después de error en sitio`);
+                        const stopError = new Error('Sesión detenida por solicitud del usuario');
+                        stopError.code = 'STOP_REQUESTED';
+                        stopError.profileId = profileId;
+                        throw stopError;
+                    }
                     
                     // Si es error crítico de conexión, propagar hacia arriba
                     if (siteError.message.includes('Navegador perdió conexión permanentemente') ||
@@ -336,6 +392,9 @@ class NavigationController extends EventEmitter {
                         throw siteError;
                     }
                 }
+
+                // VERIFICACIÓN: Antes de avanzar al siguiente sitio
+                this.checkStopFlagOrThrow(profileId);
 
                 siteIndex++;
             }
@@ -376,12 +435,49 @@ class NavigationController extends EventEmitter {
             };
 
         } catch (error) {
+            // Verificar si es detención intencional del usuario
+            if (error.code === 'STOP_REQUESTED') {
+                console.log(`🛑 [${profileId}] Sesión detenida correctamente por solicitud del usuario`);
+                
+                sessionStats.success = false;
+                sessionStats.error = 'Detenido por el usuario';
+                sessionStats.endTime = new Date();
+                
+                // Registrar como detenida, no como error
+                await this.markSessionStopped(sessionStats, 'stopped_manually');
+                
+                // NO emitir como error, sino como detenida
+                this.emit('session:stopped', {
+                    sessionId,
+                    profileId,
+                    reason: 'user_request',
+                    stats: {
+                        cookiesCollected: sessionStats.cookiesCollected,
+                        sitesVisited: sessionStats.sitesVisited
+                    },
+                    timestamp: new Date().toISOString()
+                });
+                
+                return {
+                    profileId,
+                    success: true, // Marcar como success porque se detuvo limpiamente
+                    stopped: true,
+                    reason: 'user_request',
+                    cookiesCollected: sessionStats.cookiesCollected,
+                    sitesVisited: sessionStats.sitesVisited
+                };
+            }
+            
+            // Error genuino (no detención intencional)
+            console.error(`❌ [${profileId}] Error en sesión:`, error.message);
+            
+            sessionStats.success = false;
             sessionStats.error = error.message;
             sessionStats.endTime = new Date();
             
-            console.error(`❌ [${profileId}] Error en sesión: ${error.message}`);
-
-            // Emitir evento de error de sesión
+            // Registrar error en base de datos
+            await this.markSessionStopped(sessionStats, 'error');
+            
             this.emitSessionError(sessionId, profileId, error);
             
             return {
@@ -389,8 +485,7 @@ class NavigationController extends EventEmitter {
                 success: false,
                 error: error.message,
                 cookiesCollected: sessionStats.cookiesCollected,
-                sitesVisited: sessionStats.sitesVisited,
-                duration: Date.now() - startTime
+                sitesVisited: sessionStats.sitesVisited
             };
 
         } finally {
@@ -1158,6 +1253,21 @@ class NavigationController extends EventEmitter {
      */
     shouldStopSession(profileId) {
         return this.stopFlags.get(profileId) === true;
+    }
+
+    /**
+     * Verifica si una sesión debe detenerse y lanza excepción si es necesario
+     * @param {string} profileId - ID del perfil
+     * @throws {Error} Lanza error especial STOP_REQUESTED si debe detenerse
+     */
+    checkStopFlagOrThrow(profileId) {
+        if (this.stopFlags.get(profileId) === true) {
+            console.log(`[${profileId}] Stop flag detectado - interrumpiendo operación`);
+            const error = new Error('Sesión detenida por solicitud del usuario');
+            error.code = 'STOP_REQUESTED';
+            error.profileId = profileId;
+            throw error;
+        }
     }
 
     /**
