@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import Store from 'electron-store';
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 // Importar servicios del core
@@ -10,6 +9,7 @@ import ConfigManager from '../core/config/ConfigManager.js';
 import DatabaseManager from '../core/database/DatabaseManager.js';
 import AdsPowerManager from '../core/adspower/AdsPowerManager.js';
 import NavigationController from '../core/navigation/NavigationController.js';
+import { AuthService } from '../core/auth/AuthService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,7 +31,7 @@ class ElectronApp {
 
         // Inicializar ConfigManager
         this.configManager = new ConfigManager();
-        
+
         // Store para persistir configuración y autenticación
         this.store = new Store({
             schema: {
@@ -41,6 +41,7 @@ class ElectronApp {
                 tokenExpiry: { type: 'string' },
                 customerName: { type: 'string' },
                 customerId: { type: 'string' },
+                device_fingerprint: { type: 'string' },
                 windowBounds: {
                     type: 'object',
                     properties: {
@@ -56,6 +57,7 @@ class ElectronApp {
         this.databaseManager = null;
         this.adsPowerManager = null;
         this.navigationController = null;
+        this.authService = null;
     }
 
     /**
@@ -78,6 +80,10 @@ class ElectronApp {
             if (!this.authBackendUrl) {
                 throw new Error('La URL del backend de autenticación no está configurada');
             }
+
+            // Inicializar AuthService
+            this.authService = new AuthService(this.authBackendUrl, this.store);
+            console.log('✅ AuthService inicializado');
 
             // Configurar eventos de la aplicación
             this.setupAppEvents();
@@ -399,40 +405,7 @@ class ElectronApp {
      * Valida un token guardado con el backend de autenticación
      */
     async validateTokenWithBackend(token, email) {
-        try {
-            const response = await axios.post(`${this.authBackendUrl}/api/auth/validate-token`, {
-                token: token,
-                email: email
-            }, {
-                timeout: 10000,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.data.success) {
-                // Actualizar información de suscripción si ha cambiado
-                const subscriptionData = response.data.subscription;
-                if (subscriptionData && subscriptionData.subscriptionEnd) {
-                    this.store.set('subscriptionEnd', subscriptionData.subscriptionEnd);
-                    this.store.set('customerName', subscriptionData.customerName);
-                    this.store.set('customerId', subscriptionData.customerId);
-                }
-                
-                return { success: true };
-            } else {
-                return { success: false, error: response.data.error || 'Token inválido' };
-            }
-
-        } catch (error) {
-            if (error.response && error.response.status === 401) {
-                return { success: false, error: 'Token expirado o inválido' };
-            }
-            
-            console.error('Error validando token:', error.message);
-            return { success: false, error: 'Error de conexión con servidor de autenticación' };
-        }
+        return await this.authService.validateToken(token, email);
     }
 
     /**
@@ -446,7 +419,8 @@ class ElectronApp {
         this.store.delete('tokenExpiry');
         this.store.delete('customerName');
         this.store.delete('customerId');
-        
+        this.store.delete('device_fingerprint');
+
         this.isAuthenticated = false;
         this.userToken = null;
         this.userData = null;
@@ -459,48 +433,26 @@ class ElectronApp {
     async handleRequestCode(event, email) {
         try {
             console.log('📧 Solicitando código para:', email);
-
-            const response = await axios.post(`${this.authBackendUrl}/api/auth/request-code`, {
-                email: email
-            }, {
-                timeout: 15000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.data.success) {
-                console.log('✅ Código enviado exitosamente');
-                return { 
-                    success: true, 
-                    message: response.data.message || 'Código enviado a tu email' 
-                };
-            } else {
-                return { 
-                    success: false, 
-                    error: response.data.error || 'Error enviando código'
-                };
-            }
+            const result = await this.authService.requestAccessCode(email);
+            console.log('✅ Código enviado exitosamente');
+            return result;
 
         } catch (error) {
-            console.error('Error solicitando código:', error.message);
-            
-            if (error.response) {
-                const status = error.response.status;
-                const errorMsg = error.response.data?.error || 'Error del servidor';
-                
-                if (status === 404) {
-                    return { success: false, error: 'Email no encontrado o sin suscripción activa' };
-                } else if (status === 429) {
-                    return { success: false, error: 'Demasiados intentos. Intenta más tarde' };
-                } else {
-                    return { success: false, error: errorMsg };
-                }
+            console.error('Error solicitando código:', error);
+
+            // El AuthService ya maneja los errores de forma estructurada
+            if (error.code === 'MULTIPLE_SESSIONS_BLOCKED') {
+                return {
+                    success: false,
+                    error: error.userMessage,
+                    code: error.code,
+                    retryAfterMinutes: error.retryAfterMinutes
+                };
             }
-            
-            return { 
-                success: false, 
-                error: 'Se ha presentado un error. Por favor intenta nuevamente.' 
+
+            return {
+                success: false,
+                error: error.userMessage || 'Se ha presentado un error. Por favor intenta nuevamente.'
             };
         }
     }
@@ -512,37 +464,11 @@ class ElectronApp {
         try {
             console.log('🔐 Verificando código para:', email);
 
-            const requestData = { email: email, code: code };
-            console.log('Enviando a backend:', requestData);
+            const result = await this.authService.verifyAccessCode(email, code);
 
-            const response = await axios.post(`${this.authBackendUrl}/api/auth/verify-code`, requestData, {
-                timeout: 10000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            if (result.success) {
+                const { token, user } = result;
 
-            if (response.data.success) {
-                const { data } = response.data;
-                const token = data.token;
-                const user = data.user;
-                
-                // Calcular fecha de expiración del token (30 días)
-                const tokenExpiry = new Date();
-                tokenExpiry.setDate(tokenExpiry.getDate() + 30);
-                
-                // Guardar en store usando set()
-                this.store.set('authToken', token);
-                this.store.set('lastEmail', email);
-                this.store.set('tokenExpiry', tokenExpiry.toISOString());
-                
-                if (user.subscriptionEnd) {
-                    this.store.set('subscriptionEnd', user.subscriptionEnd);
-                }
-                if (user.name) {
-                    this.store.set('customerName', user.name);
-                }
-                
                 // Actualizar estado
                 this.isAuthenticated = true;
                 this.userToken = token;
@@ -551,41 +477,24 @@ class ElectronApp {
                     customerName: user.name,
                     subscriptionEnd: user.subscriptionEnd
                 };
-                
+
                 console.log('✅ Autenticación exitosa para:', email);
-                
-                return { 
-                    success: true, 
+
+                return {
+                    success: true,
                     token,
                     user: this.userData
                 };
-                
-            } else {
-                return { 
-                    success: false, 
-                    error: response.data.error || 'Código inválido' 
-                };
             }
 
+            return result;
+
         } catch (error) {
-            console.error('Error verificando código:', error.message);
-            
-            if (error.response) {
-                const status = error.response.status;
-                const errorMsg = error.response.data?.error || 'Error del servidor';
-                
-                if (status === 401) {
-                    return { success: false, error: 'Código inválido o expirado' };
-                } else if (status === 429) {
-                    return { success: false, error: 'Demasiados intentos. Intenta más tarde' };
-                } else {
-                    return { success: false, error: errorMsg };
-                }
-            }
-            
-            return { 
-                success: false, 
-                error: 'Se ha presentado un error. Por favor intenta nuevamente.'
+            console.error('Error verificando código:', error);
+
+            return {
+                success: false,
+                error: error.userMessage || 'Se ha presentado un error. Por favor intenta nuevamente.'
             };
         }
     }
@@ -596,29 +505,18 @@ class ElectronApp {
     async handleLogout() {
         try {
             console.log('👋 Cerrando sesión...');
-            
-            // Intentar notificar al backend (opcional, no falla si no se puede)
-            try {
-                if (this.userToken) {
-                    await axios.post(`${this.authBackendUrl}/api/auth/logout`, {}, {
-                        timeout: 5000,
-                        headers: {
-                            'Authorization': `Bearer ${this.userToken}`
-                        }
-                    });
-                }
-            } catch (error) {
-                console.warn('No se pudo notificar logout al backend:', error.message);
-            }
-            
+
+            // Usar AuthService para cerrar sesión
+            await this.authService.logout();
+
             // Limpiar estado local
             this.clearStoredAuth();
-            
+
             // Notificar a la UI
             this.mainWindow.webContents.send('auth:logged-out');
-            
+
             console.log('✅ Sesión cerrada exitosamente');
-            
+
             return { success: true };
 
         } catch (error) {

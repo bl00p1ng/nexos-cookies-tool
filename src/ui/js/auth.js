@@ -194,12 +194,23 @@ class AuthManager {
                 this.startResendTimer();
                 this.app.showSuccess(result.message || 'Código enviado a tu email');
             } else {
-                this.showError('email', result.error || 'Error enviando código');
+                // Verificar si es un error de múltiples dispositivos
+                if (result.code === 'MULTIPLE_SESSIONS_BLOCKED') {
+                    this.showMultipleDevicesDialog(result);
+                } else {
+                    this.showError('email', result.error || 'Error enviando código');
+                }
             }
 
         } catch (error) {
             console.error('Error solicitando código:', error);
-            this.showError('email', 'Se ha presentado un Eror. Intenta nuevamente.');
+
+            // Manejar error de múltiples dispositivos
+            if (error.code === 'MULTIPLE_SESSIONS_BLOCKED') {
+                this.showMultipleDevicesDialog(error);
+            } else {
+                this.showError('email', 'Se ha presentado un error. Intenta nuevamente.');
+            }
         } finally {
             this.isRequestingCode = false;
             this.setButtonLoading(this.elements.requestCodeBtn, false);
@@ -468,6 +479,35 @@ class AuthManager {
         // Resetear estado de botones
         this.setButtonLoading(this.elements.requestCodeBtn, false);
         this.setButtonLoading(this.elements.verifyCodeBtn, false);
+    }
+
+    /**
+     * Muestra diálogo especializado para bloqueo multi-dispositivo
+     */
+    showMultipleDevicesDialog(error) {
+        const minutesText = error.retryAfterMinutes === 1 ? 'minuto' : 'minutos';
+
+        const message = `🚫 MÚLTIPLES DISPOSITIVOS DETECTADOS
+
+Ya existe una sesión activa en otro dispositivo.
+
+¿Qué puedes hacer?
+• Esperar ${error.retryAfterMinutes} ${minutesText}
+• Cerrar sesión en el otro dispositivo
+• Contactar soporte para licencias adicionales
+
+El sistema detectó que estás intentando usar tu cuenta en múltiples dispositivos simultáneamente.
+Por seguridad, solo se permite una sesión activa por cuenta.`;
+
+        // Mostrar error en el formulario
+        this.showError('email', `Múltiples dispositivos detectados. Espera ${error.retryAfterMinutes} ${minutesText}.`);
+
+        // Mostrar diálogo del sistema
+        if (this.app && this.app.showWarning) {
+            this.app.showWarning(message);
+        } else {
+            alert(message);
+        }
     }
 
     /**
