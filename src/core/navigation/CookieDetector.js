@@ -117,13 +117,19 @@ class CookieDetector {
                     /^accept$/i, /^agree$/i, /^allow$/i, /^ok$/i, /^yes$/i, /^continue$/i,
                     /^got it$/i, /^understood$/i, /^proceed$/i, /^i accept$/i, /^Yes, I accept$/i,
                     /^i allow$/i, /^i understand$/i, /^i consent$/i,
+
                     
                     // Inglés - frases
                     /accept all/i, /accept cookies/i, /accept all cookies/i, /allow all/i,
                     /allow cookies/i, /allow all cookies/i, /agree.*cookies/i, /i agree/i,
                     /i accept/i, /i understand/i, /agree.*continue/i, /accept.*continue/i,
                     /yes.*accept/i, /yes.*agree/i, /ok.*accept/i, /accept.*terms/i,
-                    /agree.*terms/i, /accept.*privacy/i, /agree.*privacy/i,
+                    /agree.*terms/i, /accept.*privacy/i, /agree.*privacy/i, /^save and close$/i, 
+                    /save and close/i, /save preferences/i, /save settings/i, /save choices/i,
+                    /i accept the terms/i, /i agree to the terms/i, /i accept the privacy policy/i,
+                    /i agree to the privacy policy/i, /i accept the cookie policy/i,
+                    /i agree to the cookie policy/i, /i consent to cookies/i, /i consent to the use of cookies/i,
+                    /i consent to the privacy policy/i, /i consent to the terms/i,
                     
                     // Español
                     /^aceptar$/i, /^acepto$/i, /^de acuerdo$/i, /^entendido$/i, /^continuar$/i,
