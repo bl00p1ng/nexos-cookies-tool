@@ -115,7 +115,8 @@ class CookieDetector {
                 acceptTexts: [
                     // Inglés - exactos
                     /^accept$/i, /^agree$/i, /^allow$/i, /^ok$/i, /^yes$/i, /^continue$/i,
-                    /^got it$/i, /^understood$/i, /^proceed$/i,
+                    /^got it$/i, /^understood$/i, /^proceed$/i, /^i accept$/i, /^Yes, I accept$/i,
+                    /^i allow$/i, /^i understand$/i, /^i consent$/i,
                     
                     // Inglés - frases
                     /accept all/i, /accept cookies/i, /accept all cookies/i, /allow all/i,
