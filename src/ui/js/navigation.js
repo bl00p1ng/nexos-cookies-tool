@@ -12,6 +12,79 @@ class NavigationManager {
         this.startTime = null;
     }
 
+    //#region Reset y Limpieza
+    /**
+     * Resetea completamente el estado de navegación
+     * Limpia sesiones, elementos DOM, estadísticas y cronómetros
+     */
+    resetNavigationState() {
+        console.log('[NavigationManager] Limpiando estado de navegación...');
+        
+        // Detener cronómetro si está activo
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+            console.log('[NavigationManager] Cronómetro detenido');
+        }
+        
+        // Limpiar todas las sesiones del Map
+        const sessionCount = this.sessions.size;
+        this.sessions.clear();
+        console.log(`[NavigationManager] ${sessionCount} sesiones eliminadas del Map`);
+        
+        // Resetear estadísticas globales
+        this.totalCookiesCollected = 0;
+        this.totalSitesVisited = 0;
+        this.startTime = null;
+        this.isRunning = false;
+        console.log('[NavigationManager] Estadísticas globales reseteadas');
+        
+        // Limpiar elementos DOM del contenedor de progreso
+        const progressContainer = document.getElementById('progress-profiles');
+        if (progressContainer) {
+            progressContainer.innerHTML = '';
+            console.log('[NavigationManager] Elementos DOM de progreso eliminados');
+        }
+        
+        // Resetear estadísticas visuales en la UI
+        this.resetProgressUI();
+        
+        console.log('[NavigationManager] Estado de navegación limpio');
+    }
+
+    /**
+     * Resetea la UI de progreso a valores iniciales
+     */
+    resetProgressUI() {
+        // Resetear contador de cookies totales
+        const totalCookiesEl = document.getElementById('total-cookies');
+        if (totalCookiesEl) {
+            totalCookiesEl.textContent = '0';
+        }
+        
+        // Resetear contador de sitios totales
+        const totalSitesEl = document.getElementById('total-sites');
+        if (totalSitesEl) {
+            totalSitesEl.textContent = '0';
+        }
+        
+        // Resetear cronómetro
+        const elapsedTimeEl = document.getElementById('elapsed-time');
+        if (elapsedTimeEl) {
+            elapsedTimeEl.textContent = '00:00:00';
+        }
+        
+        // Resetear estado de sesión
+        const statusElement = document.getElementById('session-status');
+        if (statusElement) {
+            statusElement.textContent = 'Inactiva';
+            statusElement.className = 'stat-value status-inactive';
+        }
+        
+        console.log('[NavigationManager]UI de progreso reseteada');
+    }
+    //#endregion Reset y Limpieza
+
     //#region Crear elementos UI
     /**
      * Crea elemento visual para progreso de perfil individual
