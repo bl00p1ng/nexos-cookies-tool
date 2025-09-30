@@ -35,7 +35,7 @@ class DatabaseManager {
     }
 
     /**
-     * Inicializa la conexión a la base de datos y crea las tablas necesarias
+     * Inicializa la conexion a la base de datos y crea las tablas necesarias
      * @returns {Promise<void>}
      */
     async initialize() {
@@ -44,69 +44,169 @@ class DatabaseManager {
             const dataDir = dirname(this.dbPath);
             await fs.mkdir(dataDir, { recursive: true });
 
-            // Si el entorno es la app empaquetada y no existe la DB, copiarla desde recursos
+            // Si el entorno es la app empaquetada, verificar y actualizar DB si es necesario
             if (app && app.isPackaged) {
-                try {
-                    await fs.access(this.dbPath);
-                    console.log('✅ Base de datos ya existe en userData');
-                } catch {
-                    // La DB no existe, copiarla desde recursos
-                    console.log('📋 DB no encontrada, copiando desde recursos...');
+                const dbExists = await this.checkDatabaseExists();
+                const shouldUpdate = await this.shouldUpdateDatabase();
+                
+                if (!dbExists || shouldUpdate) {
+                    const action = dbExists ? 'Actualizando' : 'Copiando';
+                    console.log(`[DatabaseManager] ${action} base de datos desde recursos...`);
                     
-                    // Intentar múltiples paths posibles de recursos
+                    // Intentar multiples paths posibles de recursos
                     const possiblePaths = [
                         path.join(process.resourcesPath, 'data', 'loadtest.db'),
                         path.join(process.resourcesPath, 'app', 'data', 'loadtest.db'),
-                        path.join(process.resourcesPath, 'extraResources', 'data', 'loadtest.db')
+                        path.join(process.resourcesPath, 'extraResources', 'data', 'loadtest.db'),
+                        path.join(process.resourcesPath, 'app.asar.unpacked', 'data', 'loadtest.db')
                     ];
                     
-                    let copySuccess = false;
-                    let lastError = null;
-                    
-                    for (const resourceDbPath of possiblePaths) {
+                    let copied = false;
+                    for (const sourcePath of possiblePaths) {
                         try {
-                            console.log(`🔍 Intentando copiar desde: ${resourceDbPath}`);
-                            await fs.access(resourceDbPath);
-                            await fs.copyFile(resourceDbPath, this.dbPath);
-                            console.log('✅ Base de datos copiada exitosamente desde recursos');
-                            copySuccess = true;
+                            await fs.access(sourcePath);
+                            console.log(`[DatabaseManager] DB encontrada en: ${sourcePath}`);
+                            
+                            // Si existe DB vieja, hacer backup primero
+                            if (dbExists) {
+                                const backupPath = this.dbPath + '.backup';
+                                try {
+                                    await fs.copyFile(this.dbPath, backupPath);
+                                    console.log(`[DatabaseManager] Backup creado en: ${backupPath}`);
+                                } catch (backupError) {
+                                    console.warn('[DatabaseManager] No se pudo crear backup:', backupError.message);
+                                }
+                            }
+                            
+                            // Copiar DB nueva
+                            await fs.copyFile(sourcePath, this.dbPath);
+                            console.log(`[DatabaseManager] DB ${action.toLowerCase()} exitosamente a userData`);
+                            copied = true;
                             break;
                         } catch (error) {
-                            lastError = error;
-                            console.log(`❌ Falló path: ${resourceDbPath} - ${error.message}`);
+                            continue;
                         }
                     }
                     
-                    if (!copySuccess) {
-                        console.error('❌ CRÍTICO: No se pudo copiar la base de datos desde recursos');
-                        console.error('❌ Último error:', lastError.message);
-                        throw new Error(`No se pudo encontrar o copiar la base de datos desde recursos. App no puede funcionar sin la DB original.`);
+                    if (!copied) {
+                        console.warn('[DatabaseManager] No se pudo copiar DB desde recursos, usando existente o creando nueva');
                     }
+                } else {
+                    console.log('[DatabaseManager] Base de datos actualizada en userData');
                 }
             }
 
-            // Abrir conexión a la base de datos
-            this.db = new sqlite3.Database(this.dbPath);
-            
-            // Promisificar métodos de la base de datos para uso con async/await
-            this.db.runAsync = this.promisify(this.db.run);
-            this.db.getAsync = this.promisify(this.db.get);
-            this.db.allAsync = this.promisify(this.db.all);
+            // Conectar a la base de datos
+            this.db = new sqlite3.Database(this.dbPath, (err) => {
+                if (err) {
+                    throw new Error(`Error conectando a la base de datos: ${err.message}`);
+                }
+            });
+
+            // Promisificar métodos de la base de datos
+            this.db.runAsync = function(sql, params = []) {
+                return new Promise((resolve, reject) => {
+                    this.run(sql, params, function(err) {
+                        if (err) reject(err);
+                        else resolve({ lastID: this.lastID, changes: this.changes });
+                    });
+                });
+            }.bind(this.db);
+
+            this.db.getAsync = function(sql, params = []) {
+                return new Promise((resolve, reject) => {
+                    this.get(sql, params, (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+            }.bind(this.db);
+
+            this.db.allAsync = function(sql, params = []) {
+                return new Promise((resolve, reject) => {
+                    this.all(sql, params, (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+            }.bind(this.db);
 
             // Crear tablas si no existen
             await this.createTables();
-            
-            // Verificar si necesitamos poblar con datos iniciales
+
+            // Verificar si hay sitios web en la base de datos
             const websiteCount = await this.getWebsiteCount();
+            console.log(`[DatabaseManager] Base de datos inicializada con ${websiteCount} sitios web`);
+
+            // Si no hay sitios, cargar sitios iniciales
             if (websiteCount === 0) {
+                console.log('[DatabaseManager] No hay sitios web, cargando sitios iniciales...');
                 await this.seedInitialWebsites();
             }
 
-            console.log('Base de datos inicializada correctamente');
+            console.log('[DatabaseManager] Base de datos lista');
+
         } catch (error) {
-            console.error('Error inicializando base de datos:', error);
+            console.error('[DatabaseManager] Error inicializando base de datos:', error.message);
             throw error;
         }
+    }
+
+    /**
+     * Verifica si la base de datos existe en userData
+     * @returns {Promise<boolean>}
+     */
+    async checkDatabaseExists() {
+        try {
+            await fs.access(this.dbPath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Determina si la base de datos debe actualizarse
+     * Compara el numero de sitios en userData vs recursos
+     * @returns {Promise<boolean>}
+     */
+    async shouldUpdateDatabase() {
+        try {
+            const currentDb = await this.openDatabase(this.dbPath);
+            const currentCount = await new Promise((resolve, reject) => {
+                currentDb.get('SELECT COUNT(*) as count FROM websites', [], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row?.count || 0);
+                });
+            });
+            currentDb.close();
+            
+            if (currentCount < 100) {
+                console.log(`[DatabaseManager] DB actual tiene solo ${currentCount} sitios, actualizando...`);
+                return true;
+            }
+            
+            console.log(`[DatabaseManager] DB tiene ${currentCount} sitios, no requiere actualizacion`);
+            return false;
+            
+        } catch (error) {
+            console.log('[DatabaseManager] Error verificando DB, forzando actualizacion:', error.message);
+            return true;
+        }
+    }
+
+    /**
+     * Abre una conexion temporal a una base de datos
+     * @param {string} dbPath - Ruta de la DB
+     * @returns {Promise<Object>} Instancia de sqlite3.Database
+     */
+    openDatabase(dbPath) {
+        return new Promise((resolve, reject) => {
+            const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+                if (err) reject(err);
+                else resolve(db);
+            });
+        });
     }
 
     /**
