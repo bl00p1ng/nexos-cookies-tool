@@ -90,6 +90,8 @@ class CookieDetector {
                     /by continuing/i, /by using this site/i, /cookie policy/i,
                     /privacy policy/i, /data processing/i, /personal data/i,
                     /it's your choice/i, /your choice/i, /your preferences/i,
+                    /Save and close/i, /manage preferences/i, /change settings/i,
+                    /Privacy settings/i,
                     
                     // Español
                     /utilizamos cookies/i, /usamos cookies/i, /este sitio usa cookies/i,
@@ -381,6 +383,7 @@ class CookieDetector {
             return await page.evaluate(() => {
                 const patterns = [
                     /accept|agree|allow|consent|ok|continue|got it|i understand|yes/i,
+                    /Save and close/i,
                     /acepto|aceptar|permitir|consentir|entendido|de acuerdo|continuar/i,
                     /akzeptieren|einverstanden|ja|weiter|verstanden/i,
                     /accepter|d'accord|continuer|compris|oui/i,
