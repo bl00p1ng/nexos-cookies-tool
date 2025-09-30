@@ -175,19 +175,39 @@ class NavigationManager {
         if (data.running && !this.startTime) {
             this.startTime = new Date();
         } else if (!data.running) {
-            // La navegación se ha detenido (manualmente o por completarse)
-            console.log('[NavigationManager] Navegación detenida, ejecutando limpieza...');
+            // La navegación se ha detenido
+            this.startTime = null;
             
-            // Dar un momento para que la UI muestre el estado final
-            setTimeout(() => {
-                this.resetNavigationState();
+            // Verificar si fue detención manual o completado natural
+            const wasManualStop = data.reason === 'manual_stop' || data.stopped === true;
+            
+            if (wasManualStop) {
+                console.log('[NavigationManager] Detencion manual detectada, ejecutando limpieza...');
                 
-                // Actualizar estado en la aplicación después de limpiar
-                this.app.updateState('navigation.running', false);
-                this.app.updateState('navigation.stats', this.getGlobalStats());
-            }, 2000); // 2 segundos para ver estado final
-            
-            return; // Salir temprano para evitar actualizaciones duplicadas
+                // Limpieza con delay para ver estado final
+                setTimeout(() => {
+                    this.resetNavigationState();
+                    this.app.updateState('navigation.running', false);
+                    this.app.updateState('navigation.stats', this.getGlobalStats());
+                }, 2000);
+                
+                return;
+            } else {
+                // Completado natural: NO limpiar, solo detener cronómetro
+                console.log('[NavigationManager] Navegacion completada, manteniendo resultados en UI');
+                
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+                
+                // Actualizar estado pero mantener sesiones visibles
+                const statusElement = document.getElementById('session-status');
+                if (statusElement) {
+                    statusElement.textContent = 'Completada';
+                    statusElement.className = 'stat-value status-completed';
+                }
+            }
         }
 
         // Actualizar estado en la aplicación
@@ -268,17 +288,23 @@ class NavigationManager {
 
     //#region Handlers de eventos
     /**
- * Maneja evento de sesión iniciada
-    * @param {Object} data - Datos del evento
-    */
+     * Maneja evento de sesión iniciada
+     * @param {Object} data - Datos del evento
+     */
     handleSessionStarted(data) {
-        console.log('🚀 [NavigationManager] Sesión iniciada:', data.profileId, 'Target:', data.targetCookies);
+        console.log('[NavigationManager] Sesion iniciada:', data.profileId, 'Target:', data.targetCookies);
+        
+        // LIMPIEZA PREVENTIVA: Si es la primera sesión de un nuevo ciclo, limpiar estado anterior
+        if (this.sessions.size === 0 && !this.isRunning) {
+            console.log('[NavigationManager] Primera sesion del nuevo ciclo, limpiando estado anterior...');
+            this.resetNavigationState();
+        }
         
         // Inicializar sesión con targetCookies incluido
         this.sessions.set(data.sessionId, {
             sessionId: data.sessionId,
             profileId: data.profileId,
-            targetCookies: data.targetCookies || 2500, // Usar valor del evento o fallback
+            targetCookies: data.targetCookies || 2500,
             cookiesCollected: 0,
             sitesVisited: 0,
             currentSite: 'Iniciando...',
