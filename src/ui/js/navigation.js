@@ -83,6 +83,17 @@ class NavigationManager {
         
         console.log('[NavigationManager]UI de progreso reseteada');
     }
+
+    /**
+     * Fuerza limpieza inmediata sin delay
+     * Útil cuando el usuario presiona detener explícitamente
+     */
+    forceCleanup() {
+        console.log('[NavigationManager] Limpieza forzada solicitada');
+        this.resetNavigationState();
+        this.app.updateState('navigation.running', false);
+        this.app.updateState('navigation.stats', this.getGlobalStats());
+    }
     //#endregion Reset y Limpieza
 
     //#region Crear elementos UI
@@ -164,14 +175,19 @@ class NavigationManager {
         if (data.running && !this.startTime) {
             this.startTime = new Date();
         } else if (!data.running) {
-            this.startTime = null;
-
-            // Si la navegación se detiene, asegurar que el estado se actualice
-            const statusElement = document.getElementById('session-status');
-            if (statusElement && this.sessions.size > 0) {
-                // Verificar si se completó o se detuvo manualmente
-                this.checkAllSessionsCompleted();
-            }
+            // La navegación se ha detenido (manualmente o por completarse)
+            console.log('[NavigationManager] Navegación detenida, ejecutando limpieza...');
+            
+            // Dar un momento para que la UI muestre el estado final
+            setTimeout(() => {
+                this.resetNavigationState();
+                
+                // Actualizar estado en la aplicación después de limpiar
+                this.app.updateState('navigation.running', false);
+                this.app.updateState('navigation.stats', this.getGlobalStats());
+            }, 2000); // 2 segundos para ver estado final
+            
+            return; // Salir temprano para evitar actualizaciones duplicadas
         }
 
         // Actualizar estado en la aplicación
