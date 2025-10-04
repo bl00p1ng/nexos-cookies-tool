@@ -228,6 +228,10 @@ El código está organizado siguiendo:
 ### Perfil No Inicia
 **Solución**: Verificar que el ID del perfil existe y está configurado correctamente en Ads Power.
 
+## Crear releases en GitHub
+- `npm run build-win -- --publish always`
+- `npm run build-mac -- --publish always`
+
 ## Soporte
 
 Para reportar problemas o solicitar funcionalidades:

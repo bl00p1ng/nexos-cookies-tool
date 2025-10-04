@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import Store from 'electron-store';
@@ -110,6 +111,7 @@ class ElectronApp {
         app.whenReady().then(() => {
             this.createMainWindow();
             this.createApplicationMenu();
+            this.setupAutoUpdater();
         });
 
         // Cuando todas las ventanas estén cerradas
@@ -1206,6 +1208,79 @@ class ElectronApp {
             message: 'Cookies Hexzor v1.0.0',
             detail: 'Sistema automatizado para calentar contingencias\n© 2025 Todos los derechos reservados.'
         });
+    }
+
+    /**
+     * Configura el auto-updater
+     */
+    setupAutoUpdater() {
+        // Configuración
+        autoUpdater.autoDownload = false;
+        autoUpdater.autoInstallOnAppQuit = true;
+
+        // Eventos del updater
+        autoUpdater.on('checking-for-update', () => {
+            console.log('🔍 Buscando actualizaciones...');
+        });
+
+        autoUpdater.on('update-available', (info) => {
+            console.log('✨ Actualización disponible:', info.version);
+
+            dialog.showMessageBox(this.mainWindow, {
+                type: 'info',
+                title: 'Actualización disponible',
+                message: `Versión ${info.version} disponible`,
+                detail: '¿Deseas descargar e instalar la actualización ahora?',
+                buttons: ['Descargar', 'Más tarde']
+            }).then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.downloadUpdate();
+                }
+            });
+        });
+
+        autoUpdater.on('update-not-available', () => {
+            console.log('✅ La aplicación está actualizada');
+        });
+
+        autoUpdater.on('download-progress', (progressObj) => {
+            const percent = Math.round(progressObj.percent);
+            console.log(`📥 Descargando actualización: ${percent}%`);
+
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.webContents.send('update:download-progress', { percent });
+            }
+        });
+
+        autoUpdater.on('update-downloaded', () => {
+            console.log('✅ Actualización descargada');
+
+            dialog.showMessageBox(this.mainWindow, {
+                type: 'info',
+                title: 'Actualización lista',
+                message: 'Actualización descargada',
+                detail: 'La actualización se instalará al cerrar la aplicación',
+                buttons: ['Reiniciar ahora', 'Más tarde']
+            }).then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.quitAndInstall();
+                }
+            });
+        });
+
+        autoUpdater.on('error', (err) => {
+            console.error('❌ Error en actualización:', err);
+        });
+
+        // Buscar actualizaciones al iniciar (después de 3 segundos)
+        setTimeout(() => {
+            autoUpdater.checkForUpdates();
+        }, 3000);
+
+        // Buscar actualizaciones cada 6 horas
+        setInterval(() => {
+            autoUpdater.checkForUpdates();
+        }, 6 * 60 * 60 * 1000);
     }
 
     /**
