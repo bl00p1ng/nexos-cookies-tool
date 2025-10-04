@@ -57,7 +57,7 @@ class CookiesTool {
     setupCommands() {
         program
             .name('nexus-cookies-tool')
-            .version('1.0.0');
+            .version('1.2.1');
 
         // Comando para verificar estado de Ads Power
         program
