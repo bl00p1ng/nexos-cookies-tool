@@ -162,8 +162,16 @@ export class AuthService {
                 throw new Error('Respuesta del servidor incompleta: falta token o user');
             }
 
+            console.log('💾 Guardando datos de autenticación...');
+            console.log('  - Token:', token ? '✅' : '❌');
+            console.log('  - Email:', email);
+            console.log('  - User:', user);
+            console.log('  - DeviceFingerprint:', deviceFingerprint);
+
             // Guardar token y fingerprint en el store
             this.saveAuthData(token, email, user, deviceFingerprint);
+
+            console.log('✅ Datos guardados exitosamente');
 
             return {
                 success: true,
@@ -172,6 +180,12 @@ export class AuthService {
             };
 
         } catch (error) {
+            // Log detallado del error para debugging
+            console.error('❌ Error en verifyAccessCode:', error);
+            console.error('   - Tipo:', error.constructor.name);
+            console.error('   - Mensaje:', error.message);
+            console.error('   - Stack:', error.stack);
+
             // Código inválido o expirado
             if (error.response?.status === 401) {
                 throw {
@@ -182,8 +196,8 @@ export class AuthService {
                 };
             }
 
-            // Error de red
-            if (!error.response) {
+            // Error de red (axios)
+            if (!error.response && error.code === 'ECONNREFUSED') {
                 throw {
                     code: 'NETWORK_ERROR',
                     message: 'Error de conexión',
@@ -192,7 +206,17 @@ export class AuthService {
                 };
             }
 
-            // Error genérico
+            // Error de JavaScript (no de axios)
+            if (error instanceof Error && !error.response) {
+                throw {
+                    code: 'INTERNAL_ERROR',
+                    message: error.message,
+                    userMessage: `Error interno: ${error.message}`,
+                    canRetry: false
+                };
+            }
+
+            // Error genérico de servidor
             throw {
                 code: 'VERIFICATION_ERROR',
                 message: error.response?.data?.error || 'Error verificando código',
@@ -473,7 +497,11 @@ export class AuthService {
         this.store.set('authToken', token);
         this.store.set('lastEmail', email);
         this.store.set('tokenExpiry', tokenExpiry.toISOString());
-        this.store.set('device_fingerprint', deviceFingerprint);
+
+        // Solo guardar deviceFingerprint si existe y es un string
+        if (deviceFingerprint && typeof deviceFingerprint === 'string') {
+            this.store.set('device_fingerprint', deviceFingerprint);
+        }
 
         if (user.subscriptionEnd) {
             this.store.set('subscriptionEnd', user.subscriptionEnd);
