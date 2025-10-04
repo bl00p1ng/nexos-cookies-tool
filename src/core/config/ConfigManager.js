@@ -37,7 +37,7 @@ class ConfigManager {
     getDefaultConfig() {
         return {
             "auth": {
-                "backendUrl": "https://623b432ec95e.ngrok-free.app",
+                "backendUrl": "https://berry-adventurous-una.ngrok-free.dev",
                 "timeout": 30000
             },
             "adspower": {
