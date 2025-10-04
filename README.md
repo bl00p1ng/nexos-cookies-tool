@@ -228,6 +228,11 @@ El código está organizado siguiendo:
 ### Perfil No Inicia
 **Solución**: Verificar que el ID del perfil existe y está configurado correctamente en Ads Power.
 
+### Configuración de la app empaquetada no se actualiza con las configuración de la app en desarrollo
+**Solución**: Borrar la configuración de la app empaquetada.
+- **Windows:** `Windows + R` > `%APPDATA%\hexzor-cookies-tool`
+- **MacOS:** `~/Library/Application Support/hexzor-cookies-tool/`
+
 ## Crear releases en GitHub
 - `npm run build-win -- --publish always`
 - `npm run build-mac -- --publish always`
