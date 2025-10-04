@@ -42,9 +42,10 @@ class ConfigManager {
             },
             "adspower": {
                 "baseUrl": "http://local.adspower.com:50325/api/v1",
+                "fallbackUrl": "http://127.0.0.1:50325/api/v1",
                 "timeout": 30000,
                 "retryAttempts": 3,
-                
+
                 // Rate Limiting
                 "rateLimit": {
                     "requestsPerSecond": 1,
@@ -252,6 +253,17 @@ class ConfigManager {
      */
     getAdsPowerUrl() {
         return this.config.adspower.baseUrl;
+    }
+
+    /**
+     * Obtiene las URLs de Ads Power (primaria y fallback)
+     * @returns {Object} Objeto con baseUrl y fallbackUrl
+     */
+    getAdsPowerUrls() {
+        return {
+            baseUrl: this.config.adspower.baseUrl,
+            fallbackUrl: this.config.adspower.fallbackUrl || "http://127.0.0.1:50325/api/v1"
+        };
     }
 
     /**

@@ -339,13 +339,15 @@ class CookiesTool {
     async checkAdsPowerStatus() {
         try {
             console.log('Verificando estado de Ads Power...');
-            const isAvailable = await this.adsPowerManager.checkAdsPowerStatus();
-            
-            if (isAvailable) {
+            const status = await this.adsPowerManager.checkAdsPowerStatus();
+
+            if (status.connected) {
                 console.log('✅ Ads Power está ejecutándose y disponible');
+                console.log(`   Conectado en: ${status.url}`);
             } else {
                 console.log('❌ Ads Power no está disponible');
-                console.log('Asegúrate de que Ads Power esté ejecutándose en el puerto 50325');
+                console.log(`   ${status.message}`);
+                console.log('Asegúrate de que Ads Power esté ejecutándose');
             }
         } catch (error) {
             console.error('Error verificando Ads Power:', error.message);

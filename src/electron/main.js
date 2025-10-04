@@ -545,10 +545,18 @@ class ElectronApp {
      */
     async checkAdsPowerStatus() {
         try {
-            const isAvailable = await this.adsPowerManager.checkAdsPowerStatus();
-            return { success: true, available: isAvailable };
+            const status = await this.adsPowerManager.checkAdsPowerStatus();
+            return {
+                success: true,
+                available: status.connected,
+                status: status
+            };
         } catch (error) {
-            return { success: false, error: error.message };
+            return {
+                success: false,
+                available: false,
+                error: error.message
+            };
         }
     }
 
@@ -611,7 +619,7 @@ class ElectronApp {
             // Verificar estado de Ads Power (opcional pero recomendado)
             if (this.adsPowerManager) {
                 const adsPowerStatus = await this.adsPowerManager.checkAdsPowerStatus();
-                if (!adsPowerStatus) {
+                if (!adsPowerStatus.connected) {
                     console.warn('⚠️ Ads Power no está disponible');
                 } else {
                     console.log('✅ Ads Power está disponible');

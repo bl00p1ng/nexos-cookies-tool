@@ -7,32 +7,53 @@ import RequestQueue from '../utils/RequestQueue.js';
  */
 class AdsPowerManager {
     constructor(configManager = null) {
-        this.baseUrl = 'http://local.adspower.net:50325/api/v1';
         this.activeBrowsers = new Map();
         this.configManager = configManager;
-        
+
+        // Configurar URLs con fallback
+        if (this.configManager) {
+            const urls = this.configManager.getAdsPowerUrls();
+            this.baseUrl = urls.baseUrl;
+            this.fallbackUrl = urls.fallbackUrl;
+        } else {
+            this.baseUrl = 'http://local.adspower.com:50325/api/v1';
+            this.fallbackUrl = 'http://127.0.0.1:50325/api/v1';
+        }
+
+        this.currentUrl = this.baseUrl; // URL activa actual
+
         // Obtener configuración de rate limiting
-        const rateLimitConfig = this.configManager ? 
-            this.configManager.getRateLimitConfig() : 
+        const rateLimitConfig = this.configManager ?
+            this.configManager.getRateLimitConfig() :
             this.getDefaultRateLimitConfig();
-        
+
         // Inicializar RequestQueue con configuración
         this.requestQueue = RequestQueue.getInstance(rateLimitConfig);
-        
+
         console.log('🚦 AdsPowerManager inicializado con rate limiting:', rateLimitConfig);
+        console.log('🌐 URL primaria:', this.baseUrl);
+        console.log('🔄 URL fallback:', this.fallbackUrl);
     }
 
     /**
      * Verifica si Ads Power está ejecutándose y disponible
-     * @returns {Promise<boolean>} Estado de disponibilidad del servicio
+     * @returns {Promise<Object>} Estado de disponibilidad del servicio con detalles
      */
     async checkAdsPowerStatus() {
         try {
             await this._makeRequest(`${this.baseUrl}/browser/active`);
-            return true;
+            return {
+                connected: true,
+                url: this.baseUrl,
+                message: 'Conectado a AdsPower'
+            };
         } catch (error) {
             console.error('Error verificando estado de Ads Power:', error.message);
-            return false;
+            return {
+                connected: false,
+                url: null,
+                message: error.message || 'No se pudo conectar a AdsPower'
+            };
         }
     }
 
@@ -315,31 +336,71 @@ class AdsPowerManager {
 
     /**
      * Método privado para hacer requests HTTP a través de la RequestQueue
-     * Reemplaza todas las llamadas directas a fetch() con rate limiting
+     * Implementa sistema de fallback: intenta con URL primaria, luego con fallback
      * @param {string} url - URL completa a consultar
      * @param {Object} options - Opciones de fetch (opcional)
      * @returns {Promise<Object>} Respuesta parseada como JSON
      */
     async _makeRequest(url, options = {}) {
-        // Crear función de request que será encolada
-        const requestFunction = async () => {
-            const response = await fetch(url, {
-                timeout: 15000, // 15 segundos timeout por request
-                ...options
+        // Función auxiliar para intentar un request
+        const tryRequest = async (urlToTry) => {
+            const requestFunction = async () => {
+                const response = await fetch(urlToTry, {
+                    timeout: 15000, // 15 segundos timeout por request
+                    ...options
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return await response.json();
+            };
+
+            return await this.requestQueue.enqueue(requestFunction, {
+                timeout: 30000, // 30 segundos timeout total
+                priority: 'normal'
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            return await response.json();
         };
 
-        // Encolar request y esperar resultado
-        return await this.requestQueue.enqueue(requestFunction, {
-            timeout: 30000, // 30 segundos timeout total
-            priority: 'normal'
-        });
+        // Intentar con la URL actual
+        try {
+            return await tryRequest(url);
+        } catch (primaryError) {
+            // Si falla, intentar cambiar de URL base y reintentar
+            const shouldTryFallback = url.includes(this.baseUrl) && this.fallbackUrl && this.baseUrl !== this.fallbackUrl;
+
+            if (shouldTryFallback) {
+                console.log(`⚠️ Error con URL primaria, intentando con fallback...`);
+                console.log(`   URL primaria: ${this.baseUrl}`);
+                console.log(`   URL fallback: ${this.fallbackUrl}`);
+
+                try {
+                    // Reemplazar la base URL en la URL completa
+                    const fallbackUrl = url.replace(this.baseUrl, this.fallbackUrl);
+                    const result = await tryRequest(fallbackUrl);
+
+                    // Si tuvo éxito, actualizar la URL actual para futuras peticiones
+                    console.log(`✅ Conexión exitosa con URL fallback, actualizando URL activa`);
+                    this.currentUrl = this.fallbackUrl;
+                    // Intercambiar las URLs para que la fallback sea ahora la primaria
+                    const temp = this.baseUrl;
+                    this.baseUrl = this.fallbackUrl;
+                    this.fallbackUrl = temp;
+
+                    return result;
+                } catch (fallbackError) {
+                    // Ambas URLs fallaron
+                    console.error(`❌ Error con ambas URLs de AdsPower`);
+                    console.error(`   Primaria (${url}): ${primaryError.message}`);
+                    console.error(`   Fallback (${url.replace(this.baseUrl, this.fallbackUrl)}): ${fallbackError.message}`);
+                    throw new Error(`No se pudo conectar a AdsPower. Asegúrate de que AdsPower esté ejecutándose. Error primario: ${primaryError.message}`);
+                }
+            }
+
+            // Si no hay fallback disponible, lanzar el error original
+            throw primaryError;
+        }
     }
 
     /**

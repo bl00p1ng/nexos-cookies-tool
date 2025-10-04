@@ -226,16 +226,18 @@ class DashboardManager {
             this.showAdsPowerLoading();
 
             const result = await window.electronAPI.adspower.checkStatus();
-            
+
             if (result.success && result.available) {
                 // Ads Power está disponible
-                this.showAdsPowerConnected(result.status);
+                const statusInfo = result.status || {};
+                this.showAdsPowerConnected(statusInfo);
                 this.app.updateState('adspower.connected', true);
-                this.app.updateState('adspower.status', result.status);
+                this.app.updateState('adspower.status', statusInfo);
+                this.app.updateState('adspower.url', statusInfo.url);
 
             } else {
                 // Ads Power no está disponible o hay error
-                const errorMsg = result.error || 'Ads Power no está ejecutándose o no está disponible';
+                const errorMsg = result.status?.message || result.error || 'No se pudo conectar a AdsPower. Asegúrate de que AdsPower esté ejecutándose.';
                 this.showAdsPowerDisconnected(errorMsg);
                 this.app.updateState('adspower.connected', false);
                 this.clearProfiles();
@@ -243,7 +245,7 @@ class DashboardManager {
 
         } catch (error) {
             console.error('Error verificando Ads Power:', error);
-            this.showAdsPowerDisconnected('Error de conexión');
+            this.showAdsPowerDisconnected('Error de conexión con AdsPower');
             this.app.updateState('adspower.connected', false);
         }
     }
