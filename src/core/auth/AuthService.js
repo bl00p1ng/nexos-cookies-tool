@@ -151,7 +151,16 @@ export class AuthService {
                 code: code.toUpperCase().trim()
             });
 
-            const { token, user, deviceFingerprint } = response.data.data;
+            // Debug: ver estructura de respuesta
+            console.log('📥 Respuesta de verify-code:', JSON.stringify(response.data, null, 2));
+
+            // Extraer datos de respuesta con valores por defecto
+            const { token, user, deviceFingerprint = null } = response.data.data || {};
+
+            // Validar que tenemos los datos mínimos requeridos
+            if (!token || !user) {
+                throw new Error('Respuesta del servidor incompleta: falta token o user');
+            }
 
             // Guardar token y fingerprint en el store
             this.saveAuthData(token, email, user, deviceFingerprint);
