@@ -1,6 +1,6 @@
 {
   "name": "hexzor-cookies-tool",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "description": "Aplicación de escritorio para Windows y Mac OS que se integra con el navegador de Ads Power de forma que abra perfiles del navegador y navegue por una serie de sitios web con el fin de solictar cookies",
   "main": "src/electron/main.js",
   "overrides": {
@@ -16,7 +16,8 @@
     "build": "echo 'No build process needed for this app'",
     "build-win": "electron-builder --win",
     "build-mac": "electron-builder --mac",
-    "dist": "electron-builder --publish=never"
+    "dist": "electron-builder --publish=never",
+    "postinstall": "node -e \"if (process.platform === 'darwin') { const { execSync } = require('child_process'); execSync('npm install dmg-license --no-save', { stdio: 'inherit' }); }\""
   },
   "keywords": [],
   "author": "Hexzor Agencia <hexzoragencia@gmail.com>",
