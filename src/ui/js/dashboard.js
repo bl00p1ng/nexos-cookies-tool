@@ -317,6 +317,12 @@ class DashboardManager {
             case 'reports':
                 //Los reportes se cargan on-demand cuando el usuario hace clic en "Generar Reporte"
                 break;
+            case 'settings':
+                // Inicializar settings manager si no está inicializado
+                if (window.settingsManager && !window.settingsManager.initialized) {
+                    await window.settingsManager.initialize();
+                }
+                break;
         }
     }
 

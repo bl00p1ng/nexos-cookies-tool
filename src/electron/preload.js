@@ -65,7 +65,9 @@ const electronAPI = {
     // Configuración
     config: {
         get: () => ipcRenderer.invoke('config:get'),
-        update: (updates) => ipcRenderer.invoke('config:update', updates)
+        update: (updates) => ipcRenderer.invoke('config:update', updates),
+        getAdsPowerUrl: () => ipcRenderer.invoke('config:get-adspower-url'),
+        setAdsPowerUrl: (url) => ipcRenderer.invoke('config:set-adspower-url', url)
     },
 
     // Sistema

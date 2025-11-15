@@ -6,19 +6,25 @@ import RequestQueue from '../utils/RequestQueue.js';
  * Maneja la inicialización y control de perfiles de navegador
  */
 class AdsPowerManager {
-    constructor(configManager = null) {
-        this.baseUrl = 'http://local.adspower.net:50325/api/v1';
+    constructor(configManager = null, adsPowerBaseUrl = null) {
         this.activeBrowsers = new Map();
         this.configManager = configManager;
-        
+
+        // Construir la URL completa de la API
+        // Prioridad: 1. Parámetro adsPowerBaseUrl, 2. Valor por defecto
+        const baseUrl = adsPowerBaseUrl || 'http://local.adspower.com:50325';
+        this.baseUrl = `${baseUrl}/api/v1`;
+
+        console.log('🔗 AdsPowerManager usando URL:', this.baseUrl);
+
         // Obtener configuración de rate limiting
-        const rateLimitConfig = this.configManager ? 
-            this.configManager.getRateLimitConfig() : 
+        const rateLimitConfig = this.configManager ?
+            this.configManager.getRateLimitConfig() :
             this.getDefaultRateLimitConfig();
-        
+
         // Inicializar RequestQueue con configuración
         this.requestQueue = RequestQueue.getInstance(rateLimitConfig);
-        
+
         console.log('🚦 AdsPowerManager inicializado con rate limiting:', rateLimitConfig);
     }
 

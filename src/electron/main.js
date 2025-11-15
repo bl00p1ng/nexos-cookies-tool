@@ -44,6 +44,10 @@ class ElectronApp {
                 customerName: { type: 'string' },
                 customerId: { type: 'string' },
                 device_fingerprint: { type: 'string' },
+                adsPowerBaseUrl: {
+                    type: 'string',
+                    default: 'http://local.adspower.com:50325'
+                },
                 windowBounds: {
                     type: 'object',
                     properties: {
@@ -275,6 +279,8 @@ class ElectronApp {
         // Configuración
         ipcMain.handle('config:get', this.getConfiguration.bind(this));
         ipcMain.handle('config:update', this.updateConfiguration.bind(this));
+        ipcMain.handle('config:get-adspower-url', this.getAdsPowerUrl.bind(this));
+        ipcMain.handle('config:set-adspower-url', this.setAdsPowerUrl.bind(this));
 
         // Sistema
         ipcMain.handle('system:show-folder', this.showDataFolder.bind(this));
@@ -300,12 +306,19 @@ class ElectronApp {
             // Cargar configuración
             await this.configManager.loadConfig();
 
+            // Ejecutar migración de configuración si es necesario
+            await this.migrateAdsPowerUrlConfig();
+
             // Inicializar base de datos
             this.databaseManager = new DatabaseManager();
             await this.databaseManager.initialize();
 
-            // Inicializar Ads Power Manager
-            this.adsPowerManager = new AdsPowerManager(this.configManager);
+            // Obtener URL base de AdsPower desde el store
+            const adsPowerBaseUrl = this.store.get('adsPowerBaseUrl', 'http://local.adspower.com:50325');
+            console.log('🔗 Usando URL de AdsPower:', adsPowerBaseUrl);
+
+            // Inicializar Ads Power Manager con la URL del store
+            this.adsPowerManager = new AdsPowerManager(this.configManager, adsPowerBaseUrl);
 
             // Inicializar Navigation Controller
             this.navigationController = new NavigationController(
@@ -319,6 +332,67 @@ class ElectronApp {
         } catch (error) {
             console.error('❌ Error inicializando servicios:', error.message);
             throw error;
+        }
+    }
+
+    /**
+     * Migra la configuración de AdsPower URL del config.json al store
+     * Solo se ejecuta una vez para usuarios que actualizan desde versiones antiguas
+     */
+    async migrateAdsPowerUrlConfig() {
+        try {
+            // Verificar si ya se migró
+            const migrated = this.store.get('adsPowerUrlMigrated', false);
+            if (migrated) {
+                console.log('✅ Configuración de AdsPower ya migrada');
+                return;
+            }
+
+            console.log('🔄 Migrando configuración de AdsPower URL...');
+
+            // Verificar si ya existe una URL en el store (usuario que instaló versión nueva)
+            const existingStoreUrl = this.store.get('adsPowerBaseUrl');
+            if (existingStoreUrl && existingStoreUrl !== 'http://local.adspower.com:50325') {
+                // Ya tiene una URL personalizada en el store, no migrar
+                console.log('✅ URL personalizada ya configurada en store:', existingStoreUrl);
+                this.store.set('adsPowerUrlMigrated', true);
+                return;
+            }
+
+            // Intentar obtener URL del config.json (versión antigua)
+            const config = this.configManager.getConfig();
+            const oldBaseUrl = config?.adspower?.baseUrl;
+
+            if (oldBaseUrl) {
+                // Limpiar la URL (remover /api/v1 si está presente)
+                let cleanUrl = oldBaseUrl.trim();
+                if (cleanUrl.endsWith('/api/v1')) {
+                    cleanUrl = cleanUrl.slice(0, -7);
+                }
+                if (cleanUrl.endsWith('/')) {
+                    cleanUrl = cleanUrl.slice(0, -1);
+                }
+
+                // Solo migrar si es diferente del valor por defecto
+                if (cleanUrl !== 'http://local.adspower.com:50325') {
+                    console.log('📦 Migrando URL del config.json:', cleanUrl);
+                    this.store.set('adsPowerBaseUrl', cleanUrl);
+                    console.log('✅ URL migrada exitosamente');
+                } else {
+                    console.log('ℹ️  URL es la por defecto, no se requiere migración');
+                }
+            } else {
+                console.log('ℹ️  No hay URL en config.json para migrar');
+            }
+
+            // Marcar como migrado
+            this.store.set('adsPowerUrlMigrated', true);
+            console.log('✅ Proceso de migración completado');
+
+        } catch (error) {
+            console.error('⚠️  Error durante migración (continuando con defaults):', error.message);
+            // No lanzar error, solo usar defaults
+            this.store.set('adsPowerUrlMigrated', true);
         }
     }
 
@@ -1149,10 +1223,82 @@ class ElectronApp {
             Object.keys(updates).forEach(key => {
                 this.configManager.set(key, updates[key]);
             });
-            
+
             await this.configManager.saveConfig();
             return { success: true };
         } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Obtiene la URL base configurada de AdsPower
+     */
+    async getAdsPowerUrl() {
+        try {
+            const url = this.store.get('adsPowerBaseUrl', 'http://local.adspower.com:50325');
+            return { success: true, url };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Actualiza la URL base de AdsPower y reinicia los servicios
+     */
+    async setAdsPowerUrl(event, newUrl) {
+        try {
+            // Validar que la URL no esté vacía
+            if (!newUrl || typeof newUrl !== 'string' || newUrl.trim() === '') {
+                throw new Error('La URL no puede estar vacía');
+            }
+
+            // Limpiar la URL (remover espacios y /api/v1 si está presente)
+            let cleanUrl = newUrl.trim();
+            if (cleanUrl.endsWith('/api/v1')) {
+                cleanUrl = cleanUrl.slice(0, -7);
+            }
+            if (cleanUrl.endsWith('/')) {
+                cleanUrl = cleanUrl.slice(0, -1);
+            }
+
+            // Validar formato básico de URL
+            try {
+                new URL(cleanUrl);
+            } catch (urlError) {
+                throw new Error('URL inválida. Debe ser una URL completa (ej: http://local.adspower.com:50325)');
+            }
+
+            console.log('🔄 Actualizando URL de AdsPower:', cleanUrl);
+
+            // Guardar en el store
+            this.store.set('adsPowerBaseUrl', cleanUrl);
+
+            // Reiniciar AdsPowerManager con la nueva URL
+            console.log('🔄 Reiniciando AdsPowerManager...');
+
+            // Detener perfiles activos si los hay
+            if (this.adsPowerManager) {
+                try {
+                    await this.adsPowerManager.stopAllProfiles();
+                } catch (stopError) {
+                    console.warn('⚠️ Error deteniendo perfiles:', stopError.message);
+                }
+            }
+
+            // Crear nueva instancia con la URL actualizada
+            this.adsPowerManager = new AdsPowerManager(this.configManager, cleanUrl);
+
+            // Actualizar NavigationController con el nuevo manager
+            if (this.navigationController) {
+                this.navigationController.adsPowerManager = this.adsPowerManager;
+            }
+
+            console.log('✅ URL de AdsPower actualizada correctamente');
+
+            return { success: true, url: cleanUrl };
+        } catch (error) {
+            console.error('❌ Error actualizando URL de AdsPower:', error.message);
             return { success: false, error: error.message };
         }
     }

@@ -734,10 +734,6 @@
 }
 
 /* Configuración */
-.settings-container {
-    max-width: 600px;
-}
-
 .settings-group {
     background-color: var(--hexzor-white);
     border: 1px solid var(--hexzor-gray-200);
