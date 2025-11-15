@@ -206,6 +206,22 @@ Ejecuta la aplicación en modo desarrollo con recarga automática.
 sqlite3 data/loadtest.db "DELETE FROM site_visits; DELETE FROM navigation_sessions; DELETE FROM sqlite_sequence WHERE name IN ('navigation_sessions', 'site_visits');"
 ```
 
+### Publicar nueva versión
+
+1. Hacer un commit con todos los cambios:
+    ```bash
+    git add .
+    git commit -m "Release v<versión>: <Descripción>"
+    ```
+
+2. Crear tag: `git tag v1.3.0`
+
+3. Hacer Push con tags: `git push origin main --tags`
+
+4. Construir y publicar:
+    - **Mac OS:** `npm run build-mac -- --publish always`
+    - **Windows:** `npm run build-win -- --publish always`
+
 ### Estructura Modular
 El código está organizado siguiendo:
 - **Principios SOLID**
