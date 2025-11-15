@@ -1365,6 +1365,11 @@ class ElectronApp {
         autoUpdater.autoDownload = false;
         autoUpdater.autoInstallOnAppQuit = true;
 
+        // IMPORTANTE: En macOS, necesitamos configurar esto para que funcione el quitAndInstall
+        if (process.platform === 'darwin') {
+            autoUpdater.autoInstallOnAppQuit = false; // Desactivar auto-install en macOS
+        }
+
         // Eventos del updater
         autoUpdater.on('checking-for-update', () => {
             console.log('🔍 Buscando actualizaciones...');
@@ -1406,11 +1411,18 @@ class ElectronApp {
                 type: 'info',
                 title: 'Actualización lista',
                 message: 'Actualización descargada',
-                detail: 'La actualización se instalará al cerrar la aplicación',
+                detail: 'La actualización se instalará al reiniciar la aplicación',
                 buttons: ['Reiniciar ahora', 'Más tarde']
             }).then((result) => {
                 if (result.response === 0) {
-                    autoUpdater.quitAndInstall();
+                    // En macOS necesitamos forzar el cierre y reinstalación
+                    setImmediate(() => {
+                        app.removeAllListeners('window-all-closed');
+                        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                            this.mainWindow.close();
+                        }
+                        autoUpdater.quitAndInstall(false, true);
+                    });
                 }
             });
         });
