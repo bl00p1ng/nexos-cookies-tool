@@ -48,6 +48,10 @@ class ElectronApp {
                     type: 'string',
                     default: 'http://local.adspower.com:50325'
                 },
+                authBackendUrl: {
+                    type: 'string',
+                    default: 'https://38c69d16ca36.ngrok-free.app/'
+                },
                 windowBounds: {
                     type: 'object',
                     properties: {
@@ -77,17 +81,19 @@ class ElectronApp {
             console.log('📋 Cargando configuración...');
             await this.configManager.loadConfig();
 
-            // obtener la URL del backend
-            const authConfig = this.configManager.getAuthConfig();
+            // Ejecutar migración de backendUrl si es necesario
+            await this.migrateBackendUrlConfig();
 
-            this.authBackendUrl = authConfig.backendUrl;
+            // Obtener la URL del backend desde el store
+            this.authBackendUrl = this.store.get('authBackendUrl', 'https://38c69d16ca36.ngrok-free.app/');
+            console.log('🔗 Usando URL del backend:', this.authBackendUrl);
 
             // Verificar que la URL del backend esté configurada
             if (!this.authBackendUrl) {
                 throw new Error('La URL del backend de autenticación no está configurada');
             }
 
-            // Inicializar AuthService
+            // Inicializar AuthService con la URL del store
             this.authService = new AuthService(this.authBackendUrl, this.store);
             console.log('✅ AuthService inicializado');
 
@@ -281,6 +287,8 @@ class ElectronApp {
         ipcMain.handle('config:update', this.updateConfiguration.bind(this));
         ipcMain.handle('config:get-adspower-url', this.getAdsPowerUrl.bind(this));
         ipcMain.handle('config:set-adspower-url', this.setAdsPowerUrl.bind(this));
+        ipcMain.handle('config:get-backend-url', this.getBackendUrl.bind(this));
+        ipcMain.handle('config:set-backend-url', this.setBackendUrl.bind(this));
 
         // Sistema
         ipcMain.handle('system:show-folder', this.showDataFolder.bind(this));
@@ -393,6 +401,64 @@ class ElectronApp {
             console.error('⚠️  Error durante migración (continuando con defaults):', error.message);
             // No lanzar error, solo usar defaults
             this.store.set('adsPowerUrlMigrated', true);
+        }
+    }
+
+    /**
+     * Migra la configuración de Backend URL del config.json al store
+     * Solo se ejecuta una vez para usuarios que actualizan desde versiones antiguas
+     */
+    async migrateBackendUrlConfig() {
+        try {
+            // Verificar si ya se migró
+            const migrated = this.store.get('backendUrlMigrated', false);
+            if (migrated) {
+                console.log('✅ Configuración de Backend URL ya migrada');
+                return;
+            }
+
+            console.log('🔄 Migrando configuración de Backend URL...');
+
+            // Verificar si ya existe una URL en el store (usuario que instaló versión nueva)
+            const existingStoreUrl = this.store.get('authBackendUrl');
+            if (existingStoreUrl && existingStoreUrl !== 'https://38c69d16ca36.ngrok-free.app/') {
+                // Ya tiene una URL personalizada en el store, no migrar
+                console.log('✅ URL personalizada ya configurada en store:', existingStoreUrl);
+                this.store.set('backendUrlMigrated', true);
+                return;
+            }
+
+            // Intentar obtener URL del config.json (versión antigua)
+            const config = this.configManager.getConfig();
+            const oldBackendUrl = config?.auth?.backendUrl;
+
+            if (oldBackendUrl) {
+                // Limpiar la URL (asegurar que termine con /)
+                let cleanUrl = oldBackendUrl.trim();
+                if (!cleanUrl.endsWith('/')) {
+                    cleanUrl += '/';
+                }
+
+                // Solo migrar si es diferente del valor por defecto
+                if (cleanUrl !== 'https://38c69d16ca36.ngrok-free.app/') {
+                    console.log('📦 Migrando URL del config.json:', cleanUrl);
+                    this.store.set('authBackendUrl', cleanUrl);
+                    console.log('✅ URL migrada exitosamente');
+                } else {
+                    console.log('ℹ️  URL es la por defecto, no se requiere migración');
+                }
+            } else {
+                console.log('ℹ️  No hay URL en config.json para migrar');
+            }
+
+            // Marcar como migrado
+            this.store.set('backendUrlMigrated', true);
+            console.log('✅ Proceso de migración de Backend URL completado');
+
+        } catch (error) {
+            console.error('⚠️  Error durante migración (continuando con defaults):', error.message);
+            // No lanzar error, solo usar defaults
+            this.store.set('backendUrlMigrated', true);
         }
     }
 
@@ -1299,6 +1365,62 @@ class ElectronApp {
             return { success: true, url: cleanUrl };
         } catch (error) {
             console.error('❌ Error actualizando URL de AdsPower:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Obtiene la URL del backend de autenticación configurada
+     */
+    async getBackendUrl() {
+        try {
+            const url = this.store.get('authBackendUrl', 'https://38c69d16ca36.ngrok-free.app/');
+            return { success: true, url };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Actualiza la URL del backend de autenticación y reinicia AuthService
+     */
+    async setBackendUrl(event, newUrl) {
+        try {
+            // Validar que la URL no esté vacía
+            if (!newUrl || typeof newUrl !== 'string' || newUrl.trim() === '') {
+                throw new Error('La URL no puede estar vacía');
+            }
+
+            // Limpiar la URL (asegurar que termine con /)
+            let cleanUrl = newUrl.trim();
+            if (!cleanUrl.endsWith('/')) {
+                cleanUrl += '/';
+            }
+
+            // Validar formato básico de URL
+            try {
+                new URL(cleanUrl);
+            } catch (urlError) {
+                throw new Error('URL inválida. Debe ser una URL completa (ej: https://example.com/)');
+            }
+
+            console.log('🔄 Actualizando URL del backend:', cleanUrl);
+
+            // Guardar en el store
+            this.store.set('authBackendUrl', cleanUrl);
+
+            // Actualizar la URL en memoria
+            this.authBackendUrl = cleanUrl;
+
+            // Reiniciar AuthService con la nueva URL
+            console.log('🔄 Reiniciando AuthService...');
+            this.authService = new AuthService(cleanUrl, this.store);
+
+            console.log('✅ URL del backend actualizada correctamente');
+
+            return { success: true, url: cleanUrl };
+        } catch (error) {
+            console.error('❌ Error actualizando URL del backend:', error.message);
             return { success: false, error: error.message };
         }
     }

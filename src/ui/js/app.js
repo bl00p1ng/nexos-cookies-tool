@@ -259,6 +259,11 @@ class HexzorApp {
         this.hideAllScreens();
         this.elements.authScreen.classList.remove('hidden');
         this.authManager.initialize();
+
+        // Inicializar el panel de configuración de auth si existe
+        if (window.authSettingsManager) {
+            window.authSettingsManager.initialize();
+        }
     }
 
     /**

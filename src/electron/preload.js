@@ -67,7 +67,9 @@ const electronAPI = {
         get: () => ipcRenderer.invoke('config:get'),
         update: (updates) => ipcRenderer.invoke('config:update', updates),
         getAdsPowerUrl: () => ipcRenderer.invoke('config:get-adspower-url'),
-        setAdsPowerUrl: (url) => ipcRenderer.invoke('config:set-adspower-url', url)
+        setAdsPowerUrl: (url) => ipcRenderer.invoke('config:set-adspower-url', url),
+        getBackendUrl: () => ipcRenderer.invoke('config:get-backend-url'),
+        setBackendUrl: (url) => ipcRenderer.invoke('config:set-backend-url', url)
     },
 
     // Sistema

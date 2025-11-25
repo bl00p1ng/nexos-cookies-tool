@@ -22,6 +22,66 @@
 
     <!-- Pantalla de Autenticación -->
     <div id="auth-screen" class="auth-screen hidden">
+        <!-- Botón de configuración (esquina inferior derecha) -->
+        <button class="auth-settings-btn" id="auth-settings-btn" title="Configuración">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+        </button>
+
+        <!-- Panel de configuración deslizable -->
+        <div class="auth-settings-panel hidden" id="auth-settings-panel">
+            <div class="auth-settings-header">
+                <h3>Configuración</h3>
+                <button class="close-settings-btn" id="close-settings-btn" title="Cerrar">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="auth-settings-content">
+                <div class="warning-box" style="margin-bottom: 1rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px; flex-shrink: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <div>
+                        <strong>⚠️ Advertencia de Seguridad:</strong>
+                        <p style="margin: 0.5rem 0 0; font-size: 0.875rem;">Esta configuración solo debe modificarse con la autorización de soporte técnico. El uso no autorizado puede causar un funcionamiento incorrecto de la app o la suspensión de la cuenta.</p>
+                    </div>
+                </div>
+
+                <form id="auth-backend-url-form">
+                    <div class="form-group">
+                        <label for="auth-backend-url">URL del Servidor</label>
+                        <input
+                            type="text"
+                            id="auth-backend-url"
+                            name="auth-backend-url"
+                            placeholder="https://example.com/"
+                            required
+                        >
+                        <small class="form-hint">
+                            Por defecto: https://38c69d16ca36.ngrok-free.app/
+                        </small>
+                    </div>
+
+                    <div id="auth-backend-url-status" class="status-message hidden"></div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="auth-reset-backend-url">
+                            Restablecer
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="auth-save-backend-url-btn">
+                            <span class="btn-text">Guardar</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="auth-container">
             <div class="auth-header">
                 <div class="logo">
@@ -446,6 +506,61 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Configuración de Backend URL -->
+                        <div class="config-card">
+                            <div class="card-header">
+                                <h3>Servidor de Autenticación</h3>
+                            </div>
+                            <div class="card-content">
+                                <p class="card-description">
+                                    Configura la URL del servidor de autenticación.
+                                </p>
+
+                                <div class="warning-box" style="margin-bottom: 1.5rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px; flex-shrink: 0;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                    </svg>
+                                    <div>
+                                        <strong>⚠️ Advertencia de Seguridad:</strong>
+                                        <p style="margin: 0.5rem 0 0;">Esta configuración solo debe modificarse con la autorización de soporte técnico. El uso no autorizado puede causar un funcionamiento incorrecto de la app o la suspensión de la cuenta.</p>
+                                    </div>
+                                </div>
+
+                                <form id="backend-url-form">
+                                    <div class="form-group">
+                                        <label for="backend-url">URL del Servidor de Autenticación</label>
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                id="backend-url"
+                                                name="backend-url"
+                                                placeholder="https://example.com/"
+                                                required
+                                            >
+                                            <button type="button" class="btn btn-secondary" id="reset-backend-url" title="Restaurar URL por defecto">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 14px; height: 14px;">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                </svg>
+                                                Restablecer
+                                            </button>
+                                        </div>
+                                        <small class="form-hint">
+                                            La URL debe terminar con /. Por defecto: https://38c69d16ca36.ngrok-free.app/
+                                        </small>
+                                    </div>
+
+                                    <div id="backend-url-status" class="status-message hidden"></div>
+
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary" id="save-backend-url-btn">
+                                            <span class="btn-text">Guardar URL</span>
+                                            <div class="btn-spinner hidden"></div>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -508,6 +623,7 @@
     <!-- Scripts -->
     <script src="js/reports.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/auth-settings.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>

@@ -814,6 +814,26 @@
     margin-bottom: var(--spacing-1);
 }
 
+.warning-box {
+    display: flex;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    background-color: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    color: #92400e;
+}
+
+.warning-box strong {
+    color: #78350f;
+}
+
+.warning-box p {
+    margin: 0;
+}
+
 .card-description {
     color: var(--hexzor-gray-600);
     font-size: var(--font-size-sm);
