@@ -3,6 +3,7 @@ import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createRequire } from 'module';
 import Store from 'electron-store';
 import dotenv from 'dotenv';
 
@@ -15,6 +16,11 @@ import { AuthService } from '../core/auth/AuthService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Leer versión desde package.json usando createRequire
+const require = createRequire(import.meta.url);
+const packageJson = require('../../package.json');
+const APP_VERSION = packageJson.version;
 
 /**
  * Proceso principal de Electron para Cookies Hexzor
@@ -293,6 +299,7 @@ class ElectronApp {
         // Sistema
         ipcMain.handle('system:show-folder', this.showDataFolder.bind(this));
         ipcMain.handle('system:export-logs', this.exportLogs.bind(this));
+        ipcMain.handle('system:get-version', () => APP_VERSION);
 
         // Portapapeles
         ipcMain.handle('clipboard:read-text', () => {

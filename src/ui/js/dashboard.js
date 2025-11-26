@@ -838,18 +838,30 @@ class DashboardManager {
     /**
      * Actualiza información del sistema
      */
-    updateSystemInfo() {
+    async updateSystemInfo() {
         const platformInfo = this.app.getPlatformInfo();
-        
+
         const platformElement = document.getElementById('platform');
         const electronVersionElement = document.getElementById('electron-version');
-        
+        const appVersionElement = document.getElementById('app-version');
+
         if (platformElement) {
             platformElement.textContent = platformInfo.platform;
         }
-        
+
         if (electronVersionElement) {
             electronVersionElement.textContent = platformInfo.version || 'N/A';
+        }
+
+        // Obtener versión de la aplicación desde el proceso principal
+        if (appVersionElement && this.app.isElectron) {
+            try {
+                const version = await window.electronAPI.system.getVersion();
+                appVersionElement.textContent = version || 'N/A';
+            } catch (error) {
+                console.error('Error obteniendo versión de la app:', error);
+                appVersionElement.textContent = 'N/A';
+            }
         }
     }
 

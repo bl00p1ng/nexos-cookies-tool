@@ -75,7 +75,8 @@ const electronAPI = {
     // Sistema
     system: {
         showFolder: () => ipcRenderer.invoke('system:show-folder'),
-        exportLogs: () => ipcRenderer.invoke('system:export-logs')
+        exportLogs: () => ipcRenderer.invoke('system:export-logs'),
+        getVersion: () => ipcRenderer.invoke('system:get-version')
     },
 
     // Utilidades
