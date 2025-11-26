@@ -219,8 +219,8 @@ sqlite3 data/loadtest.db "DELETE FROM site_visits; DELETE FROM navigation_sessio
 3. Hacer Push con tags: `git push origin main --tags`
 
 4. Construir y publicar:
-    - **Mac OS:** `npm run build-mac -- --publish always`
-    - **Windows:** `npm run build-win -- --publish always`
+    - **Mac OS:** `GH_TOKEN="your_github_token_here" npm run build-mac -- --publish always`
+    - **Windows:** `$env:GH_TOKEN="your_github_token_here"; npm run build-win -- --publish always`
 
 ### Estructura Modular
 El código está organizado siguiendo:
