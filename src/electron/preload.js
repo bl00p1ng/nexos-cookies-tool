@@ -17,20 +17,12 @@ const electronAPI = {
         // Listeners para eventos de autenticación
         onAuthenticated: (callback) => ipcRenderer.on('auth:authenticated', callback),
         onLoggedOut: (callback) => ipcRenderer.on('auth:logged-out', callback),
-        onShowLogin: (callback) => ipcRenderer.on('auth:show-login', callback),
-        
-        // Remover listeners
-        removeAuthListeners: () => {
-            ipcRenderer.removeAllListeners('auth:authenticated');
-            ipcRenderer.removeAllListeners('auth:logged-out');
-            ipcRenderer.removeAllListeners('auth:show-login');
-        }
+        onShowLogin: (callback) => ipcRenderer.on('auth:show-login', callback)
     },
 
     // Ads Power
     adspower: {
-        checkStatus: () => ipcRenderer.invoke('adspower:check-status'),
-        getProfileInfo: (profileId) => ipcRenderer.invoke('adspower:profile-info', profileId)
+        checkStatus: () => ipcRenderer.invoke('adspower:check-status')
     },
 
     // Navegación
@@ -44,16 +36,7 @@ const electronAPI = {
         onProgressUpdate: (callback) => ipcRenderer.on('navigation:progress', callback),
         onStatusChange: (callback) => ipcRenderer.on('navigation:status-change', callback),
         onError: (callback) => ipcRenderer.on('navigation:error', callback),
-        
-        // Remover listeners
-        removeNavigationListeners: () => {
-            ipcRenderer.removeAllListeners('navigation:progress');
-            ipcRenderer.removeAllListeners('navigation:status-change');
-            ipcRenderer.removeAllListeners('navigation:error');
-            ipcRenderer.removeAllListeners('navigation:sync-required');
-        },
-        // Listener para sincronización requerida
-        onSyncRequired: (callback) => ipcRenderer.on('navigation:sync-required', callback),
+        onSyncRequired: (callback) => ipcRenderer.on('navigation:sync-required', callback)
     },
 
     // Base de datos
@@ -69,13 +52,12 @@ const electronAPI = {
         getAdsPowerUrl: () => ipcRenderer.invoke('config:get-adspower-url'),
         setAdsPowerUrl: (url) => ipcRenderer.invoke('config:set-adspower-url', url),
         getBackendUrl: () => ipcRenderer.invoke('config:get-backend-url'),
-        setBackendUrl: (url) => ipcRenderer.invoke('config:set-backend-url', url)
+        setBackendUrl: (url) => ipcRenderer.invoke('config:set-backend-url', url),
+        getDefaults: () => ipcRenderer.invoke('config:get-defaults')
     },
 
     // Sistema
     system: {
-        showFolder: () => ipcRenderer.invoke('system:show-folder'),
-        exportLogs: () => ipcRenderer.invoke('system:export-logs'),
         getVersion: () => ipcRenderer.invoke('system:get-version')
     },
 
