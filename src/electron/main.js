@@ -193,6 +193,14 @@ class ElectronApp {
             this.store.set('windowBounds', bounds);
         });
 
+        // Abrir enlaces externos (target="_blank") en el navegador del sistema
+        this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                shell.openExternal(url);
+            }
+            return { action: 'deny' };
+        });
+
         // Para desarrollo: abrir DevTools automáticamente
         if (process.env.NODE_ENV === 'development') {
             this.mainWindow.webContents.openDevTools();
