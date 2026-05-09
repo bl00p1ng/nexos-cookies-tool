@@ -3,9 +3,10 @@
 import { Command } from 'commander';
 import AdsPowerManager from './core/adspower/AdsPowerManager.js';
 import DatabaseManager from './core/database/DatabaseManager.js';
-import ConfigManager from './core/config/ConfigManager.js';
+import ConfigStore from './core/config/ConfigStore.js';
+import InMemoryStore from './core/config/InMemoryStore.js';
 import NavigationController from './core/navigation/NavigationController.js';
-import CsvLoader from './core/database/CsvLoader.js';
+import { DEFAULT_APP_CONFIG } from './core/config/defaults.js';
 
 const program = new Command();
 
@@ -15,14 +16,12 @@ const program = new Command();
  */
 class CookiesTool {
     constructor() {
-        this.configManager = new ConfigManager();
-        this.adsPowerManager = new AdsPowerManager(this.configManager);
+        this.configStore = new ConfigStore(
+            new InMemoryStore({ appConfig: DEFAULT_APP_CONFIG })
+        );
+        this.adsPowerManager = new AdsPowerManager(this.configStore);
         this.databaseManager = new DatabaseManager();
-        this.csvLoader = new CsvLoader(this.databaseManager);
         this.navigationController = null; // Se inicializa después de cargar config
-        
-        // Hacer AdsPowerManager accesible globalmente para NavigationController
-        global.adsPowerManager = this.adsPowerManager;
     }
 
     /**
@@ -31,20 +30,18 @@ class CookiesTool {
      */
     async initialize() {
         try {
-            // Cargar configuración
-            await this.configManager.loadConfig();
-            
             // Inicializar base de datos
             await this.databaseManager.initialize();
-            
-            // Inicializar controlador de navegación
+
+            // Inicializar controlador de navegación con DI explícita
             this.navigationController = new NavigationController(
-                this.databaseManager, 
-                this.configManager
+                this.databaseManager,
+                this.configStore,
+                this.adsPowerManager
             );
-            
+
             this.setupCommands();
-            
+
         } catch (error) {
             console.error('Error inicializando aplicación:', error.message);
             process.exit(1);
@@ -113,19 +110,6 @@ class CookiesTool {
                 await this.startMultipleNavigation(profileIds, options);
             });
 
-        // Comando para cargar sitios web desde CSV
-        program
-            .command('load-csv')
-            .description('Carga sitios web desde un archivo CSV')
-            .argument('<csvFile>', 'Ruta al archivo CSV')
-            .option('-o, --overwrite', 'Sobrescribe sitios existentes', false)
-            .option('-a, --allow-duplicates', 'Permite URLs duplicadas', false)
-            .option('-s, --skip-validation', 'Omite validación de URLs', false)
-            .option('-b, --batch-size <number>', 'Tamaño del lote para inserciones', '100')
-            .action(async (csvFile, options) => {
-                await this.loadSitesFromCsv(csvFile, options);
-            });
-
         // Comando para obtener sitios web aleatorios de la DB
         program
             .command('get-random-sites')
@@ -163,11 +147,11 @@ class CookiesTool {
             const profileIds = this.parseProfileIds(profileIdsString);
             const targetCookies = parseInt(options.cookies);
             
-            console.log('🚀 INICIANDO NAVEGACIÓN MÚLTIPLE');
+            console.log('INICIANDO NAVEGACIÓN MÚLTIPLE');
             console.log('═'.repeat(50));
-            console.log(`📋 Perfiles: ${profileIds.length}`);
-            console.log(`🎯 Objetivo por perfil: ${targetCookies} cookies`);
-            console.log(`📊 Total objetivo: ${targetCookies * profileIds.length} cookies`);
+            console.log(`Perfiles: ${profileIds.length}`);
+            console.log(`Objetivo por perfil: ${targetCookies} cookies`);
+            console.log(`Total objetivo: ${targetCookies * profileIds.length} cookies`);
             
             // Validar perfiles si se solicita
             if (options.validateProfiles) {
@@ -180,7 +164,7 @@ class CookiesTool {
             // Verificar recursos del sistema
             this.checkSystemResources(profileIds.length);
             
-            console.log('\n⏳ Iniciando sesiones...');
+            console.log('\nIniciando sesiones...');
             
             // Llamar al NavigationController para manejar múltiples sesiones
             const results = await this.navigationController.startMultipleNavigationSessions(
@@ -194,7 +178,7 @@ class CookiesTool {
             return results;
             
         } catch (error) {
-            console.error('❌ Error en navegación múltiple:', error.message);
+            console.error('Error en navegación múltiple:', error.message);
             
             // Intentar cleanup en caso de error
             try {
@@ -230,7 +214,7 @@ class CookiesTool {
         }
         
         if (uniqueIds.length > 10) {
-            console.warn('⚠️  Advertencia: Usar más de 10 perfiles puede consumir recursos excesivos');
+            console.warn('Advertencia: Usar más de 10 perfiles puede consumir recursos excesivos');
         }
         
         return uniqueIds;
@@ -241,7 +225,7 @@ class CookiesTool {
      * @param {Array<string>} profileIds - IDs de perfiles a validar
      */
     async validateProfiles(profileIds) {
-        console.log('🔍 Validando perfiles...');
+        console.log('Validando perfiles...');
         
         try {
             const availableProfiles = await this.adsPowerManager.getAvailableProfiles();
@@ -250,21 +234,21 @@ class CookiesTool {
             const invalidProfiles = profileIds.filter(id => !availableIds.includes(id));
             
             if (invalidProfiles.length > 0) {
-                console.error(`❌ Perfiles no encontrados: ${invalidProfiles.join(', ')}`);
-                console.log('\n📋 Perfiles disponibles:');
+                console.error(`Perfiles no encontrados: ${invalidProfiles.join(', ')}`);
+                console.log('\nPerfiles disponibles:');
                 availableProfiles.forEach(profile => {
-                    console.log(`   • ${profile.user_id || profile.serial_number} - ${profile.name || 'Sin nombre'}`);
+                    console.log(`• ${profile.user_id || profile.serial_number} - ${profile.name || 'Sin nombre'}`);
                 });
                 throw new Error('Algunos perfiles no existen en AdsPower');
             }
             
-            console.log('✅ Todos los perfiles son válidos');
+            console.log('Todos los perfiles son válidos');
             
         } catch (error) {
             if (error.message.includes('no existen')) {
                 throw error;
             }
-            console.warn('⚠️  No se pudo validar perfiles, continuando...', error.message);
+            console.warn('No se pudo validar perfiles, continuando...', error.message);
         }
     }
 
@@ -275,18 +259,18 @@ class CookiesTool {
     checkSystemResources(profileCount) {
         const estimatedRAM = profileCount * 300; // 300MB por perfil según specs
         
-        console.log('\n💻 VERIFICACIÓN DE RECURSOS:');
-        console.log(`   📊 Perfiles: ${profileCount}`);
-        console.log(`   🧠 RAM estimada: ~${estimatedRAM}MB`);
+        console.log('\nVERIFICACIÓN DE RECURSOS:');
+        console.log(`Perfiles: ${profileCount}`);
+        console.log(`RAM estimada: ~${estimatedRAM}MB`);
         
         if (estimatedRAM > 2000) {
-            console.warn('⚠️  ADVERTENCIA: Alto consumo de RAM estimado');
-            console.log('   💡 Recomendación: Monitorear uso de memoria durante ejecución');
+            console.warn('ADVERTENCIA: Alto consumo de RAM estimado');
+            console.log('Recomendación: Monitorear uso de memoria durante ejecución');
         }
         
         if (profileCount > 5) {
-            console.warn('⚠️  ADVERTENCIA: Más de 5 perfiles simultáneos');
-            console.log('   💡 Recomendación: Verificar que el hardware puede manejar la carga');
+            console.warn('ADVERTENCIA: Más de 5 perfiles simultáneos');
+            console.log('Recomendación: Verificar que el hardware puede manejar la carga');
         }
     }
 
@@ -295,15 +279,15 @@ class CookiesTool {
      */
     setupGracefulShutdown() {
         const gracefulShutdown = async () => {
-            console.log('\n\n🛑 INTERRUPCIÓN DETECTADA');
-            console.log('⏳ Deteniendo sesiones activas...');
+            console.log('\n\nINTERRUPCIÓN DETECTADA');
+            console.log('Deteniendo sesiones activas...');
             
             try {
                 await this.cleanup();
-                console.log('✅ Cleanup completado');
+                console.log('Cleanup completado');
                 process.exit(0);
             } catch (error) {
-                console.error('❌ Error en shutdown:', error.message);
+                console.error('Error en shutdown:', error.message);
                 process.exit(1);
             }
         };
@@ -317,19 +301,19 @@ class CookiesTool {
      * @param {Object} results - Resultados de la navegación
      */
     showExecutionSummary(results) {
-        console.log('\n🎊 EJECUCIÓN COMPLETADA');
+        console.log('\nEJECUCIÓN COMPLETADA');
         console.log('═'.repeat(60));
-        console.log(`⏱️  Tiempo total: ${(results.duration / 1000 / 60).toFixed(1)} minutos`);
-        console.log(`🍪 Cookies por minuto: ${(results.totalCookiesCollected / (results.duration / 1000 / 60)).toFixed(0)}`);
-        console.log(`🌐 Sitios por minuto: ${(results.totalSitesVisited / (results.duration / 1000 / 60)).toFixed(1)}`);
-        console.log(`📈 Eficiencia: ${results.successRate.toFixed(1)}% de perfiles exitosos`);
+        console.log(`Tiempo total: ${(results.duration / 1000 / 60).toFixed(1)} minutos`);
+        console.log(`Cookies por minuto: ${(results.totalCookiesCollected / (results.duration / 1000 / 60)).toFixed(0)}`);
+        console.log(`Sitios por minuto: ${(results.totalSitesVisited / (results.duration / 1000 / 60)).toFixed(1)}`);
+        console.log(`Eficiencia: ${results.successRate.toFixed(1)}% de perfiles exitosos`);
         console.log('═'.repeat(60));
         
         if (results.successRate < 100) {
-            console.log('\n💡 SUGERENCIAS:');
-            console.log('   • Verificar conectividad de red');
-            console.log('   • Revisar que AdsPower esté funcionando correctamente');
-            console.log('   • Considerar reducir número de perfiles simultáneos');
+            console.log('\nSUGERENCIAS:');
+            console.log('• Verificar conectividad de red');
+            console.log('• Revisar que AdsPower esté funcionando correctamente');
+            console.log('• Considerar reducir número de perfiles simultáneos');
         }
     }
 
@@ -342,9 +326,9 @@ class CookiesTool {
             const isAvailable = await this.adsPowerManager.checkAdsPowerStatus();
             
             if (isAvailable) {
-                console.log('✅ Ads Power está ejecutándose y disponible');
+                console.log('Ads Power está ejecutándose y disponible');
             } else {
-                console.log('❌ Ads Power no está disponible');
+                console.log('Ads Power no está disponible');
                 console.log('Asegúrate de que Ads Power esté ejecutándose en el puerto 50325');
             }
         } catch (error) {
@@ -378,7 +362,7 @@ class CookiesTool {
             console.log(`Iniciando perfil ${profileId}...`);
             const browserInstance = await this.adsPowerManager.startProfile(profileId);
             
-            console.log('✅ Perfil iniciado correctamente');
+            console.log('Perfil iniciado correctamente');
             console.log(`WebSocket: ${browserInstance.wsEndpoint}`);
             console.log(`Página actual: ${await browserInstance.page.url()}`);
             
@@ -406,71 +390,9 @@ class CookiesTool {
         try {
             console.log(`Deteniendo perfil ${profileId}...`);
             await this.adsPowerManager.stopProfile(profileId);
-            console.log('✅ Perfil detenido correctamente');
+            console.log('Perfil detenido correctamente');
         } catch (error) {
             console.error('Error deteniendo perfil:', error.message);
-        }
-    }
-
-    /**
-     * Carga sitios web desde CSV
-     * @param {string} csvFile - Ruta al archivo CSV
-     * @param {Object} options - Opciones de carga
-     */
-    async loadSitesFromCsv(csvFile, options) {
-        try {
-            const loadOptions = {
-                overwrite: options.overwrite || false,
-                skipDuplicates: !options.allowDuplicates,
-                validateUrls: !options.skipValidation,
-                batchSize: parseInt(options.batchSize) || 100
-            };
-
-            console.log(`📂 Cargando sitios desde CSV: ${csvFile}`);
-            console.log('⚙️  Opciones:', JSON.stringify(loadOptions, null, 2));
-
-            const result = await this.csvLoader.loadSitesFromCsv(csvFile, loadOptions);
-
-            if (result.success) {
-                console.log('\n🎉 ¡Carga completada exitosamente!');
-                console.log(`📊 Resumen: ${result.stats.inserted} insertados, ${result.stats.updated} actualizados`);
-                
-                // Mostrar nuevas estadísticas de la base de datos
-                await this.showDatabaseStats();
-            }
-
-        } catch (error) {
-            console.error('❌ Error cargando CSV:', error.message);
-            
-            // Sugerencias de solución
-            console.log('\n💡 Sugerencias:');
-            console.log('   • Verifica que el archivo CSV existe');
-            console.log('   • Asegúrate de que el CSV tenga las columnas: url,domain,category,status');
-            console.log('   • Usa --skip-validation si hay problemas con URLs');
-            console.log('   • Genera un ejemplo con: npm start -- generate-csv-example');
-        }
-    }
-
-    /**
-     * Genera CSV de ejemplo
-     * @param {string} outputPath - Ruta donde guardar
-     */
-    async generateCsvExample(outputPath) {
-        try {
-            console.log(`📝 Generando CSV de ejemplo en: ${outputPath}`);
-            await this.csvLoader.generateExampleCsv(outputPath);
-            
-            console.log('\n📋 Estructura del CSV:');
-            console.log('   • url: URL completa (ej: https://www.example.com)');
-            console.log('   • domain: Solo dominio (ej: example.com)');
-            console.log('   • category: news,ecommerce,tech,blog,social,reference,entertainment,finance,sports,general');
-            console.log('   • status: active o inactive');
-            
-            console.log('\n🚀 Para cargar el CSV usa:');
-            console.log(`   npm start -- load-csv ${outputPath}`);
-            
-        } catch (error) {
-            console.error('Error generando CSV de ejemplo:', error.message);
         }
     }
 
@@ -493,10 +415,10 @@ class CookiesTool {
             
             websites.forEach(site => {
                 console.log(`URL: ${site.url}`);
-                console.log(`   Dominio: ${site.domain}`);
-                console.log(`   Categoría: ${site.category}`);
-                console.log(`   Visitas: ${site.visit_count}`);
-                console.log(`   Última visita: ${site.last_visited || 'Nunca'}`);
+                console.log(`Dominio: ${site.domain}`);
+                console.log(`Categoría: ${site.category}`);
+                console.log(`Visitas: ${site.visit_count}`);
+                console.log(`Última visita: ${site.last_visited || 'Nunca'}`);
                 console.log('─'.repeat(40));
             });
         } catch (error) {
@@ -542,7 +464,7 @@ class CookiesTool {
             // Cerrar base de datos
             await this.databaseManager.close();
             
-            console.log('✅ Recursos limpiados correctamente');
+            console.log('Recursos limpiados correctamente');
         } catch (error) {
             console.error('Error en limpieza:', error.message);
         }
