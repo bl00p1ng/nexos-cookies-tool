@@ -51,10 +51,10 @@ class DashboardManager {
             this.profileInputManager.initialize();
             
             this.initialized = true;
-            console.log('✅ Dashboard inicializado');
+            console.log('Dashboard inicializado');
 
         } catch (error) {
-            console.error('❌ Error inicializando dashboard:', error);
+            console.error('Error inicializando dashboard:', error);
             throw error;
         }
     }
@@ -143,7 +143,7 @@ class DashboardManager {
 
         // Listener para sincronización requerida desde el backend
         window.electronAPI.navigation.onSyncRequired((event, data) => {
-            console.log('🔄 Sincronización requerida desde backend:', data);
+            console.log('Sincronización requerida desde backend:', data);
             
             // Actualizar estado local con información del backend
             this.state.navigationRunning = data.hasActiveSessions;
@@ -155,7 +155,7 @@ class DashboardManager {
             
             this.updateNavigationButtonState();
             
-            console.log('✅ Estado sincronizado desde backend');
+            console.log('Estado sincronizado desde backend');
         });
 
         // Eventos de estado de la aplicación
@@ -485,7 +485,7 @@ class DashboardManager {
         // Actualizar botón de detener navegación
         this.elements.stopNavigationBtn.disabled = false;
 
-        console.log(`🔄 [DEBUG] Button states updated: canStart=${canStart}, canStop=${canStop}, navigationRunning=${navigationRunning}`);
+        console.log(`[DEBUG] Button states updated: canStart=${canStart}, canStop=${canStop}, navigationRunning=${navigationRunning}`);
     }
 
     /**
@@ -518,7 +518,7 @@ class DashboardManager {
                 targetCookies: parseInt(formData.get('targetCookies')) || 2500
             };
 
-            console.log('🚀 Iniciando navegación con configuración:', config);
+            console.log('Iniciando navegación con configuración:', config);
 
             this.setNavigationLoading(true);
 
@@ -590,7 +590,7 @@ class DashboardManager {
 
             // PASO 4: Hay sesiones activas, proceder a detener
             console.log(`Sesiones activas detectadas: ${activeSessionsInfo.sessionCount}`);
-            console.log(`   Perfiles: ${activeSessionsInfo.sessions.map(s => s.profileId).join(', ')}`);
+            console.log(`Perfiles: ${activeSessionsInfo.sessions.map(s => s.profileId).join(', ')}`);
             console.log('Procediendo a detener navegación...');
 
             // Deshabilitar botón durante la operación
@@ -660,7 +660,7 @@ class DashboardManager {
                 // Detectar desincronización
                 if (backendHasSessions !== localHasSessions) {
                     console.warn('DESINCRONIZACIÓN DETECTADA');
-                    console.log(`   Ajustando estado local de ${localHasSessions} a ${backendHasSessions}`);
+                    console.log(`Ajustando estado local de ${localHasSessions} a ${backendHasSessions}`);
                     
                     this.state.navigationRunning = backendHasSessions;
                     this.app.updateState('navigation.running', backendHasSessions);

@@ -11,7 +11,8 @@ class SettingsManager {
         this.adsPowerSaveButton = null;
         this.adsPowerResetButton = null;
         this.adsPowerStatusMessage = null;
-        this.adsPowerDefaultUrl = 'http://local.adspower.com:50325';
+        // Default URL fetched from main process via IPC during initialize().
+        this.adsPowerDefaultUrl = '';
 
         // Backend URL elements
         this.backendUrlInput = null;
@@ -19,7 +20,7 @@ class SettingsManager {
         this.backendSaveButton = null;
         this.backendResetButton = null;
         this.backendStatusMessage = null;
-        this.backendDefaultUrl = 'https://38c69d16ca36.ngrok-free.app/';
+        this.backendDefaultUrl = '';
 
         this.initialized = false;
     }
@@ -30,7 +31,7 @@ class SettingsManager {
     async initialize() {
         if (this.initialized) return;
 
-        console.log('🔧 Inicializando SettingsManager...');
+        console.log('Inicializando SettingsManager...');
 
         // Obtener referencias a elementos del DOM - AdsPower
         this.adsPowerUrlInput = document.getElementById('adspower-url');
@@ -46,6 +47,15 @@ class SettingsManager {
         this.backendResetButton = document.getElementById('reset-backend-url');
         this.backendStatusMessage = document.getElementById('backend-url-status');
 
+        // Pedir defaults al main para evitar duplicarlos en el cliente.
+        try {
+            const defaults = await window.electronAPI.config.getDefaults();
+            this.adsPowerDefaultUrl = defaults?.adsPowerBaseUrl || '';
+            this.backendDefaultUrl = defaults?.authBackendUrl || '';
+        } catch (error) {
+            console.error('Error obteniendo defaults de configuración:', error);
+        }
+
         // Configurar event listeners
         this.setupEventListeners();
 
@@ -53,7 +63,7 @@ class SettingsManager {
         await this.loadCurrentUrls();
 
         this.initialized = true;
-        console.log('✅ SettingsManager inicializado');
+        console.log('SettingsManager inicializado');
     }
 
     /**
@@ -112,13 +122,13 @@ class SettingsManager {
 
             if (result.success) {
                 this.adsPowerUrlInput.value = result.url;
-                console.log('✅ URL de AdsPower cargada:', result.url);
+                console.log('URL de AdsPower cargada:', result.url);
             } else {
-                console.error('❌ Error cargando URL de AdsPower:', result.error);
+                console.error('Error cargando URL de AdsPower:', result.error);
                 this.showAdsPowerStatus('Error cargando configuración', 'error');
             }
         } catch (error) {
-            console.error('❌ Error cargando URL de AdsPower:', error);
+            console.error('Error cargando URL de AdsPower:', error);
             this.showAdsPowerStatus('Error cargando configuración', 'error');
         }
     }
@@ -132,13 +142,13 @@ class SettingsManager {
 
             if (result.success) {
                 this.backendUrlInput.value = result.url;
-                console.log('✅ URL del Backend cargada:', result.url);
+                console.log('URL del Backend cargada:', result.url);
             } else {
-                console.error('❌ Error cargando URL del Backend:', result.error);
+                console.error('Error cargando URL del Backend:', result.error);
                 this.showBackendStatus('Error cargando configuración', 'error');
             }
         } catch (error) {
-            console.error('❌ Error cargando URL del Backend:', error);
+            console.error('Error cargando URL del Backend:', error);
             this.showBackendStatus('Error cargando configuración', 'error');
         }
     }
@@ -159,7 +169,7 @@ class SettingsManager {
         try {
             new URL(newUrl);
         } catch (error) {
-            this.showAdsPowerStatus('URL inválida. Debe ser una URL completa (ej: http://local.adspower.com:50325)', 'error');
+            this.showAdsPowerStatus('URL inválida. Debe ser una URL completa (ej: http://host:puerto)', 'error');
             return;
         }
 
@@ -173,14 +183,14 @@ class SettingsManager {
             if (result.success) {
                 this.showAdsPowerStatus('URL actualizada correctamente. AdsPower Manager reiniciado.', 'success');
                 this.adsPowerUrlInput.value = result.url;
-                console.log('✅ URL de AdsPower actualizada:', result.url);
+                console.log('URL de AdsPower actualizada:', result.url);
             } else {
                 this.showAdsPowerStatus(`Error: ${result.error}`, 'error');
-                console.error('❌ Error guardando URL de AdsPower:', result.error);
+                console.error('Error guardando URL de AdsPower:', result.error);
             }
         } catch (error) {
             this.showAdsPowerStatus('Error al guardar la configuración', 'error');
-            console.error('❌ Error guardando URL de AdsPower:', error);
+            console.error('Error guardando URL de AdsPower:', error);
         } finally {
             this.setAdsPowerLoading(false);
         }
@@ -216,14 +226,14 @@ class SettingsManager {
             if (result.success) {
                 this.showBackendStatus('URL actualizada correctamente. AuthService reiniciado.', 'success');
                 this.backendUrlInput.value = result.url;
-                console.log('✅ URL del Backend actualizada:', result.url);
+                console.log('URL del Backend actualizada:', result.url);
             } else {
                 this.showBackendStatus(`Error: ${result.error}`, 'error');
-                console.error('❌ Error guardando URL del Backend:', result.error);
+                console.error('Error guardando URL del Backend:', result.error);
             }
         } catch (error) {
             this.showBackendStatus('Error al guardar la configuración', 'error');
-            console.error('❌ Error guardando URL del Backend:', error);
+            console.error('Error guardando URL del Backend:', error);
         } finally {
             this.setBackendLoading(false);
         }
@@ -233,6 +243,10 @@ class SettingsManager {
      * Resetea la URL de AdsPower al valor por defecto
      */
     resetAdsPowerToDefault() {
+        if (!this.adsPowerDefaultUrl) {
+            this.showAdsPowerStatus('No hay URL por defecto configurada en la aplicación.', 'error');
+            return;
+        }
         this.adsPowerUrlInput.value = this.adsPowerDefaultUrl;
         this.clearAdsPowerStatus();
         this.showAdsPowerStatus('URL restablecida al valor por defecto. Haz clic en "Guardar URL" para aplicar.', 'info');
@@ -242,6 +256,10 @@ class SettingsManager {
      * Resetea la URL del Backend al valor por defecto
      */
     resetBackendToDefault() {
+        if (!this.backendDefaultUrl) {
+            this.showBackendStatus('No hay URL por defecto configurada en la aplicación.', 'error');
+            return;
+        }
         this.backendUrlInput.value = this.backendDefaultUrl;
         this.clearBackendStatus();
         this.showBackendStatus('URL restablecida al valor por defecto. Haz clic en "Guardar URL" para aplicar.', 'info');

@@ -357,7 +357,7 @@ class NavigationManager {
      * @param {Object} data - Datos del evento
      */
     handleSessionCompleted(data) {
-        console.log('✅ [NavigationManager] Sesión completada:', data.profileId);
+        console.log('[NavigationManager] Sesión completada:', data.profileId);
         
         // Actualizar sesión como completada
         const session = this.sessions.get(data.sessionId);
@@ -385,7 +385,7 @@ class NavigationManager {
      * @param {Object} data - Datos del evento
      */
     handleSessionError(data) {
-        console.error('❌ [NavigationManager] Error en sesión:', data.profileId, data.error);
+        console.error('[NavigationManager] Error en sesión:', data.profileId, data.error);
         
         // Actualizar sesión con error
         const session = this.sessions.get(data.sessionId);
@@ -489,11 +489,11 @@ class NavigationManager {
             session => session.status === 'completed' || session.progress >= 100
         ).length;
 
-        console.log(`🔍 [NavigationManager] Sesiones completadas: ${completedSessions}/${totalSessions}`);
+        console.log(`[NavigationManager] Sesiones completadas: ${completedSessions}/${totalSessions}`);
 
         // Si todas las sesiones están completadas, cambiar estado global
         if (totalSessions > 0 && completedSessions === totalSessions) {
-            console.log('✅ [NavigationManager] Todas las sesiones completadas, actualizando estado global');
+            console.log('[NavigationManager] Todas las sesiones completadas, actualizando estado global');
             
             this.isRunning = false;
             

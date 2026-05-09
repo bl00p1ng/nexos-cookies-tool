@@ -49,7 +49,7 @@ class HexzorApp {
      */
     async initialize() {
         try {
-            console.log('🚀 Inicializando Cookies Hexzor...');
+            console.log('Inicializando Cookies Hexzor...');
 
             // Inicializar referencias DOM
             this.initializeElements();
@@ -72,10 +72,10 @@ class HexzorApp {
             // Verificar autenticación existente
             await this.checkAuthentication();
 
-            console.log('✅ Aplicación inicializada correctamente');
+            console.log('Aplicación inicializada correctamente');
 
         } catch (error) {
-            console.error('❌ Error inicializando aplicación:', error);
+            console.error('Error inicializando aplicación:', error);
             this.showError('Error inicializando la aplicación: ' + error.message);
         }
     }
@@ -178,12 +178,12 @@ class HexzorApp {
 
         // Eventos de navegación
         window.electronAPI.navigation.onProgressUpdate((event, data) => {
-            console.log(`🖥️ [DEBUG] Evento recibido en UI: navigation:progress`, data);
+            console.log(`[DEBUG] Evento recibido en UI: navigation:progress`, data);
             this.navigationManager.updateProgress(data);
         });
 
         window.electronAPI.navigation.onStatusChange((event, data) => {
-            console.log(`🖥️ [DEBUG] Evento recibido en UI: navigation:status-change`, data);
+            console.log(`[DEBUG] Evento recibido en UI: navigation:status-change`, data);
             this.navigationManager.updateStatus(data);
         });
 

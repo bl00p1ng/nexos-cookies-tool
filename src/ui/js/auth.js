@@ -131,7 +131,7 @@ class AuthManager {
         this.elements.codeInput.addEventListener('paste', (e) => {
             e.preventDefault();
 
-            console.log('📋 Pegando desde portapapeles');
+            console.log('Pegando desde portapapeles');
             const pasteData = (e.clipboardData || window.clipboardData).getData('text');
             const formatted = pasteData.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
             this.elements.codeInput.value = formatted;
@@ -166,7 +166,7 @@ class AuthManager {
     async handleEmailSubmit() {
         // Prevenir llamadas duplicadas
         if (this.isRequestingCode) {
-            console.log('⚠️ Solicitud de código ya en progreso');
+            console.log('Solicitud de código ya en progreso');
             return;
         }
 
@@ -183,7 +183,7 @@ class AuthManager {
             this.isRequestingCode = true;
             this.setButtonLoading(this.elements.requestCodeBtn, true);
 
-            console.log('📧 Solicitando código para:', email);
+            console.log('Solicitando código para:', email);
 
             // Llamar al backend a través de Electron
             const result = await window.electronAPI.auth.requestCode(email);
@@ -223,7 +223,7 @@ class AuthManager {
     async handleCodeSubmit() {
         // Prevenir llamadas duplicadas
         if (this.isVerifyingCode) {
-            console.log('⚠️ Verificación de código ya en progreso');
+            console.log('Verificación de código ya en progreso');
             return;
         }
 
@@ -240,7 +240,7 @@ class AuthManager {
             this.isVerifyingCode = true;
             this.setButtonLoading(this.elements.verifyCodeBtn, true);
 
-            console.log('🔐 Verificando código para:', this.currentEmail);
+            console.log('Verificando código para:', this.currentEmail);
 
             // Llamar al backend a través de Electron
             const result = await window.electronAPI.auth.verifyCode(this.currentEmail, code);

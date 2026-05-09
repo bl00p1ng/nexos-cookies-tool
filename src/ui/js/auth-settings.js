@@ -12,7 +12,8 @@ class AuthSettingsManager {
         this.saveButton = null;
         this.resetButton = null;
         this.statusMessage = null;
-        this.defaultUrl = 'https://38c69d16ca36.ngrok-free.app/';
+        // Default URL fetched from main process via IPC during initialize().
+        this.defaultUrl = '';
         this.initialized = false;
     }
 
@@ -22,7 +23,7 @@ class AuthSettingsManager {
     async initialize() {
         if (this.initialized) return;
 
-        console.log('🔧 Inicializando AuthSettingsManager...');
+        console.log('Inicializando AuthSettingsManager...');
 
         // Obtener referencias a elementos del DOM
         this.settingsBtn = document.getElementById('auth-settings-btn');
@@ -34,6 +35,14 @@ class AuthSettingsManager {
         this.resetButton = document.getElementById('auth-reset-backend-url');
         this.statusMessage = document.getElementById('auth-backend-url-status');
 
+        // Pedir default al main para evitar duplicarlo en el cliente.
+        try {
+            const defaults = await window.electronAPI.config.getDefaults();
+            this.defaultUrl = defaults?.authBackendUrl || '';
+        } catch (error) {
+            console.error('Error obteniendo defaults de configuración:', error);
+        }
+
         // Configurar event listeners
         this.setupEventListeners();
 
@@ -41,7 +50,7 @@ class AuthSettingsManager {
         await this.loadCurrentUrl();
 
         this.initialized = true;
-        console.log('✅ AuthSettingsManager inicializado');
+        console.log('AuthSettingsManager inicializado');
     }
 
     /**
@@ -120,13 +129,13 @@ class AuthSettingsManager {
 
             if (result.success) {
                 this.backendUrlInput.value = result.url;
-                console.log('✅ URL del Backend cargada:', result.url);
+                console.log('URL del Backend cargada:', result.url);
             } else {
-                console.error('❌ Error cargando URL:', result.error);
+                console.error('Error cargando URL:', result.error);
                 this.showStatus('Error cargando configuración', 'error');
             }
         } catch (error) {
-            console.error('❌ Error cargando URL:', error);
+            console.error('Error cargando URL:', error);
             this.showStatus('Error cargando configuración', 'error');
         }
     }
@@ -162,7 +171,7 @@ class AuthSettingsManager {
                 this.showStatus('URL actualizada correctamente. Reinicia la app para aplicar cambios.', 'success');
                 // Actualizar el input con la URL limpia
                 this.backendUrlInput.value = result.url;
-                console.log('✅ URL actualizada:', result.url);
+                console.log('URL actualizada:', result.url);
 
                 // Cerrar el panel después de 2 segundos
                 setTimeout(() => {
@@ -170,11 +179,11 @@ class AuthSettingsManager {
                 }, 2000);
             } else {
                 this.showStatus(`Error: ${result.error}`, 'error');
-                console.error('❌ Error guardando URL:', result.error);
+                console.error('Error guardando URL:', result.error);
             }
         } catch (error) {
             this.showStatus('Error al guardar la configuración', 'error');
-            console.error('❌ Error guardando URL:', error);
+            console.error('Error guardando URL:', error);
         } finally {
             this.setLoading(false);
         }
@@ -184,6 +193,10 @@ class AuthSettingsManager {
      * Resetea la URL al valor por defecto
      */
     resetToDefault() {
+        if (!this.defaultUrl) {
+            this.showStatus('No hay URL por defecto configurada en la aplicación.', 'error');
+            return;
+        }
         this.backendUrlInput.value = this.defaultUrl;
         this.clearStatus();
         this.showStatus('URL restablecida al valor por defecto. Haz clic en "Guardar" para aplicar.', 'info');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.ngrok-free.dev https://*.ngrok.io http://local.adspower.com:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https: http://local.adspower.com:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>Cookies Hexzor</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/auth.css">
@@ -64,7 +64,7 @@
                             required
                         >
                         <small class="form-hint">
-                            Por defecto: https://38c69d16ca36.ngrok-free.app/
+                            Usá el botón "Restablecer" para volver al valor por defecto de la app.
                         </small>
                     </div>
 
@@ -454,24 +454,6 @@
                         <p>Gestiona la colección de sitios web para navegación</p>
                     </div>
 
-                    <div class="database-actions">
-                        <button class="btn btn-primary" id="import-sites">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" 
-                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Importar Sitios (CSV)
-                        </button>
-                        <button class="btn btn-secondary" id="export-database">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" 
-                                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Exportar Base de Datos
-                        </button>
-                    </div>
-
                     <div class="sites-preview">
                         <h3>Vista Previa de Sitios</h3>
                         <div id="sites-list" class="sites-table">
@@ -550,7 +532,7 @@
                                                 type="text"
                                                 id="adspower-url"
                                                 name="adspower-url"
-                                                placeholder="http://local.adspower.com:50325"
+                                                placeholder="http://local.adspower.com:&lt;puerto&gt;"
                                                 required
                                             >
                                             <button type="button" class="btn btn-secondary" id="reset-adspower-url" title="Restaurar URL por defecto">
@@ -561,7 +543,7 @@
                                             </button>
                                         </div>
                                         <small class="form-hint">
-                                            Solo ingresa la URL base (sin /api/v1). Por defecto: http://local.adspower.com:50325
+                                            Solo ingresá la URL base (sin /api/v1). Usá "Restablecer" para volver al valor por defecto de la app.
                                         </small>
                                     </div>
 
@@ -584,7 +566,7 @@
                                         <ol style="margin: 0.5rem 0 0 1.2rem; padding-left: 0;">
                                             <li>Abre AdsPower</li>
                                             <li>Busca la sección "API"</li>
-                                            <li>Copia la URL que aparece (ejemplo: http://local.adspower.com:50325)</li>
+                                            <li>Copia la URL que aparece (suele tener el formato http://local.adspower.com:&lt;puerto&gt;)</li>
                                             <li>Pégala aquí y guarda</li>
                                         </ol>
                                     </div>
@@ -631,7 +613,7 @@
                                             </button>
                                         </div>
                                         <small class="form-hint">
-                                            La URL debe terminar con /. Por defecto: https://38c69d16ca36.ngrok-free.app/
+                                            La URL debe terminar con "/". Usá "Restablecer" para volver al valor por defecto de la app.
                                         </small>
                                     </div>
 
