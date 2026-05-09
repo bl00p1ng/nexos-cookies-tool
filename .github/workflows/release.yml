@@ -16,6 +16,11 @@ on:
         type: boolean
         default: false
 
+# Necesario para que electron-builder pueda crear/actualizar GitHub Releases
+# vía la API usando el GITHUB_TOKEN automático.
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
