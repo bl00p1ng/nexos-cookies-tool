@@ -54,26 +54,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # dmg-license declara cpu: ['x64'] en su package.json y npm lo omite
-      # en runners arm64. La herramienta es Node puro (sin binario nativo)
-      # así que funciona en arm64 igual de bien. Bajamos el tarball del
-      # registro directamente y lo extraemos en node_modules, bypassing
-      # cualquier check de npm. Después instalamos sus dependencias runtime.
-      - name: Install dmg-license manually (macOS arm64 workaround)
+      # dmg-license@1.0.11 declara cpu: ['x64'] en su package.json. La
+      # herramienta es Node puro (genera el SLA del .dmg, sin binario nativo)
+      # y funciona en arm64 sin problema, pero npm respeta esa metadata
+      # incorrecta y omite el paquete en runners arm64.
+      #
+      # Workaround quirúrgico: extraemos el tarball directamente en su
+      # carpeta de node_modules e instalamos sus deps DENTRO de su propio
+      # node_modules anidado. Node module resolution encuentra esas deps
+      # nested antes de subir al árbol del proyecto, así que esto no toca
+      # ni una sola línea del node_modules raíz (que ya está consistente
+      # con package-lock.json tras npm ci).
+      - name: Install dmg-license isolated (macOS arm64 workaround)
         if: runner.os == 'macOS'
         run: |
           set -e
           TARBALL=$(npm view dmg-license@^1.0.11 dist.tarball)
-          echo "Downloading $TARBALL"
+          echo "Fetching $TARBALL"
           rm -rf node_modules/dmg-license
           mkdir -p node_modules/dmg-license
-          curl -sL "$TARBALL" | tar -xz --strip-components=1 -C node_modules/dmg-license
-          DEPS=$(node -e "const p=require('./node_modules/dmg-license/package.json').dependencies||{}; console.log(Object.entries(p).map(([k,v])=>k+'@'+v).join(' '))")
-          if [ -n "$DEPS" ]; then
-            echo "Installing runtime deps: $DEPS"
-            npm install --no-save --no-package-lock $DEPS
-          fi
-          test -f node_modules/dmg-license/bin/dmg-license.js && echo "dmg-license OK"
+          curl -sSL "$TARBALL" | tar -xz --strip-components=1 -C node_modules/dmg-license
+
+          # Quitamos la restricción de cpu del package.json para evitar
+          # cualquier check posterior. El paquete es Node puro.
+          node -e "const f='node_modules/dmg-license/package.json'; const fs=require('fs'); const p=JSON.parse(fs.readFileSync(f,'utf8')); delete p.cpu; delete p.os; fs.writeFileSync(f, JSON.stringify(p,null,2))"
+
+          # Instalamos sus dependencias runtime DENTRO de su propio
+          # node_modules anidado. Esto no reconcilia el árbol raíz.
+          (cd node_modules/dmg-license && npm install --no-save --no-package-lock --omit=dev --omit=peer)
+
+          test -f node_modules/dmg-license/bin/dmg-license.js && echo "✓ dmg-license bootstrapped"
 
       - name: Build & publish (${{ matrix.name }})
         env:
