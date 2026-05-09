@@ -56,11 +56,12 @@ jobs:
 
       # dmg-license declara cpu: ['x64'] en su package.json y npm lo omite
       # en runners arm64. Pero la herramienta es Node puro (genera el SLA
-      # del .dmg), no tiene binario nativo, así que funciona en cualquier
-      # arquitectura. --force ignora el constraint de cpu/os.
+      # del .dmg), no tiene binario nativo, funciona en cualquier arquitectura.
+      # --cpu=x64 le dice al resolver de npm que finja ser x64 al instalar
+      # este paquete específico (--force solo bypassa peer-deps, no cpu).
       - name: Force-install dmg-license (macOS arm64 workaround)
         if: runner.os == 'macOS'
-        run: npm install --no-save --force dmg-license@^1.0.11
+        run: npm install --no-save --cpu=x64 --os=darwin dmg-license@^1.0.11
 
       - name: Build & publish (${{ matrix.name }})
         env:
