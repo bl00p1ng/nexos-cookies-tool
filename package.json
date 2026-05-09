@@ -13,8 +13,7 @@
     "build": "echo 'No build process needed for this app'",
     "build-win": "electron-builder --win",
     "build-mac": "electron-builder --mac",
-    "dist": "electron-builder --publish=never",
-    "postinstall": "node -e \"if (process.platform === 'darwin') { const { execSync } = require('child_process'); execSync('npm install dmg-license --no-save', { stdio: 'inherit' }); }\""
+    "dist": "electron-builder --publish=never"
   },
   "keywords": [],
   "author": "Hexzor Agencia <hexzoragencia@gmail.com>",
