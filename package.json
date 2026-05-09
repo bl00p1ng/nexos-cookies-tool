@@ -10,7 +10,7 @@
     "start": "node src/main.js",
     "dev": "node --watch src/main.js",
     "electron": "electron .",
-    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-dev": "electronmon .",
     "electron-pack": "electron-builder",
     "preelectron-pack": "npm run build",
     "build": "echo 'No build process needed for this app'",
@@ -38,6 +38,7 @@
     "dmg-license": "^1.0.11",
     "electron": "^38.1.0",
     "electron-builder": "^26.0.12",
+    "electronmon": "^2.0.4",
     "wait-on": "^8.0.5"
   },
   "build": {
