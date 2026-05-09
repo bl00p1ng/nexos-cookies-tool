@@ -81,7 +81,9 @@ jobs:
 
           # Instalamos sus dependencias runtime DENTRO de su propio
           # node_modules anidado. Esto no reconcilia el árbol raíz.
-          (cd node_modules/dmg-license && npm install --no-save --no-package-lock --omit=dev --omit=peer)
+          # --ignore-scripts evita que se ejecute "prepare": "tsc" (rebuild
+          # innecesario, el tarball publicado ya trae los .js compilados).
+          (cd node_modules/dmg-license && npm install --no-save --no-package-lock --omit=dev --omit=peer --ignore-scripts)
 
           test -f node_modules/dmg-license/bin/dmg-license.js && echo "✓ dmg-license bootstrapped"
 
