@@ -59,10 +59,6 @@
       {
         "from": "data/loadtest.db",
         "to": "data/loadtest.db"
-      },
-      {
-        "from": "config",
-        "to": "config"
       }
     ],
     "compression": "maximum",
