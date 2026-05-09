@@ -66,12 +66,12 @@ class CookieCounterManager {
                     this.config.maxTimeout
                 );
                 
-                console.log(`🔍 [${profileId}] Contando cookies (intento ${attempt}/${this.config.maxRetries}, timeout: ${timeout}ms)`);
+                console.log(`[${profileId}] Contando cookies (intento ${attempt}/${this.config.maxRetries}, timeout: ${timeout}ms)`);
                 
                 const count = await this.attemptSingleCookieCount(page, timeout);
                 
                 this.metrics.successfulCounts++;
-                console.log(`✅ [${profileId}] Cookies contadas exitosamente: ${count}`);
+                console.log(`[${profileId}] Cookies contadas exitosamente: ${count}`);
                 
                 return {
                     success: true,
@@ -81,7 +81,7 @@ class CookieCounterManager {
                 };
                 
             } catch (error) {
-                console.warn(`⚠️ [${profileId}] Intento ${attempt} falló: ${error.message}`);
+                console.warn(`[${profileId}] Intento ${attempt} falló: ${error.message}`);
                 
                 // En el último intento, no esperar
                 if (attempt < this.config.maxRetries) {
@@ -152,12 +152,12 @@ class CookieCounterManager {
      * @returns {Object} Resultado de fallback
      */
     handleCountFailure(contextKey, profileId, error) {
-        console.error(`❌ [${profileId}] Conteo falló completamente: ${error}`);
+        console.error(`[${profileId}] Conteo falló completamente: ${error}`);
         
         // Estrategia 1: Usar último valor conocido si existe
         const lastValid = this.lastValidCounts.get(contextKey);
         if (lastValid && lastValid.count !== undefined) {
-            console.warn(`🔄 [${profileId}] Usando último valor conocido: ${lastValid.count} (hace ${Date.now() - lastValid.timestamp}ms)`);
+            console.warn(`[${profileId}] Usando último valor conocido: ${lastValid.count} (hace ${Date.now() - lastValid.timestamp}ms)`);
             this.metrics.fallbacksUsed++;
             
             return {
@@ -170,7 +170,7 @@ class CookieCounterManager {
         }
         
         // Estrategia 2: Valor conservador de 0 si no hay cache
-        console.warn(`🚨 [${profileId}] Sin cache disponible, usando 0 como fallback seguro`);
+        console.warn(`[${profileId}] Sin cache disponible, usando 0 como fallback seguro`);
         this.metrics.fallbacksUsed++;
         
         return {
@@ -192,12 +192,12 @@ class CookieCounterManager {
     validateAndCacheResult(result, contextKey, profileId) {
         // Validar que el conteo sea razonable
         if (result.count < 0) {
-            console.warn(`⚠️ [${profileId}] Conteo negativo detectado (${result.count}), corrigiendo a 0`);
+            console.warn(`[${profileId}] Conteo negativo detectado (${result.count}), corrigiendo a 0`);
             result.count = 0;
         }
         
         if (result.count > 10000) {
-            console.warn(`⚠️ [${profileId}] Conteo muy alto (${result.count}), posible error`);
+            console.warn(`[${profileId}] Conteo muy alto (${result.count}), posible error`);
         }
         
         // Actualizar cache con valor válido
@@ -267,12 +267,12 @@ class CookieCounterManager {
         if (rawDiff < 0 && !allowNegative) {
             if (rawDiff < maxNegativeDiff) {
                 // Diferencia muy negativa, probablemente error de conteo
-                console.warn(`🚨 [${profileId}] Diferencia sospechosa: ${rawDiff} (${before} → ${after}). Usando 0 por seguridad.`);
+                console.warn(`[${profileId}] Diferencia sospechosa: ${rawDiff} (${before} ${after}). Usando 0 por seguridad.`);
                 safeDiff = 0;
                 adjustmentReason = 'negative_diff_too_large';
             } else {
                 // Diferencia negativa pequeña, puede ser legítima (cookies expiradas)
-                console.log(`ℹ️ [${profileId}] Diferencia negativa pequeña: ${rawDiff} (posiblemente cookies expiradas)`);
+                console.log(`[${profileId}] Diferencia negativa pequeña: ${rawDiff} (posiblemente cookies expiradas)`);
             }
         }
         

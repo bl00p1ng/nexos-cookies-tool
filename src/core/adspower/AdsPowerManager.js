@@ -1,49 +1,64 @@
 import { chromium } from 'playwright';
 import RequestQueue from '../utils/RequestQueue.js';
+import { ADSPOWER_BASE_URL } from '../config/defaults.js';
 
+import { createLogger } from '../utils/Logger.js';
+
+const log = createLogger('AdsPowerManager');
 /**
  * Gestor principal para la integración con Ads Power
  * Maneja la inicialización y control de perfiles de navegador
  */
 class AdsPowerManager {
-    constructor(configManager = null, adsPowerBaseUrl = null) {
+    /**
+     * @param {Object|null} configStore - ConfigStore (o compatible) con getRateLimitConfig()
+     * @param {string|null} adsPowerBaseUrl - Override de la URL base
+     */
+    constructor(configStore = null, adsPowerBaseUrl = null) {
         this.activeBrowsers = new Map();
-        this.configManager = configManager;
+        this.configStore = configStore;
 
         // Construir la URL completa de la API
         // Prioridad: 1. Parámetro adsPowerBaseUrl, 2. Valor por defecto
-        const baseUrl = adsPowerBaseUrl || 'http://local.adspower.com:50325';
+        const baseUrl = adsPowerBaseUrl || ADSPOWER_BASE_URL;
         this.baseUrl = `${baseUrl}/api/v1`;
 
-        console.log('🔗 AdsPowerManager usando URL:', this.baseUrl);
+        log.info('AdsPowerManager usando URL:', this.baseUrl);
 
         // Obtener configuración de rate limiting
-        const rateLimitConfig = this.configManager ?
-            this.configManager.getRateLimitConfig() :
+        const rateLimitConfig = this.configStore ?
+            this.configStore.getRateLimitConfig() :
             this.getDefaultRateLimitConfig();
 
         // Inicializar RequestQueue con configuración
         this.requestQueue = RequestQueue.getInstance(rateLimitConfig);
 
-        console.log('🚦 AdsPowerManager inicializado con rate limiting:', rateLimitConfig);
+        log.info('AdsPowerManager inicializado con rate limiting:', rateLimitConfig);
     }
 
     /**
      * Verifica si Ads Power está ejecutándose y disponible
      * @returns {Promise<boolean>} Estado de disponibilidad del servicio
      */
+    /**
+     * Health check del servicio Ads Power. Por contrato retorna booleano
+     * (NO lanza) — un AdsPower caído es un estado válido que el caller
+     * inspecciona, no un error excepcional. Logueamos a nivel debug
+     * para no inundar con errores de un servicio externo que puede
+     * legítimamente no estar corriendo.
+     */
     async checkAdsPowerStatus() {
         try {
             await this._makeRequest(`${this.baseUrl}/browser/active`);
             return true;
         } catch (error) {
-            console.error('Error verificando estado de Ads Power:', error.message);
+            log.debug('AdsPower no disponible', { error: error.message });
             return false;
         }
     }
 
     /**
-     * Configuración por defecto si no hay ConfigManager
+     * Configuración por defecto si no hay ConfigStore
      * @returns {Object} Configuración por defecto
      */
     getDefaultRateLimitConfig() {
@@ -71,7 +86,7 @@ class AdsPowerManager {
             
             return data.data?.list || [];
         } catch (error) {
-            console.error('Error obteniendo perfiles:', error.message);
+            log.error('Error obteniendo perfiles:', error.message);
             throw error;
         }
     }
@@ -85,11 +100,11 @@ class AdsPowerManager {
         try {
             // Verificar si el perfil ya está activo
             if (this.activeBrowsers.has(profileId)) {
-                console.log(`Perfil ${profileId} ya está activo`);
+                log.info(`Perfil ${profileId} ya está activo`);
                 return this.activeBrowsers.get(profileId);
             }
 
-            console.log(`Iniciando perfil ${profileId}...`);
+            log.info(`Iniciando perfil ${profileId}...`);
             
             // Implementar retry con backoff exponencial para manejar rate limiting
             let attempt = 0;
@@ -101,7 +116,7 @@ class AdsPowerManager {
                     // Delay progresivo para evitar rate limiting
                     if (attempt > 0) {
                         const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-                        console.log(`⏳ [${profileId}] Reintento ${attempt + 1}/${maxAttempts} en ${delayMs}ms...`);
+                        log.info(`[${profileId}] Reintento ${attempt + 1}/${maxAttempts} en ${delayMs}ms...`);
                         await this.sleep(delayMs);
                     }
                     
@@ -159,7 +174,7 @@ class AdsPowerManager {
                     };
                     
                     this.activeBrowsers.set(profileId, browserInstance);
-                    console.log(`✅ Perfil ${profileId} iniciado correctamente (intento ${attempt + 1})`);
+                    log.info(`Perfil ${profileId} iniciado correctamente (intento ${attempt + 1})`);
                     
                     return browserInstance;
                     
@@ -184,14 +199,14 @@ class AdsPowerManager {
             throw new Error(`Error iniciando perfil ${profileId} después de ${maxAttempts} intentos: ${lastError?.message || 'Error desconocido'}`);
             
         } catch (error) {
-            console.error(`Error iniciando perfil ${profileId}:`, error.message);
+            log.error(`Error iniciando perfil ${profileId}:`, error.message);
             
             // Limpiar si hay algún recurso parcial
             if (this.activeBrowsers.has(profileId)) {
                 try {
                     await this.stopProfile(profileId);
                 } catch (cleanupError) {
-                    console.error(`Error en cleanup de perfil ${profileId}:`, cleanupError.message);
+                    log.error(`Error en cleanup de perfil ${profileId}:`, cleanupError.message);
                 }
             }
             
@@ -217,12 +232,12 @@ class AdsPowerManager {
             const data = await this._makeRequest(`${this.baseUrl}/browser/stop?user_id=${profileId}`);
             
             if (data.code !== 0) {
-                console.warn(`Advertencia deteniendo perfil ${profileId}: ${data.msg}`);
+                log.warn(`Advertencia deteniendo perfil ${profileId}: ${data.msg}`);
             }
             
-            console.log(`Perfil ${profileId} detenido correctamente`);
+            log.info(`Perfil ${profileId} detenido correctamente`);
         } catch (error) {
-            console.error(`Error deteniendo perfil ${profileId}:`, error.message);
+            log.error(`Error deteniendo perfil ${profileId}:`, error.message);
             throw error;
         }
     }
@@ -242,7 +257,7 @@ class AdsPowerManager {
             
             return data.data;
         } catch (error) {
-            console.error(`Error obteniendo info del perfil ${profileId}:`, error.message);
+            log.error(`Error obteniendo info del perfil ${profileId}:`, error.message);
             throw error;
         }
     }
@@ -255,11 +270,11 @@ class AdsPowerManager {
         const profileIds = Array.from(this.activeBrowsers.keys());
         
         if (profileIds.length === 0) {
-            console.log('No hay perfiles activos para detener');
+            log.info('No hay perfiles activos para detener');
             return;
         }
         
-        console.log(`Deteniendo ${profileIds.length} perfiles activos...`);
+        log.info(`Deteniendo ${profileIds.length} perfiles activos...`);
         
         for (let i = 0; i < profileIds.length; i++) {
             const profileId = profileIds[i];
@@ -271,23 +286,23 @@ class AdsPowerManager {
                 // Solo si no es el último perfil
                 if (i < profileIds.length - 1) {
                     const delay = this.calculateStopDelay(profileIds.length);
-                    console.log(`⏳ Esperando ${delay}ms antes del siguiente perfil...`);
+                    log.info(`Esperando ${delay}ms antes del siguiente perfil...`);
                     await this.sleep(delay);
                 }
                 
             } catch (error) {
-                console.error(`Error deteniendo perfil ${profileId}:`, error.message);
+                log.error(`Error deteniendo perfil ${profileId}:`, error.message);
                 
                 // Si hay error de rate limiting, esperar más tiempo
                 if (error.message.includes('Too many request') || error.message.includes('rate limit')) {
-                    console.log('⚠️ Rate limit detectado, esperando más tiempo...');
+                    log.info('Rate limit detectado, esperando más tiempo...');
                     await this.sleep(2000); // 2 segundos adicionales
                 }
             }
         }
         
         this.activeBrowsers.clear();
-        console.log('✅ Todos los perfiles han sido procesados');
+        log.info('Todos los perfiles han sido procesados');
     }
 
     /**
@@ -361,7 +376,7 @@ class AdsPowerManager {
      */
     clearRequestQueue() {
         this.requestQueue.clearQueue();
-        console.log('🚨 Cola de requests limpiada');
+        log.info('Cola de requests limpiada');
     }
 }
 

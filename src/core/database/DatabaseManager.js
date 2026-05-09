@@ -6,6 +6,9 @@ import path from 'path';
 import { app } from 'electron';
 import initialWebsites from './initialWebsites.js';
 
+import { createLogger } from '../utils/Logger.js';
+
+const log = createLogger('DatabaseManager');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -18,17 +21,17 @@ class DatabaseManager {
         if (dbPath) {
             // Si se proporciona un path específico, usarlo
             this.dbPath = dbPath;
-            console.log('🗄️ Usando DB path personalizado:', this.dbPath);
+            log.info('Usando DB path personalizado:', this.dbPath);
         } else if (app && app.isPackaged) {
             // Aplicación empaquetada - usar directorio userData de Electron
             const userDataPath = app.getPath('userData');
             const dataDir = path.join(userDataPath, 'data');
             this.dbPath = path.join(dataDir, 'loadtest.db');
-            console.log(`🗄️ Modo empaquetado - DB en: ${this.dbPath}`);
+            log.info(`Modo empaquetado - DB en: ${this.dbPath}`);
         } else {
             // Desarrollo - usar ruta relativa
             this.dbPath = './data/loadtest.db';
-            console.log('🗄️ Modo desarrollo - DB en:', this.dbPath);
+            log.info('Modo desarrollo - DB en:', this.dbPath);
         }
 
         this.db = null;
@@ -51,7 +54,7 @@ class DatabaseManager {
                 
                 if (!dbExists || shouldUpdate) {
                     const action = dbExists ? 'Actualizando' : 'Copiando';
-                    console.log(`[DatabaseManager] ${action} base de datos desde recursos...`);
+                    log.info(`[DatabaseManager] ${action} base de datos desde recursos...`);
                     
                     // Intentar multiples paths posibles de recursos
                     const possiblePaths = [
@@ -65,22 +68,22 @@ class DatabaseManager {
                     for (const sourcePath of possiblePaths) {
                         try {
                             await fs.access(sourcePath);
-                            console.log(`[DatabaseManager] DB encontrada en: ${sourcePath}`);
+                            log.info(`[DatabaseManager] DB encontrada en: ${sourcePath}`);
                             
                             // Si existe DB vieja, hacer backup primero
                             if (dbExists) {
                                 const backupPath = this.dbPath + '.backup';
                                 try {
                                     await fs.copyFile(this.dbPath, backupPath);
-                                    console.log(`[DatabaseManager] Backup creado en: ${backupPath}`);
+                                    log.info(`[DatabaseManager] Backup creado en: ${backupPath}`);
                                 } catch (backupError) {
-                                    console.warn('[DatabaseManager] No se pudo crear backup:', backupError.message);
+                                    log.warn('[DatabaseManager] No se pudo crear backup:', backupError.message);
                                 }
                             }
                             
                             // Copiar DB nueva
                             await fs.copyFile(sourcePath, this.dbPath);
-                            console.log(`[DatabaseManager] DB ${action.toLowerCase()} exitosamente a userData`);
+                            log.info(`[DatabaseManager] DB ${action.toLowerCase()} exitosamente a userData`);
                             copied = true;
                             break;
                         } catch (error) {
@@ -89,10 +92,10 @@ class DatabaseManager {
                     }
                     
                     if (!copied) {
-                        console.warn('[DatabaseManager] No se pudo copiar DB desde recursos, usando existente o creando nueva');
+                        log.warn('[DatabaseManager] No se pudo copiar DB desde recursos, usando existente o creando nueva');
                     }
                 } else {
-                    console.log('[DatabaseManager] Base de datos actualizada en userData');
+                    log.info('[DatabaseManager] Base de datos actualizada en userData');
                 }
             }
 
@@ -136,18 +139,18 @@ class DatabaseManager {
 
             // Verificar si hay sitios web en la base de datos
             const websiteCount = await this.getWebsiteCount();
-            console.log(`[DatabaseManager] Base de datos inicializada con ${websiteCount} sitios web`);
+            log.info(`[DatabaseManager] Base de datos inicializada con ${websiteCount} sitios web`);
 
             // Si no hay sitios, cargar sitios iniciales
             if (websiteCount === 0) {
-                console.log('[DatabaseManager] No hay sitios web, cargando sitios iniciales...');
+                log.info('[DatabaseManager] No hay sitios web, cargando sitios iniciales...');
                 await this.seedInitialWebsites();
             }
 
-            console.log('[DatabaseManager] Base de datos lista');
+            log.info('[DatabaseManager] Base de datos lista');
 
         } catch (error) {
-            console.error('[DatabaseManager] Error inicializando base de datos:', error.message);
+            log.error('[DatabaseManager] Error inicializando base de datos:', error.message);
             throw error;
         }
     }
@@ -182,15 +185,15 @@ class DatabaseManager {
             currentDb.close();
             
             if (currentCount < 100) {
-                console.log(`[DatabaseManager] DB actual tiene solo ${currentCount} sitios, actualizando...`);
+                log.info(`[DatabaseManager] DB actual tiene solo ${currentCount} sitios, actualizando...`);
                 return true;
             }
             
-            console.log(`[DatabaseManager] DB tiene ${currentCount} sitios, no requiere actualizacion`);
+            log.info(`[DatabaseManager] DB tiene ${currentCount} sitios, no requiere actualizacion`);
             return false;
             
         } catch (error) {
-            console.log('[DatabaseManager] Error verificando DB, forzando actualizacion:', error.message);
+            log.info('[DatabaseManager] Error verificando DB, forzando actualizacion:', error.message);
             return true;
         }
     }
@@ -290,6 +293,26 @@ class DatabaseManager {
     }
 
     /**
+     * Obtiene estadísticas agregadas de la tabla de sitios web
+     * @returns {Promise<{totalSites:number, activeSites:number, totalVisits:number}>}
+     */
+    async getWebsiteStats() {
+        const row = await this.db.getAsync(`
+            SELECT
+                COUNT(*) AS totalSites,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS activeSites,
+                COALESCE(SUM(visit_count), 0) AS totalVisits
+            FROM websites
+        `);
+
+        return {
+            totalSites: row?.totalSites ?? 0,
+            activeSites: row?.activeSites ?? 0,
+            totalVisits: row?.totalVisits ?? 0
+        };
+    }
+
+    /**
      * Obtiene un sitio web aleatorio de la base de datos
      * @param {Array<string>} excludeUrls - URLs a excluir de la selección
      * @returns {Promise<Object>} Sitio web seleccionado
@@ -315,7 +338,7 @@ class DatabaseManager {
 
             return website;
         } catch (error) {
-            console.error('Error obteniendo sitio web aleatorio:', error);
+            log.error('Error obteniendo sitio web aleatorio:', error);
             throw error;
         }
     }
@@ -342,7 +365,7 @@ class DatabaseManager {
             const websites = await this.db.allAsync(query, params);
             return websites;
         } catch (error) {
-            console.error('Error obteniendo sitios web aleatorios:', error);
+            log.error('Error obteniendo sitios web aleatorios:', error);
             throw error;
         }
     }
@@ -368,7 +391,7 @@ class DatabaseManager {
             
             await this.db.runAsync(query, [cookiesCollected, cookiesCollected, url]);
         } catch (error) {
-            console.error('Error actualizando estadísticas del sitio:', error);
+            log.error('Error actualizando estadísticas del sitio:', error);
             throw error;
         }
     }
@@ -378,7 +401,7 @@ class DatabaseManager {
      * @returns {Promise<void>}
      */
     async seedInitialWebsites() {
-        console.log(`📂 Cargando ${initialWebsites.length} sitios web iniciales...`);
+        log.info(`Cargando ${initialWebsites.length} sitios web iniciales...`);
         
         let insertedCount = 0;
         let skippedCount = 0;
@@ -396,11 +419,11 @@ class DatabaseManager {
                     skippedCount++;
                 }
             } catch (error) {
-                console.error(`Error insertando sitio ${site.url}:`, error);
+                log.error(`Error insertando sitio ${site.url}:`, error);
             }
         }
         
-        console.log(`✅ Sitios web iniciales cargados: ${insertedCount} nuevos, ${skippedCount} ya existían`);
+        log.info(`Sitios web iniciales cargados: ${insertedCount} nuevos, ${skippedCount} ya existían`);
     }
 
     //#region REPORTES
@@ -532,7 +555,7 @@ class DatabaseManager {
             };
             
         } catch (error) {
-            console.error('Error obteniendo reportes:', error.message);
+            log.error('Error obteniendo reportes:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -629,7 +652,7 @@ class DatabaseManager {
             };
             
         } catch (error) {
-            console.error('Error obteniendo resumen de reportes:', error.message);
+            log.error('Error obteniendo resumen de reportes:', error.message);
             return {
                 success: false,
                 error: error.message,

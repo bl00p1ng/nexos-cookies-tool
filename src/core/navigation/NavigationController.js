@@ -8,11 +8,11 @@ import HumanBehaviorSimulator from './HumanBehaviorSimulator.js';
  * Soporta múltiples perfiles simultáneos
  */
 class NavigationController extends EventEmitter {
-    constructor(databaseManager, configManager, adsPowerManager = null) {
+    constructor(databaseManager, configStore, adsPowerManager = null) {
         super(); // Llamar constructor de EventEmitter
 
         this.databaseManager = databaseManager;
-        this.configManager = configManager;
+        this.configStore = configStore;
         this.adsPowerManager = adsPowerManager;
         this.cookieDetector = new CookieDetector();
         this.humanBehaviorSimulator = new HumanBehaviorSimulator();
@@ -35,9 +35,39 @@ class NavigationController extends EventEmitter {
      */
     setStopFlag(profileId) {
         this.stopFlags.set(profileId, true);
-        console.log(`🚩 [${profileId}] Flag de detención establecido`);
+        console.log(`[${profileId}] Flag de detención establecido`);
     }
     //#endregion Setters
+
+    //#region Public state queries
+    /**
+     * Cantidad de sesiones de navegación activas.
+     * @returns {number}
+     */
+    getActiveSessionCount() {
+        return this.activeSessions.size;
+    }
+
+    /**
+     * Snapshot serializable de sesiones activas para enviar a la UI.
+     * No expone las Maps internas — devuelve una copia plana.
+     * @returns {Array<{profileId:string, sessionId:string, cookiesCollected:number, targetCookies:number, sitesVisited:number, status:string}>}
+     */
+    getActiveSessionsSnapshot() {
+        const sessions = [];
+        this.activeSessions.forEach((sessionData, profileId) => {
+            sessions.push({
+                profileId,
+                sessionId: sessionData.sessionId,
+                cookiesCollected: sessionData.cookiesCollected || 0,
+                targetCookies: sessionData.targetCookies || 0,
+                sitesVisited: sessionData.sitesVisited || 0,
+                status: sessionData.status || 'running'
+            });
+        });
+        return sessions;
+    }
+    //#endregion Public state queries
 
     //#region Starters
     /**
@@ -48,26 +78,26 @@ class NavigationController extends EventEmitter {
      */
     async startMultipleNavigationSessions(profileIds, targetCookies = null) {
         const profiles = Array.isArray(profileIds) ? profileIds : [profileIds];
-        const cookieTarget = targetCookies || this.configManager.getDefaultCookieTarget();
-        
-        console.log(`🚀 Iniciando navegación con ${profiles.length} perfil(es)`);
-        console.log(`🎯 Objetivo por perfil: ${cookieTarget} cookies`);
-        console.log(`📋 Perfiles: ${profiles.join(', ')}`);
-        
+        const effectiveTarget = targetCookies || this.configStore.getDefaultCookieTarget();
+
+        console.log(`Iniciando navegación con ${profiles.length} perfil(es)`);
+        console.log(`Objetivo por perfil: ${effectiveTarget} cookies`);
+        console.log(`Perfiles: ${profiles.join(', ')}`);
+
         this.globalStats.totalSessions = profiles.length;
         this.globalStats.startTime = new Date();
 
         // Emitir estadísticas globales actualizadas
         this.emitGlobalStats(this.globalStats);
-        
+
         // Configurar WAL mode para SQLite (mejora concurrencia)
         await this.setupDatabaseConcurrency();
-        
+
         // Iniciar todas las sesiones en paralelo
-        const sessionPromises = profiles.map(profileId => 
-            this.startSingleNavigationSession(profileId, cookieTarget)
+        const sessionPromises = profiles.map(profileId =>
+            this.startSingleNavigationSession(profileId, effectiveTarget)
                 .catch(error => {
-                    console.error(`❌ Error en perfil ${profileId}:`, error.message);
+                    console.error(`Error en perfil ${profileId}:`, error.message);
                     this.globalStats.errors++;
                     return {
                         profileId,
@@ -112,7 +142,7 @@ class NavigationController extends EventEmitter {
         const sessionId = `session_${profileId}_${Date.now()}`;
         const startTime = Date.now();
         
-        console.log(`🔄 [${profileId}] Iniciando sesión...`);
+        console.log(`[${profileId}] Iniciando sesión...`);
 
         if (!this.adsPowerManager) {
             throw new Error('AdsPowerManager no está disponible en NavigationController');
@@ -149,12 +179,12 @@ class NavigationController extends EventEmitter {
             browserInstance = await this.startProfile(profileId);
             const { page } = browserInstance;
             
-            console.log(`✅ [${profileId}] Navegador iniciado`);
+            console.log(`[${profileId}] Navegador iniciado`);
 
             // Establecer baseline inicial de cookies del perfil
             const initialCookieCount = await this.cookieDetector.getCookieCount(page, profileId);
             sessionStats.initialCookieBaseline = initialCookieCount;
-            console.log(`📊 [${profileId}] Baseline inicial: ${initialCookieCount} cookies`);
+            console.log(`[${profileId}] Baseline inicial: ${initialCookieCount} cookies`);
 
             // Obtener sitios web para navegar
             let websites = await this.databaseManager.getRandomWebsites(100);
@@ -162,11 +192,11 @@ class NavigationController extends EventEmitter {
                 throw new Error('No hay sitios web disponibles en la base de datos');
             }
 
-            console.log(`📂 [${profileId}] ${websites.length} sitios disponibles`);
+            console.log(`[${profileId}] ${websites.length} sitios disponibles`);
 
             // Calcular tiempo mínimo para navegación realista
             const minimumTime = this.calculateMinimumNavigationTime(targetCookies);
-            console.log(`⏱️ [${profileId}] Tiempo mínimo: ${Math.round(minimumTime/60000)} minutos`);
+            console.log(`[${profileId}] Tiempo mínimo: ${Math.round(minimumTime/60000)} minutos`);
 
             // Navegar por sitios hasta alcanzar objetivo Y tiempo mínimo
             let siteIndex = 0;
@@ -191,19 +221,19 @@ class NavigationController extends EventEmitter {
                 
                 // Solo terminar si se cumplieron AMBAS condiciones
                 if (cookiesReached && timeReached) {
-                    console.log(`✅ [${profileId}] Objetivos completados: ${sessionStats.cookiesCollected}/${targetCookies} cookies en ${Math.round((Date.now() - startTime)/60000)} minutos`);
+                    console.log(`[${profileId}] Objetivos completados: ${sessionStats.cookiesCollected}/${targetCookies} cookies en ${Math.round((Date.now() - startTime)/60000)} minutos`);
                     break;
                 }
                 
                 // Mostrar progreso si ya alcanzó cookies pero sigue por tiempo
                 if (cookiesReached && !timeReached) {
                     const remainingMinutes = Math.round((endTime - Date.now()) / 60000);
-                    console.log(`🎯 [${profileId}] Objetivo alcanzado, continuando ${remainingMinutes} min más por realismo`);
+                    console.log(`[${profileId}] Objetivo alcanzado, continuando ${remainingMinutes} min más por realismo`);
                 }
 
                 // Si se acabaron los sitios, reiniciar la lista
                 if (siteIndex >= websites.length) {
-                    console.log(`🔄 [${profileId}] Reiniciando lista de sitios`);
+                    console.log(`[${profileId}] Reiniciando lista de sitios`);
                     siteIndex = 0;
                     websites = await this.databaseManager.getRandomWebsites(100);
                 }
@@ -211,7 +241,7 @@ class NavigationController extends EventEmitter {
                 const website = websites[siteIndex];
                 sessionStats.currentSite = website.domain;
                 
-                console.log(`\n🌐 [${profileId}] Sitio ${siteIndex + 1}: ${website.domain}`);
+                console.log(`\n[${profileId}] Sitio ${siteIndex + 1}: ${website.domain}`);
 
                 // Emitir progreso inmediatamente cuando comience navegación a un sitio
                 this.emitSessionProgress(sessionId, profileId, {
@@ -272,15 +302,15 @@ class NavigationController extends EventEmitter {
                     // Verificar si hubo error de conexión
                     if (siteResult.error && siteResult.error.startsWith('CONEXION_PERDIDA')) {
                         consecutiveConnectionErrors++;
-                        console.warn(`🔌 [${profileId}] Error de conexión ${consecutiveConnectionErrors}/${maxConnectionErrors}: ${siteResult.error}`);
+                        console.warn(`[${profileId}] Error de conexión ${consecutiveConnectionErrors}/${maxConnectionErrors}: ${siteResult.error}`);
                         
                         if (consecutiveConnectionErrors >= maxConnectionErrors) {
-                            console.error(`❌ [${profileId}] Demasiados errores de conexión consecutivos, terminando sesión`);
+                            console.error(`[${profileId}] Demasiados errores de conexión consecutivos, terminando sesión`);
                             throw new Error('Navegador perdió conexión permanentemente');
                         }
                         
                         // Intentar reconectar
-                        console.log(`🔄 [${profileId}] Intentando reconectar navegador...`);
+                        console.log(`[${profileId}] Intentando reconectar navegador...`);
                         
                         try {
                             // Cerrar instancia actual si existe
@@ -288,7 +318,7 @@ class NavigationController extends EventEmitter {
                                 try {
                                     await browserInstance.browser.close();
                                 } catch (closeError) {
-                                    console.warn(`⚠️ [${profileId}] Error cerrando navegador anterior: ${closeError.message}`);
+                                    console.warn(`[${profileId}] Error cerrando navegador anterior: ${closeError.message}`);
                                 }
                             }
                             
@@ -297,7 +327,7 @@ class NavigationController extends EventEmitter {
 
                             // Verificar si se debe detener la sesión antes de reconectar
                             if (this.shouldStopSession(profileId)) {
-                                console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
+                                console.log(`[${profileId}] Pausa interrumpida por flag de detención`);
                                 break;
                             }
                             
@@ -305,14 +335,14 @@ class NavigationController extends EventEmitter {
                             browserInstance = await this.startProfile(profileId);
                             page = browserInstance.page;
                             
-                            console.log(`✅ [${profileId}] Navegador reconectado exitosamente`);
+                            console.log(`[${profileId}] Navegador reconectado exitosamente`);
                             consecutiveConnectionErrors = 0; // Resetear contador
                             
                             // No incrementar siteIndex para reintentar el mismo sitio
                             continue;
                             
                         } catch (reconnectError) {
-                            console.error(`❌ [${profileId}] Error reconectando: ${reconnectError.message}`);
+                            console.error(`[${profileId}] Error reconectando: ${reconnectError.message}`);
                             throw new Error(`No se pudo reconectar navegador: ${reconnectError.message}`);
                         }
                     } else {
@@ -328,8 +358,8 @@ class NavigationController extends EventEmitter {
 
                     // Log de ajustes si hubo cambios
                     if (progressValidation.wasAdjusted) {
-                        console.warn(`🔧 [${profileId}] Progreso ajustado: ${progressValidation.originalGain} → ${progressValidation.validatedGain} (${progressValidation.adjustmentReason})`);
-                        console.log(`   📊 Total resultante: ${progressValidation.newTotal} (baseline: ${progressValidation.baseline})`);
+                        console.warn(`[${profileId}] Progreso ajustado: ${progressValidation.originalGain} ${progressValidation.validatedGain} (${progressValidation.adjustmentReason})`);
+                        console.log(`Total resultante: ${progressValidation.newTotal} (baseline: ${progressValidation.baseline})`);
                     }
 
                     sessionStats.sitesVisited++;
@@ -347,14 +377,14 @@ class NavigationController extends EventEmitter {
 
                     await this.registerSiteVisit(sessionStats, website, siteResult);
 
-                    console.log(`📈 [${profileId}] +${siteResult.cookiesGained} cookies (Total: ${sessionStats.cookiesCollected}/${targetCookies})`);
+                    console.log(`[${profileId}] +${siteResult.cookiesGained} cookies (Total: ${sessionStats.cookiesCollected}/${targetCookies})`);
 
                     // VERIFICACIÓN: Después de procesar sitio exitosamente
                     this.checkStopFlagOrThrow(profileId);
 
                     // Pausa entre sitios para parecer humano
                     const pauseTime = this.randomBetween(3000, 8000);
-                    console.log(`⏸️ [${profileId}] Pausa de ${Math.round(pauseTime/1000)}s antes del siguiente sitio`);
+                    console.log(`[${profileId}] Pausa de ${Math.round(pauseTime/1000)}s antes del siguiente sitio`);
                     
                     // Hacer la pausa en incrementos pequeños para poder interrumpir rápidamente
                     const pauseIncrements = 500; // Verificar cada 500ms
@@ -409,11 +439,11 @@ class NavigationController extends EventEmitter {
             await this.completeSession(sessionStats);
 
             const totalTime = sessionStats.endTime - sessionStats.startTime;
-            console.log(`\n✅ [${profileId}] Sesión completada:`);
-            console.log(`   🍪 Cookies: ${sessionStats.cookiesCollected}/${targetCookies}`);
-            console.log(`   🌐 Sitios: ${sessionStats.sitesVisited}`);
-            console.log(`   ⏱️ Tiempo: ${Math.round(totalTime/60000)} minutos (mín: ${Math.round(minimumTime/60000)})`);
-            console.log(`   🎭 Puntuación humana: ${sessionStats.humanBehaviorScore}/100`);
+            console.log(`\n[${profileId}] Sesión completada:`);
+            console.log(`Cookies: ${sessionStats.cookiesCollected}/${targetCookies}`);
+            console.log(`Sitios: ${sessionStats.sitesVisited}`);
+            console.log(`Tiempo: ${Math.round(totalTime/60000)} minutos (mín: ${Math.round(minimumTime/60000)})`);
+            console.log(`Puntuación humana: ${sessionStats.humanBehaviorScore}/100`);
 
             // Emitir evento de sesión completada
             this.emitSessionCompleted(sessionId, profileId, {
@@ -437,7 +467,7 @@ class NavigationController extends EventEmitter {
         } catch (error) {
             // Verificar si es detención intencional del usuario
             if (error.code === 'STOP_REQUESTED') {
-                console.log(`🛑 [${profileId}] Sesión detenida correctamente por solicitud del usuario`);
+                console.log(`[${profileId}] Sesión detenida correctamente por solicitud del usuario`);
                 
                 sessionStats.success = false;
                 sessionStats.error = 'Detenido por el usuario';
@@ -469,7 +499,7 @@ class NavigationController extends EventEmitter {
             }
             
             // Error genuino (no detención intencional)
-            console.error(`❌ [${profileId}] Error en sesión:`, error.message);
+            console.error(`[${profileId}] Error en sesión:`, error.message);
             
             sessionStats.success = false;
             sessionStats.error = error.message;
@@ -496,43 +526,24 @@ class NavigationController extends EventEmitter {
             if (browserInstance) {
                 try {
                     await this.cleanupProfile(profileId, browserInstance);
-                    console.log(`🧹 [${profileId}] Navegador cerrado`);
+                    console.log(`[${profileId}] Navegador cerrado`);
                 } catch (cleanupError) {
-                    console.warn(`⚠️ [${profileId}] Error cerrando navegador: ${cleanupError.message}`);
+                    console.warn(`[${profileId}] Error cerrando navegador: ${cleanupError.message}`);
                 }
             }
         }
     }
 
     /**
-     * Inicializa un perfil de AdsPower
-     * @param {string} profileId - ID del perfil
-     * @returns {Promise<Object>} Instancia del navegador
-     */
-    async initializeProfile(profileId) {
-        // Obtener AdsPowerManager desde main.js (se pasa como dependencia)
-        const adsPowerManager = global.adsPowerManager;
-        if (!adsPowerManager) {
-            throw new Error('AdsPowerManager no disponible');
-        }
-        
-        return await adsPowerManager.startProfile(profileId);
-    }
-
-    /**
-     * Inicia un perfil usando AdsPowerManager global
+     * Inicia un perfil usando el AdsPowerManager inyectado por DI.
      * @param {string} profileId - ID del perfil
      * @returns {Promise<Object>} Instancia del navegador
      */
     async startProfile(profileId) {
-        // Obtener AdsPowerManager
-        const adsPowerManager = this.adsPowerManager;
-
-        if (!adsPowerManager) {
+        if (!this.adsPowerManager) {
             throw new Error('AdsPowerManager no disponible');
         }
-        
-        return await adsPowerManager.startProfile(profileId);
+        return await this.adsPowerManager.startProfile(profileId);
     }
     //#endregion Starters
 
@@ -576,7 +587,7 @@ class NavigationController extends EventEmitter {
             while (!navigationSuccess && navAttempt < maxNavAttempts) {
                 try {
                     navAttempt++;
-                    console.log(`🔄 [${sessionStats.profileId}] Intento navegación ${navAttempt}/${maxNavAttempts} a ${website.domain}`);
+                    console.log(`[${sessionStats.profileId}] Intento navegación ${navAttempt}/${maxNavAttempts} a ${website.domain}`);
                     
                     await page.goto(website.url, { 
                         waitUntil: 'domcontentloaded',
@@ -587,7 +598,7 @@ class NavigationController extends EventEmitter {
                     const currentUrl = page.url();
                     if (currentUrl && currentUrl !== 'about:blank') {
                         navigationSuccess = true;
-                        console.log(`✅ [${sessionStats.profileId}] Navegación exitosa a ${website.domain}`);
+                        console.log(`[${sessionStats.profileId}] Navegación exitosa a ${website.domain}`);
 
                         // Actualizar sitio actual antes de intentar navegar
                         this.emitSessionProgress(sessionId, profileId, {
@@ -602,7 +613,7 @@ class NavigationController extends EventEmitter {
                     }
                     
                 } catch (navError) {
-                    console.warn(`⚠️ [${sessionStats.profileId}] Error navegación intento ${navAttempt}: ${navError.message}`);
+                    console.warn(`[${sessionStats.profileId}] Error navegación intento ${navAttempt}: ${navError.message}`);
                     
                     // Si no es el último intento, esperar antes del siguiente
                     if (navAttempt < maxNavAttempts) {
@@ -610,7 +621,7 @@ class NavigationController extends EventEmitter {
 
                         // Verificar si se debe detener la sesión antes de reintentar
                         if (this.shouldStopSession(profileId)) {
-                            console.log(`🛑 [${profileId}] Pausa interrumpida por flag de detención`);
+                            console.log(`[${profileId}] Pausa interrumpida por flag de detención`);
                             break;
                         }
                     }
@@ -636,12 +647,12 @@ class NavigationController extends EventEmitter {
             // Detectar y aceptar cookies automáticamente
             const cookieResult = await this.cookieDetector.acceptCookies(page);
             if (cookieResult.success) {
-                console.log(`🍪 [${sessionStats.profileId}] Cookies aceptadas: ${cookieResult.method}`);
+                console.log(`[${sessionStats.profileId}] Cookies aceptadas: ${cookieResult.method}`);
             }
 
             // Verificar si se debe detener la sesión antes de simular comportamiento humano
             if (this.shouldStopSession(profileId || sessionStats.profileId)) {
-                console.log(`🛑 [${sessionStats.profileId}] Simulación humana interrumpida por flag de detención`);
+                console.log(`[${sessionStats.profileId}] Simulación humana interrumpida por flag de detención`);
                 return {
                     success: false,
                     error: 'SESION_DETENIDA: Navegación interrumpida por usuario',
@@ -666,10 +677,10 @@ class NavigationController extends EventEmitter {
             humanScore = navigationResult.humanLikeScore || 0;
             visitSuccess = true;
 
-            console.log(`🎭 [${sessionStats.profileId}] Navegación humana: ${navigationResult.pagesVisited || 1} páginas, ${interactions} interacciones, score ${humanScore}/100`);
+            console.log(`[${sessionStats.profileId}] Navegación humana: ${navigationResult.pagesVisited || 1} páginas, ${interactions} interacciones, score ${humanScore}/100`);
 
         } catch (error) {
-            console.error(`⚠️ [${sessionStats.profileId}] Error en ${website.domain}: ${error.message}`);
+            console.error(`[${sessionStats.profileId}] Error en ${website.domain}: ${error.message}`);
             errorMessage = error.message;
             
             // Si el error es por conexión perdida, marcar para reconexión
@@ -696,7 +707,7 @@ class NavigationController extends EventEmitter {
         const cookiesGained = cookieDiff.safeDifference;
 
         if (cookieDiff.wasAdjusted) {
-            console.warn(`🔧 [${sessionStats.profileId}] Diferencia ajustada: ${cookieDiff.rawDifference} → ${cookieDiff.safeDifference} (${cookieDiff.adjustmentReason})`);
+            console.warn(`[${sessionStats.profileId}] Diferencia ajustada: ${cookieDiff.rawDifference} ${cookieDiff.safeDifference} (${cookieDiff.adjustmentReason})`);
         }
 
         return {
@@ -756,15 +767,15 @@ class NavigationController extends EventEmitter {
         let adjustmentReason = null;
         
         if (isSuspiciousLoss) {
-            console.warn(`🚨 [${profileId}] Pérdida sospechosa detectada: ${siteGained} cookies`);
+            console.warn(`[${profileId}] Pérdida sospechosa detectada: ${siteGained} cookies`);
             validatedGain = 0; // No aplicar pérdidas grandes
             adjustmentReason = 'suspicious_loss_prevented';
         } else if (isSuspiciousGain) {
-            console.warn(`🚨 [${profileId}] Ganancia sospechosa detectada: ${siteGained} cookies`);
+            console.warn(`[${profileId}] Ganancia sospechosa detectada: ${siteGained} cookies`);
             validatedGain = Math.min(siteGained, 100); // Limitar a ganancia realista
             adjustmentReason = 'excessive_gain_capped';
         } else if (proposedTotal < minimumAllowed) {
-            console.warn(`🛡️ [${profileId}] Total propuesto (${proposedTotal}) menor que mínimo (${minimumAllowed})`);
+            console.warn(`[${profileId}] Total propuesto (${proposedTotal}) menor que mínimo (${minimumAllowed})`);
             validatedGain = minimumAllowed - currentTotal; // Ajustar para alcanzar mínimo
             adjustmentReason = 'minimum_threshold_enforced';
         }
@@ -805,7 +816,7 @@ class NavigationController extends EventEmitter {
             const cookieResult = await this.cookieDetector.acceptCookies(page);
             
             if (cookieResult.success) {
-                console.log(`🍪 [${sessionStats.profileId}] Cookies aceptadas en ${website.domain}`);
+                console.log(`[${sessionStats.profileId}] Cookies aceptadas en ${website.domain}`);
             }
             
             // Simular navegación básica (scroll, tiempo en página)
@@ -814,7 +825,7 @@ class NavigationController extends EventEmitter {
             visitSuccess = true;
             
         } catch (error) {
-            console.error(`⚠️ [${sessionStats.profileId}] Error en ${website.domain}:`, error.message);
+            console.error(`[${sessionStats.profileId}] Error en ${website.domain}:`, error.message);
             errorMessage = error.message;
         }
         
@@ -822,7 +833,7 @@ class NavigationController extends EventEmitter {
         const cookiesGained = cookiesAfter - cookiesBefore;
         
         if (cookiesGained > 0) {
-            console.log(`📈 [${sessionStats.profileId}] +${cookiesGained} cookies de ${website.domain}`);
+            console.log(`[${sessionStats.profileId}] +${cookiesGained} cookies de ${website.domain}`);
         }
         
         return {
@@ -867,9 +878,9 @@ class NavigationController extends EventEmitter {
             await this.databaseManager.db.runAsync('PRAGMA cache_size=10000');
             await this.databaseManager.db.runAsync('PRAGMA temp_store=memory');
             
-            console.log('🔧 Base de datos configurada para concurrencia');
+            console.log('Base de datos configurada para concurrencia');
         } catch (error) {
-            console.warn('⚠️ No se pudo optimizar la base de datos:', error.message);
+            console.warn('No se pudo optimizar la base de datos:', error.message);
         }
     }
 
@@ -889,7 +900,7 @@ class NavigationController extends EventEmitter {
                 sessionStats.startTime.toISOString()
             ]);
         } catch (error) {
-            console.warn(`⚠️ Error registrando sesión ${sessionStats.profileId}:`, error.message);
+            console.warn(`Error registrando sesión ${sessionStats.profileId}:`, error.message);
         }
     }
 
@@ -916,7 +927,7 @@ class NavigationController extends EventEmitter {
             await this.databaseManager.updateWebsiteStats(website.url, siteResult.cookiesGained);
             
         } catch (error) {
-            console.warn(`⚠️ Error registrando visita:`, error.message);
+            console.warn(`Error registrando visita:`, error.message);
         }
     }
 
@@ -936,7 +947,7 @@ class NavigationController extends EventEmitter {
                 sessionStats.sessionId
             ]);
         } catch (error) {
-            console.warn(`⚠️ Error completando sesión:`, error.message);
+            console.warn(`Error completando sesión:`, error.message);
         }
     }
 
@@ -967,10 +978,10 @@ class NavigationController extends EventEmitter {
                 sessionStats.sessionId
             ]);
             
-            console.log(`📊 [${sessionStats.profileId}] Sesión marcada como ${status} en BD`);
+            console.log(`[${sessionStats.profileId}] Sesión marcada como ${status} en BD`);
             
         } catch (error) {
-            console.warn(`⚠️ Error marcando sesión como detenida:`, error.message);
+            console.warn(`Error marcando sesión como detenida:`, error.message);
         }
     }
 
@@ -981,7 +992,7 @@ class NavigationController extends EventEmitter {
         const activeSessions = Array.from(this.activeSessions.values());
         if (activeSessions.length === 0) return;
         
-        console.log('\n📊 PROGRESO GLOBAL:');
+        console.log('\nPROGRESO GLOBAL:');
         console.log('═'.repeat(60));
         
         activeSessions.forEach(session => {
@@ -990,7 +1001,7 @@ class NavigationController extends EventEmitter {
             
             console.log(`[${session.profileId}] ${progressBar} ${progress.toFixed(1)}% (${session.cookiesCollected}/${session.targetCookies})`);
             if (session.currentSite) {
-                console.log(`    📍 Actual: ${session.currentSite}`);
+                console.log(`Actual: ${session.currentSite}`);
             }
         });
         
@@ -1024,22 +1035,22 @@ class NavigationController extends EventEmitter {
      * Muestra reporte final detallado
      */
     showFinalReport(stats) {
-        console.log('\n🎉 REPORTE FINAL DE NAVEGACIÓN');
+        console.log('\nREPORTE FINAL DE NAVEGACIÓN');
         console.log('═'.repeat(80));
-        console.log(`📊 Perfiles procesados: ${stats.totalProfiles}`);
-        console.log(`✅ Exitosos: ${stats.successfulProfiles}`);
-        console.log(`❌ Fallidos: ${stats.failedProfiles}`);
-        console.log(`🍪 Total cookies recolectadas: ${stats.totalCookiesCollected}`);
-        console.log(`🌐 Total sitios visitados: ${stats.totalSitesVisited}`);
-        console.log(`📈 Promedio cookies/perfil: ${stats.averageCookiesPerProfile.toFixed(0)}`);
-        console.log(`⏱️  Duración total: ${(stats.duration / 1000 / 60).toFixed(1)} minutos`);
-        console.log(`✨ Tasa de éxito: ${stats.successRate.toFixed(1)}%`);
+        console.log(`Perfiles procesados: ${stats.totalProfiles}`);
+        console.log(`Exitosos: ${stats.successfulProfiles}`);
+        console.log(`Fallidos: ${stats.failedProfiles}`);
+        console.log(`Total cookies recolectadas: ${stats.totalCookiesCollected}`);
+        console.log(`Total sitios visitados: ${stats.totalSitesVisited}`);
+        console.log(`Promedio cookies/perfil: ${stats.averageCookiesPerProfile.toFixed(0)}`);
+        console.log(`Duración total: ${(stats.duration / 1000 / 60).toFixed(1)} minutos`);
+        console.log(`Tasa de éxito: ${stats.successRate.toFixed(1)}%`);
         
-        console.log('\n📋 DETALLE POR PERFIL:');
+        console.log('\nDETALLE POR PERFIL:');
         stats.results.forEach(result => {
             const status = result.success ? '✅' : '❌';
             const target = result.targetReached ? '🎯' : '⏳';
-            console.log(`   ${status} ${target} [${result.profileId}] ${result.cookiesCollected} cookies, ${result.sitesVisited} sitios`);
+            console.log(`${status} ${target} [${result.profileId}] ${result.cookiesCollected} cookies, ${result.sitesVisited} sitios`);
         });
         
         console.log('═'.repeat(80));
@@ -1070,7 +1081,7 @@ class NavigationController extends EventEmitter {
      * @param {Object} data - Datos del progreso
      */
     emitSessionProgress(sessionId, profileId, data) {
-        console.log(`📡 [DEBUG] Emitiendo session:progress para ${profileId}: ${data.cookiesCollected}/${data.targetCookies} cookies`);
+        console.log(`[DEBUG] Emitiendo session:progress para ${profileId}: ${data.cookiesCollected}/${data.targetCookies} cookies`);
 
         this.emit('session:progress', {
             sessionId,
@@ -1086,7 +1097,7 @@ class NavigationController extends EventEmitter {
      * @param {number} targetCookies - Objetivo de cookies para esta sesión
      */
     emitSessionStarted(sessionId, profileId, targetCookies) {
-        console.log(`📡 [DEBUG] Emitiendo session:started para ${profileId} con objetivo ${targetCookies} cookies`);
+        console.log(`[DEBUG] Emitiendo session:started para ${profileId} con objetivo ${targetCookies} cookies`);
 
         this.emit('session:started', {
             sessionId,
@@ -1157,10 +1168,10 @@ class NavigationController extends EventEmitter {
      * @returns {Promise<void>}
      */
     async stopAllSessions() {
-        console.log(`🛑 Iniciando detención de ${this.activeSessions.size} sesiones activas...`);
+        console.log(`Iniciando detención de ${this.activeSessions.size} sesiones activas...`);
         
         if (this.activeSessions.size === 0) {
-            console.log('✅ No hay sesiones activas para detener');
+            console.log('No hay sesiones activas para detener');
             return;
         }
         
@@ -1168,13 +1179,13 @@ class NavigationController extends EventEmitter {
         const profileIds = Array.from(this.activeSessions.keys());
         profileIds.forEach(profileId => {
             this.setStopFlag(profileId);
-            console.log(`🚩 [${profileId}] Flag de detención establecido`);
+            console.log(`[${profileId}] Flag de detención establecido`);
         });
         
         // PASO 2: Crear array de promesas para limpiar todas las sesiones en paralelo
         const cleanupPromises = profileIds.map(async (profileId) => {
             try {
-                console.log(`🛑 Deteniendo sesión de perfil ${profileId}...`);
+                console.log(`Deteniendo sesión de perfil ${profileId}...`);
                 
                 // Obtener datos de la sesión activa
                 const sessionData = this.activeSessions.get(profileId);
@@ -1183,11 +1194,11 @@ class NavigationController extends EventEmitter {
                 // Llamar a cleanupProfile con la instancia correcta del navegador
                 await this.cleanupProfile(profileId, browserInstance);
                 
-                console.log(`✅ Sesión de perfil ${profileId} detenida`);
+                console.log(`Sesión de perfil ${profileId} detenida`);
                 return { profileId, success: true };
                 
             } catch (error) {
-                console.warn(`⚠️ Error deteniendo perfil ${profileId}: ${error.message}`);
+                console.warn(`Error deteniendo perfil ${profileId}: ${error.message}`);
                 return { profileId, success: false, error: error.message };
             }
         });
@@ -1208,24 +1219,24 @@ class NavigationController extends EventEmitter {
                 } else {
                     errorCount++;
                     const error = result.status === 'rejected' ? result.reason : result.value.error;
-                    console.error(`❌ [${profileId}] Falló detención: ${error}`);
+                    console.error(`[${profileId}] Falló detención: ${error}`);
                 }
             });
             
-            console.log(`📊 Detención completada: ${successCount} exitosas, ${errorCount} con errores`);
+            console.log(`Detención completada: ${successCount} exitosas, ${errorCount} con errores`);
             
         } catch (error) {
-            console.error(`❌ Error crítico durante detención masiva: ${error.message}`);
+            console.error(`Error crítico durante detención masiva: ${error.message}`);
         }
 
         // PASO 5: Actualizar base de datos para sesiones no completadas
-        console.log('📊 Actualizando base de datos para sesiones interrumpidas...');
+        console.log('Actualizando base de datos para sesiones interrumpidas...');
         for (const [profileId, sessionStats] of this.activeSessions) {
             try {
                 // Marcar sesión como detenida manualmente
                 await this.markSessionStopped(sessionStats, 'stopped_manually');
             } catch (error) {
-                console.warn(`⚠️ Error actualizando sesión ${profileId} en BD:`, error.message);
+                console.warn(`Error actualizando sesión ${profileId} en BD:`, error.message);
             }
         }
         
@@ -1243,7 +1254,7 @@ class NavigationController extends EventEmitter {
             startTime: null
         };
         
-        console.log('🧹 Todas las sesiones han sido procesadas y recursos limpiados');
+        console.log('Todas las sesiones han sido procesadas y recursos limpiados');
     }
 
     /**
@@ -1285,7 +1296,7 @@ class NavigationController extends EventEmitter {
      * @returns {Promise<void>}
      */
     async cleanupProfile(profileId, browserInstance = null) {
-        console.log(`🧹 [${profileId}] Iniciando limpieza completa del perfil...`);
+        console.log(`[${profileId}] Iniciando limpieza completa del perfil...`);
         
         try {
             // PASO 1: Establecer flag de detención inmediatamente
@@ -1309,7 +1320,7 @@ class NavigationController extends EventEmitter {
                                     await page.close();
                                 }
                             } catch (pageError) {
-                                console.warn(`⚠️ [${profileId}] Error cerrando página: ${pageError.message}`);
+                                console.warn(`[${profileId}] Error cerrando página: ${pageError.message}`);
                             }
                         }
                     }
@@ -1317,13 +1328,13 @@ class NavigationController extends EventEmitter {
                     // Cerrar el navegador completo
                     if (browserInstance.browser && !browserInstance.browser.isConnected || !browserInstance.browser.isConnected()) {
                         await browserInstance.browser.close();
-                        console.log(`🔌 [${profileId}] Navegador Playwright cerrado`);
+                        console.log(`[${profileId}] Navegador Playwright cerrado`);
                     } else {
-                        console.log(`🔌 [${profileId}] Navegador ya estaba cerrado`);
+                        console.log(`[${profileId}] Navegador ya estaba cerrado`);
                     }
                     
                 } catch (browserError) {
-                    console.warn(`⚠️ [${profileId}] Error cerrando navegador Playwright: ${browserError.message}`);
+                    console.warn(`[${profileId}] Error cerrando navegador Playwright: ${browserError.message}`);
                 }
             }
             
@@ -1331,12 +1342,12 @@ class NavigationController extends EventEmitter {
             try {
                 if (this.adsPowerManager) {
                     await this.adsPowerManager.stopProfile(profileId);
-                    console.log(`🔌 [${profileId}] Perfil detenido en Ads Power`);
+                    console.log(`[${profileId}] Perfil detenido en Ads Power`);
                 } else {
-                    console.warn(`⚠️ [${profileId}] AdsPowerManager no disponible`);
+                    console.warn(`[${profileId}] AdsPowerManager no disponible`);
                 }
             } catch (adsPowerError) {
-                console.warn(`⚠️ [${profileId}] Error deteniendo perfil en Ads Power: ${adsPowerError.message}`);
+                console.warn(`[${profileId}] Error deteniendo perfil en Ads Power: ${adsPowerError.message}`);
             }
             
             // PASO 5: Limpiar de sesiones activas
@@ -1352,10 +1363,10 @@ class NavigationController extends EventEmitter {
                 reason: 'manual_stop'
             });
             
-            console.log(`✅ [${profileId}] Limpieza completa finalizada`);
+            console.log(`[${profileId}] Limpieza completa finalizada`);
             
         } catch (error) {
-            console.error(`❌ [${profileId}] Error durante limpieza: ${error.message}`);
+            console.error(`[${profileId}] Error durante limpieza: ${error.message}`);
             
             // Asegurar que al menos se limpie de las estructuras internas
             this.activeSessions.delete(profileId);

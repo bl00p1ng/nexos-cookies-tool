@@ -41,7 +41,7 @@ export function generateDeviceFingerprint() {
         return hash;
 
     } catch (error) {
-        console.error('❌ Error generando device fingerprint:', error);
+        console.error('Error generando device fingerprint:', error);
 
         // Fallback: usar solo machine ID si falla algo
         try {
@@ -51,7 +51,7 @@ export function generateDeviceFingerprint() {
                 .update(machineId)
                 .digest('hex');
         } catch (fallbackError) {
-            console.error('❌ Error crítico en fallback de fingerprint:', fallbackError);
+            console.error('Error crítico en fallback de fingerprint:', fallbackError);
             throw new Error('No se pudo generar device fingerprint');
         }
     }
@@ -94,7 +94,7 @@ let cachedFingerprint = null;
 export function getDeviceFingerprint() {
     if (!cachedFingerprint) {
         cachedFingerprint = generateDeviceFingerprint();
-        console.log('🔑 Device Fingerprint generado:', cachedFingerprint.substring(0, 16) + '...');
+        console.log('Device Fingerprint generado:', cachedFingerprint.substring(0, 16) + '...');
     }
 
     return cachedFingerprint;

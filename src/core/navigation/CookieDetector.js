@@ -458,14 +458,14 @@ class CookieDetector {
             
             // Verificar que el elemento sigue siendo válido
             if (!element) {
-                console.log('   ⚠️  Elemento no válido para clic');
+                console.log('Elemento no válido para clic');
                 return false;
             }
 
             // Verificar que el elemento es visible
             const isVisible = await element.isVisible();
             if (!isVisible) {
-                console.log('   ⚠️  Elemento no visible para clic');
+                console.log('Elemento no visible para clic');
                 return false;
             }
 
@@ -474,39 +474,39 @@ class CookieDetector {
                 await element.scrollIntoViewIfNeeded();
                 await this.sleep(500);
             } catch (scrollError) {
-                console.log('   ⚠️  No se pudo hacer scroll al elemento');
+                console.log('No se pudo hacer scroll al elemento');
             }
 
             // Intentar clic normal primero
             try {
                 await element.click({ timeout: 5000 });
-                console.log('   ✅ Clic normal exitoso');
+                console.log('Clic normal exitoso');
                 return true;
             } catch (clickError) {
-                console.log('   ⚠️  Clic normal falló, intentando clic forzado');
+                console.log('Clic normal falló, intentando clic forzado');
             }
 
             // Intentar clic forzado
             try {
                 await element.click({ force: true, timeout: 5000 });
-                console.log('   ✅ Clic forzado exitoso');
+                console.log('Clic forzado exitoso');
                 return true;
             } catch (forceClickError) {
-                console.log('   ⚠️  Clic forzado falló, intentando JavaScript');
+                console.log('Clic forzado falló, intentando JavaScript');
             }
 
             // Intentar clic con JavaScript como último recurso
             try {
                 await element.evaluate(el => el.click());
-                console.log('   ✅ Clic JavaScript exitoso');
+                console.log('Clic JavaScript exitoso');
                 return true;
             } catch (jsClickError) {
-                console.log('   ❌ Todos los métodos de clic fallaron');
+                console.log('Todos los métodos de clic fallaron');
                 return false;
             }
 
         } catch (error) {
-            console.error('   ❌ Error en clic robusto:', error.message);
+            console.error('Error en clic robusto:', error.message);
             return false;
         }
     }
@@ -520,23 +520,23 @@ class CookieDetector {
         const maxAttempts = 3;
         let attempts = 0;
 
-        console.log('🍪 Iniciando detección de avisos de cookies...');
+        console.log('Iniciando detección de avisos de cookies...');
 
         while (attempts < maxAttempts) {
             try {
                 attempts++;
-                console.log(`   Intento ${attempts}/${maxAttempts}`);
+                console.log(`Intento ${attempts}/${maxAttempts}`);
 
                 // ESTRATEGIA 1: Detectar overlays con z-index alto
                 const overlays = await this.detectCookieOverlay(page);
                 if (overlays.length > 0) {
-                    console.log(`   Detectados ${overlays.length} overlays potenciales`);
+                    console.log(`Detectados ${overlays.length} overlays potenciales`);
                 }
 
                 // ESTRATEGIA 2: Buscar banner por selectores conocidos
                 let cookieBanner = await this.findCookieBannerBySelectors(page);
                 if (cookieBanner) {
-                    console.log(`   Banner encontrado: ${cookieBanner.method}`);
+                    console.log(`Banner encontrado: ${cookieBanner.method}`);
                 }
 
                 // ESTRATEGIA 3: Buscar botón de aceptación (múltiples estrategias)
@@ -555,7 +555,7 @@ class CookieDetector {
                 }
 
                 if (acceptButton) {
-                    console.log(`   Botón encontrado: "${acceptButton.text}" (${acceptButton.method})`);
+                    console.log(`Botón encontrado: "${acceptButton.text}"(${acceptButton.method})`);
                     
                     // Simular comportamiento humano antes del clic
                     await this.humanLikeDelay(300, 1000);
@@ -576,7 +576,7 @@ class CookieDetector {
                                 buttonText: acceptButton.text
                             };
                         } else {
-                            console.log('   ⚠️  Banner no desapareció después del clic');
+                            console.log('Banner no desapareció después del clic');
                         }
                     }
                 }
@@ -587,7 +587,7 @@ class CookieDetector {
                 }
 
             } catch (error) {
-                console.error(`   Error en intento ${attempts}:`, error.message);
+                console.error(`Error en intento ${attempts}:`, error.message);
                 if (attempts === maxAttempts) {
                     return {
                         success: false,
@@ -599,7 +599,7 @@ class CookieDetector {
             }
         }
 
-        console.log('   ⚠️  No se pudo encontrar o aceptar aviso de cookies');
+        console.log('No se pudo encontrar o aceptar aviso de cookies');
         return {
             success: false,
             reason: 'No se encontró botón de aceptación válido',
@@ -618,13 +618,13 @@ class CookieDetector {
             const result = await this.cookieCounterManager.getCookieCount(page, profileId);
             
             if (result.warning) {
-                console.warn(`⚠️ [${profileId}] ${result.warning}`);
+                console.warn(`[${profileId}] ${result.warning}`);
             }
             
             return result.count;
             
         } catch (error) {
-            console.error(`❌ [${profileId}] Error crítico en conteo de cookies: ${error.message}`);
+            console.error(`[${profileId}] Error crítico en conteo de cookies: ${error.message}`);
             
             // Último recurso: retornar 0 de forma segura
             return 0;

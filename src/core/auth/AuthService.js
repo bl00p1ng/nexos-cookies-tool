@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { getDeviceFingerprint } from './deviceFingerprint.js';
 
+import { createLogger } from '../utils/Logger.js';
+
+const log = createLogger('AuthService');
 /**
  * Servicio de Autenticación para Cookies Hexzor
  * Maneja todas las operaciones de autenticación con el backend
@@ -38,7 +41,7 @@ export class AuthService {
                 const fingerprint = getDeviceFingerprint();
                 config.headers['x-device-fingerprint'] = fingerprint;
 
-                console.log(`📤 ${config.method.toUpperCase()} ${config.url}`);
+                log.info(`${config.method.toUpperCase()} ${config.url}`);
 
                 return config;
             },
@@ -50,14 +53,14 @@ export class AuthService {
         // Interceptor de response: Manejar respuestas y errores globalmente
         this.httpClient.interceptors.response.use(
             response => {
-                console.log(`✅ ${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`);
+                log.info(`${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`);
                 return response;
             },
             error => {
                 if (error.response) {
-                    console.error(`❌ ${error.config.method.toUpperCase()} ${error.config.url} - ${error.response.status}`);
+                    log.error(`${error.config.method.toUpperCase()} ${error.config.url} - ${error.response.status}`);
                 } else {
-                    console.error(`❌ ${error.config?.method?.toUpperCase() || 'REQUEST'} - Network Error`);
+                    log.error(`${error.config?.method?.toUpperCase() || 'REQUEST'} - Network Error`);
                 }
                 return Promise.reject(error);
             }
@@ -152,7 +155,7 @@ export class AuthService {
             });
 
             // Debug: ver estructura de respuesta
-            console.log('📥 Respuesta de verify-code:', JSON.stringify(response.data, null, 2));
+            log.info('Respuesta de verify-code:', JSON.stringify(response.data, null, 2));
 
             // Extraer datos de respuesta con valores por defecto
             const { token, user, deviceFingerprint = null } = response.data.data || {};
@@ -162,16 +165,16 @@ export class AuthService {
                 throw new Error('Respuesta del servidor incompleta: falta token o user');
             }
 
-            console.log('💾 Guardando datos de autenticación...');
-            console.log('  - Token:', token ? '✅' : '❌');
-            console.log('  - Email:', email);
-            console.log('  - User:', user);
-            console.log('  - DeviceFingerprint:', deviceFingerprint);
+            log.info('Guardando datos de autenticación...');
+            log.info('- Token:', token ? '': '');
+            log.info('- Email:', email);
+            log.info('- User:', user);
+            log.info('- DeviceFingerprint:', deviceFingerprint);
 
             // Guardar token y fingerprint en el store
             this.saveAuthData(token, email, user, deviceFingerprint);
 
-            console.log('✅ Datos guardados exitosamente');
+            log.info('Datos guardados exitosamente');
 
             return {
                 success: true,
@@ -181,10 +184,10 @@ export class AuthService {
 
         } catch (error) {
             // Log detallado del error para debugging
-            console.error('❌ Error en verifyAccessCode:', error);
-            console.error('   - Tipo:', error.constructor.name);
-            console.error('   - Mensaje:', error.message);
-            console.error('   - Stack:', error.stack);
+            log.error('Error en verifyAccessCode:', error);
+            log.error('- Tipo:', error.constructor.name);
+            log.error('- Mensaje:', error.message);
+            log.error('- Stack:', error.stack);
 
             // Código inválido o expirado
             if (error.response?.status === 401) {
@@ -233,6 +236,20 @@ export class AuthService {
      * @param {string} email - Email del usuario
      * @returns {Promise<Object>} Resultado de la validación
      */
+    /**
+     * Valida un token guardado contra el backend.
+     *
+     * Convención de respuesta:
+     *   - { success: true }                                       — token y suscripción válidos
+     *   - { success: false, code: 'INVALID_TOKEN', error }        — backend rechazó el token (401)
+     *   - { success: false, code: 'SUBSCRIPTION_INACTIVE', ... }  — backend reporta suscripción inactiva (403)
+     *   - { success: false, code: 'MULTIPLE_DEVICE_BLOCKED', ... }— backend detectó otro dispositivo
+     *   - { success: false, code: 'NETWORK_ERROR', error }        — no se pudo contactar al backend
+     *   - { success: false, code: 'SERVER_ERROR', error }         — error 5xx u otro inesperado
+     *
+     * El caller (authBootstrap) usa el `code` para decidir si limpia la
+     * sesión local o solo pide re-login preservando el token.
+     */
     async validateToken(token, email) {
         try {
             const response = await this.httpClient.post('/api/auth/validate-token', {
@@ -255,7 +272,11 @@ export class AuthService {
 
                 return { success: true };
             } else {
-                return { success: false, error: response.data.error || 'Token inválido' };
+                return {
+                    success: false,
+                    code: 'INVALID_TOKEN',
+                    error: response.data.error || 'Token inválido'
+                };
             }
 
         } catch (error) {
@@ -274,12 +295,38 @@ export class AuthService {
                 };
             }
 
-            if (error.response && error.response.status === 401) {
-                return { success: false, error: 'Token expirado o inválido' };
+            if (error.response?.status === 401) {
+                return {
+                    success: false,
+                    code: 'INVALID_TOKEN',
+                    error: 'Token expirado o inválido'
+                };
             }
 
-            console.error('Error validando token:', error.message);
-            return { success: false, error: 'Error de conexión con servidor de autenticación' };
+            if (error.response?.status === 403) {
+                return {
+                    success: false,
+                    code: 'SUBSCRIPTION_INACTIVE',
+                    error: 'Suscripción inactiva'
+                };
+            }
+
+            // Sin response = problema de transporte (red caída, DNS, timeout, etc.)
+            if (!error.response) {
+                log.warn('Error de red validando token', { error: error.message });
+                return {
+                    success: false,
+                    code: 'NETWORK_ERROR',
+                    error: 'No se pudo contactar al servidor de autenticación'
+                };
+            }
+
+            log.error('Error inesperado validando token', error);
+            return {
+                success: false,
+                code: 'SERVER_ERROR',
+                error: error.response?.data?.error || 'Error del servidor de autenticación'
+            };
         }
     }
 
@@ -409,7 +456,7 @@ export class AuthService {
                     message: 'Sesión cerrada correctamente'
                 };
             } catch (error) {
-                console.warn('⚠️ No se pudo invalidar sesión en servidor:', error.message);
+                log.warn('No se pudo invalidar sesión en servidor:', error.message);
                 // Continuar de todos modos, ya limpiamos local storage
             }
         }
@@ -486,17 +533,20 @@ export class AuthService {
     }
 
     /**
-     * Guarda datos de autenticación en el store
+     * Guarda datos de autenticación en el store.
+     *
+     * Deliberadamente NO se persiste fecha de expiración: la vigencia del
+     * token la decide el backend en cada `validateToken`. Confiar en una
+     * fecha local sería bypass-able (el store es un JSON plano en disco).
+     *
      * @private
      */
     saveAuthData(token, email, user, deviceFingerprint) {
-        // Calcular fecha de expiración del token (30 días)
-        const tokenExpiry = new Date();
-        tokenExpiry.setDate(tokenExpiry.getDate() + 30);
-
         this.store.set('authToken', token);
         this.store.set('lastEmail', email);
-        this.store.set('tokenExpiry', tokenExpiry.toISOString());
+
+        // Limpiar tokenExpiry residual de versiones previas que sí lo guardaban.
+        this.store.delete('tokenExpiry');
 
         // Solo guardar deviceFingerprint si existe y es un string
         if (deviceFingerprint && typeof deviceFingerprint === 'string') {

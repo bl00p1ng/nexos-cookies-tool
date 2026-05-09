@@ -29,7 +29,7 @@ class MouseMovementSimulator {
             
             // Validar que tenemos dimensiones válidas
             if (!viewport || !viewport.width || !viewport.height) {
-                console.warn('⚠️ No se pudieron obtener dimensiones del viewport, usando valores por defecto');
+                console.warn('No se pudieron obtener dimensiones del viewport, usando valores por defecto');
                 viewport = { width: 1200, height: 800 };
             }
             
@@ -53,7 +53,7 @@ class MouseMovementSimulator {
             await this.moveNaturally(page, newX, newY);
             
         } catch (error) {
-            console.warn('⚠️ Error en movimientos iniciales del mouse:', error.message);
+            console.warn('Error en movimientos iniciales del mouse:', error.message);
         }
     }
 
@@ -66,7 +66,7 @@ class MouseMovementSimulator {
         try {
             const box = await element.boundingBox();
             if (!box) {
-                console.warn('⚠️ No se pudo obtener boundingBox del elemento');
+                console.warn('No se pudo obtener boundingBox del elemento');
                 return;
             }
 
@@ -78,7 +78,7 @@ class MouseMovementSimulator {
             await this.moveNaturally(page, targetX, targetY);
             
         } catch (error) {
-            console.warn('⚠️ Error moviendo mouse hacia elemento:', error.message);
+            console.warn('Error moviendo mouse hacia elemento:', error.message);
         }
     }
 

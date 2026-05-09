@@ -29,7 +29,7 @@ class NavigationPatternGenerator {
         // Aplicar variación aleatoria para naturalidad
         this.applyRandomVariation(pattern);
         
-        console.log(`🎯 Patrón generado para ${siteType}:`, {
+        console.log(`Patrón generado para ${siteType}:`, {
             pages: `${pattern.pagesMin}-${pattern.pagesMax}`,
             timePerPage: `${Math.round(pattern.timePerPage.min/1000)}-${Math.round(pattern.timePerPage.max/1000)}s`,
             clickProb: `${Math.round(pattern.clickProbability * 100)}%`
@@ -375,8 +375,8 @@ class NavigationPatternGenerator {
         const estimatedSites = Math.ceil(targetCookies / avgCookiesPerSite);
         const timePerSite = timeAvailable / estimatedSites;
 
-        console.log(`🎯 Optimizando para ${targetCookies} cookies en ${Math.round(timeAvailable/60000)} min`);
-        console.log(`📊 Estimado: ${estimatedSites} sitios, ${Math.round(timePerSite/1000)}s por sitio`);
+        console.log(`Optimizando para ${targetCookies} cookies en ${Math.round(timeAvailable/60000)} min`);
+        console.log(`Estimado: ${estimatedSites} sitios, ${Math.round(timePerSite/1000)}s por sitio`);
 
         switch (priority) {
             case 'cookies':
@@ -540,7 +540,7 @@ class NavigationPatternGenerator {
      */
     regenerateUserProfile() {
         this.userBehaviorProfile = this.generateUserBehaviorProfile();
-        console.log('🔄 Perfil de usuario regenerado');
+        console.log('Perfil de usuario regenerado');
     }
 
     /**

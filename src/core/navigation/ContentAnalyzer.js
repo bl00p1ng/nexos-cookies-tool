@@ -22,7 +22,7 @@ class ContentAnalyzer {
         }
 
         try {
-            console.log(`🔍 Analizando tipo de sitio: ${website.domain}`);
+            console.log(`Analizando tipo de sitio: ${website.domain}`);
 
             // Análisis por URL y dominio
             const urlTypeScore = this.analyzeByUrl(website.url);
@@ -45,13 +45,13 @@ class ContentAnalyzer {
                 combinedScores[a] > combinedScores[b] ? a : b
             );
 
-            console.log(`📊 Tipo detectado: ${detectedType} (puntuación: ${combinedScores[detectedType]})`);
+            console.log(`Tipo detectado: ${detectedType} (puntuación: ${combinedScores[detectedType]})`);
             
             this.analysisCache.set(cacheKey, detectedType);
             return detectedType;
 
         } catch (error) {
-            console.warn(`⚠️ Error detectando tipo de sitio: ${error.message}`);
+            console.warn(`Error detectando tipo de sitio: ${error.message}`);
             return 'general'; // Fallback
         }
     }
@@ -151,7 +151,7 @@ class ContentAnalyzer {
             return contentMetrics;
 
         } catch (error) {
-            console.warn(`⚠️ Error analizando contenido: ${error.message}`);
+            console.warn(`Error analizando contenido: ${error.message}`);
             return {
                 wordCount: 0,
                 images: 0,
@@ -232,7 +232,7 @@ class ContentAnalyzer {
             });
 
         } catch (error) {
-            console.warn(`⚠️ Error analizando estructura: ${error.message}`);
+            console.warn(`Error analizando estructura: ${error.message}`);
             return { general: 1 };
         }
     }
@@ -607,7 +607,7 @@ class ContentAnalyzer {
             });
 
         } catch (error) {
-            console.warn(`⚠️ Error identificando elementos peligrosos: ${error.message}`);
+            console.warn(`Error identificando elementos peligrosos: ${error.message}`);
             return [];
         }
     }
@@ -653,7 +653,7 @@ class ContentAnalyzer {
             });
 
         } catch (error) {
-            console.warn(`⚠️ Error calculando legibilidad: ${error.message}`);
+            console.warn(`Error calculando legibilidad: ${error.message}`);
             return {
                 readabilityLevel: 'unknown',
                 estimatedReadingTimeMinutes: 2
@@ -708,7 +708,7 @@ class ContentAnalyzer {
             });
 
         } catch (error) {
-            console.warn(`⚠️ Error detectando áreas de contenido: ${error.message}`);
+            console.warn(`Error detectando áreas de contenido: ${error.message}`);
             return [];
         }
     }
@@ -799,7 +799,7 @@ class ContentAnalyzer {
      */
     clearCache() {
         this.analysisCache.clear();
-        console.log('🗑️ Caché de análisis limpiada');
+        console.log('Caché de análisis limpiada');
     }
 
     /**

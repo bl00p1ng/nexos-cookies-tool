@@ -23,7 +23,7 @@ class TimingManager {
     async humanPause(context, fatigueLevel = 0, options = {}) {
         const pauseTime = this.calculatePauseTime(context, fatigueLevel, options);
         
-        console.log(`⏱️ Pausa ${context}: ${Math.round(pauseTime/1000)}s (fatiga: ${Math.round(fatigueLevel*100)}%)`);
+        console.log(`Pausa ${context}: ${Math.round(pauseTime/1000)}s (fatiga: ${Math.round(fatigueLevel*100)}%)`);
         
         // Realizar pausa con posibles micro-interrupciones
         await this.performPauseWithVariation(pauseTime, context);

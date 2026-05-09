@@ -17,7 +17,7 @@ class LinkSelector {
      */
     async analyzeAvailableLinks(page) {
         try {
-            console.log('🔗 Analizando enlaces disponibles...');
+            console.log('Analizando enlaces disponibles...');
 
             const links = await page.evaluate(() => {
                 const linkElements = Array.from(document.querySelectorAll('a[href]'));
@@ -99,7 +99,7 @@ class LinkSelector {
                 });
             });
 
-            console.log(`📊 Enlaces encontrados: ${links.length}`);
+            console.log(`Enlaces encontrados: ${links.length}`);
 
             // Enriquecer información de enlaces
             const enrichedLinks = await this.enrichLinkInformation(links, page);
@@ -110,7 +110,7 @@ class LinkSelector {
             return scoredLinks;
 
         } catch (error) {
-            console.error('❌ Error analizando enlaces:', error.message);
+            console.error('Error analizando enlaces:', error.message);
             return [];
         }
     }
@@ -125,13 +125,13 @@ class LinkSelector {
      */
     selectNextLink(availableLinks, visitedUrls, pattern, humanState) {
         try {
-            console.log(`🎯 Seleccionando enlace de ${availableLinks.length} opciones`);
+            console.log(`Seleccionando enlace de ${availableLinks.length} opciones`);
 
             // Filtrar enlaces ya visitados y peligrosos
             let candidateLinks = this.filterCandidateLinks(availableLinks, visitedUrls);
             
             if (candidateLinks.length === 0) {
-                console.log('🚫 No hay enlaces candidatos válidos');
+                console.log('No hay enlaces candidatos válidos');
                 return null;
             }
 
@@ -142,7 +142,7 @@ class LinkSelector {
             candidateLinks = this.applyHumanStateFilters(candidateLinks, humanState);
 
             if (candidateLinks.length === 0) {
-                console.log('🚫 No hay enlaces después de aplicar filtros');
+                console.log('No hay enlaces después de aplicar filtros');
                 return null;
             }
 
@@ -150,14 +150,14 @@ class LinkSelector {
             const selectedLink = this.selectLinkWithHumanBehavior(candidateLinks, pattern, humanState);
 
             if (selectedLink) {
-                console.log(`✅ Enlace seleccionado: "${selectedLink.text}" (puntuación: ${selectedLink.finalScore})`);
+                console.log(`Enlace seleccionado: "${selectedLink.text}"(puntuación: ${selectedLink.finalScore})`);
                 this.recordLinkSelection(selectedLink, candidateLinks.length);
             }
 
             return selectedLink;
 
         } catch (error) {
-            console.error('❌ Error seleccionando enlace:', error.message);
+            console.error('Error seleccionando enlace:', error.message);
             return null;
         }
     }
@@ -756,7 +756,7 @@ class LinkSelector {
      */
     clearHistory() {
         this.selectionHistory = [];
-        console.log('🗑️ Historial de selección de enlaces limpiado');
+        console.log('Historial de selección de enlaces limpiado');
     }
 
     /**
@@ -765,7 +765,7 @@ class LinkSelector {
      */
     blacklistDomain(domain) {
         this.blacklistedDomains.add(domain);
-        console.log(`🚫 Dominio añadido a lista negra: ${domain}`);
+        console.log(`Dominio añadido a lista negra: ${domain}`);
     }
 
     /**

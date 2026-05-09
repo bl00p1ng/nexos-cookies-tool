@@ -22,7 +22,7 @@ class ScrollSimulator {
             humanState = { fatigue: 0, attentionSpan: 1 }
         } = options;
 
-        console.log(`📖 Iniciando simulación de lectura por ${Math.round(totalTime/1000)}s`);
+        console.log(`Iniciando simulación de lectura por ${Math.round(totalTime/1000)}s`);
 
         const startTime = Date.now();
         let scrollActions = 0;
@@ -31,11 +31,11 @@ class ScrollSimulator {
         try {
             // Obtener dimensiones de la página
             const pageMetrics = await this.getPageMetrics(page);
-            console.log(`📏 Página: ${pageMetrics.totalHeight}px alto, viewport: ${pageMetrics.viewportHeight}px`);
+            console.log(`Página: ${pageMetrics.totalHeight}px alto, viewport: ${pageMetrics.viewportHeight}px`);
 
             // Calcular patrón de lectura basado en contenido
             const readingSegments = this.calculateReadingSegments(pageMetrics, contentMetrics, totalTime);
-            console.log(`📋 Planificados ${readingSegments.length} segmentos de lectura`);
+            console.log(`Planificados ${readingSegments.length} segmentos de lectura`);
 
             // Resetear posición de scroll
             await page.evaluate(() => window.scrollTo(0, 0));
@@ -45,7 +45,7 @@ class ScrollSimulator {
             for (let i = 0; i < readingSegments.length; i++) {
                 const segment = readingSegments[i];
                 
-                console.log(`📖 Segmento ${i + 1}: scroll a ${segment.targetPosition}px por ${Math.round(segment.readingTime/1000)}s`);
+                console.log(`Segmento ${i + 1}: scroll a ${segment.targetPosition}px por ${Math.round(segment.readingTime/1000)}s`);
 
                 // Scroll hacia la posición objetivo
                 const scrollResult = await this.scrollToPositionNaturally(page, segment.targetPosition, segment.scrollSpeed);
@@ -64,7 +64,7 @@ class ScrollSimulator {
 
                 // Verificar si deberíamos detenernos por fatiga
                 if (this.shouldStopReading(humanState, i, readingSegments.length)) {
-                    console.log('😴 Deteniendo lectura por fatiga');
+                    console.log('Deteniendo lectura por fatiga');
                     break;
                 }
             }
@@ -85,11 +85,11 @@ class ScrollSimulator {
                 readingEfficiency: this.calculateReadingEfficiency(pageMetrics, totalScrollDistance, totalTime)
             };
 
-            console.log(`✅ Lectura completada: ${scrollActions} acciones, ${Math.round(totalScrollDistance)}px recorridos`);
+            console.log(`Lectura completada: ${scrollActions} acciones, ${Math.round(totalScrollDistance)}px recorridos`);
             return result;
 
         } catch (error) {
-            console.error('❌ Error en simulación de lectura:', error.message);
+            console.error('Error en simulación de lectura:', error.message);
             return {
                 scrollActions,
                 totalScrollDistance,
@@ -169,7 +169,7 @@ class ScrollSimulator {
             // Ocasionalmente, hacer una pausa más larga (como si se estuviera leyendo algo interesante)
             if (Math.random() > 0.85) {
                 const longPause = this.randomBetween(800, 2000);
-                console.log(`   ⏸️ Pausa de lectura: ${longPause}ms`);
+                console.log(`Pausa de lectura: ${longPause}ms`);
                 await this.sleep(longPause);
             }
 
@@ -180,7 +180,7 @@ class ScrollSimulator {
                     window.scrollBy(0, -backAmount);
                 }, backScroll);
                 await this.sleep(this.randomBetween(300, 700));
-                console.log(`   ↩️ Micro-retroceso de ${backScroll}px`);
+                console.log(`Micro-retroceso de ${backScroll}px`);
             }
         }
 
@@ -239,7 +239,7 @@ class ScrollSimulator {
      * @returns {Promise<Object>} Resultado de la exploración
      */
     async performFinalExploration(page, pageMetrics) {
-        console.log('🔍 Realizando exploración final');
+        console.log('Realizando exploración final');
         
         let actions = 0;
         let totalDistance = 0;

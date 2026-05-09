@@ -42,7 +42,7 @@ class HumanBehaviorSimulator {
         const siteType = await this.contentAnalyzer.detectSiteType(page, website);
         const pattern = this.patternGenerator.generatePattern(siteType);
         
-        console.log(`🧠 [HUMAN] Iniciando navegación humana en ${website.domain} (tipo: ${siteType})`);
+        console.log(`[HUMAN] Iniciando navegación humana en ${website.domain} (tipo: ${siteType})`);
         
         const navigationResult = {
             siteType,
@@ -59,10 +59,10 @@ class HumanBehaviorSimulator {
             const pagesToVisit = this.calculatePagesToVisit(pattern, options);
             const visitedUrls = [page.url()];
             
-            console.log(`📄 Planificado visitar ${pagesToVisit} páginas`);
+            console.log(`Planificado visitar ${pagesToVisit} páginas`);
 
             for (let i = 0; i < pagesToVisit; i++) {
-                console.log(`\n🔍 Página ${i + 1}/${pagesToVisit} - ${page.url()}`);
+                console.log(`\nPágina ${i + 1}/${pagesToVisit} - ${page.url()}`);
                 
                 // Simular lectura de la página actual
                 const readingResult = await this.simulatePageReading(page, pattern);
@@ -81,7 +81,7 @@ class HumanBehaviorSimulator {
                         // Esperar carga de nueva página con comportamiento humano
                         await this.waitForPageLoadHuman(page);
                     } else {
-                        console.log('⚠️ No se encontraron más enlaces válidos');
+                        console.log('No se encontraron más enlaces válidos');
                         break;
                     }
                 } else {
@@ -93,13 +93,13 @@ class HumanBehaviorSimulator {
             navigationResult.humanLikeScore = this.calculateHumanLikeScore(navigationResult);
             navigationResult.success = true;
             
-            console.log(`✅ Navegación completada: ${navigationResult.pagesVisited} páginas en ${Math.round(navigationResult.timeSpent/1000)}s`);
-            console.log(`🎯 Puntuación de humanidad: ${navigationResult.humanLikeScore}/100`);
+            console.log(`Navegación completada: ${navigationResult.pagesVisited} páginas en ${Math.round(navigationResult.timeSpent/1000)}s`);
+            console.log(`Puntuación de humanidad: ${navigationResult.humanLikeScore}/100`);
             
             return navigationResult;
             
         } catch (error) {
-            console.error('❌ Error en navegación humana:', error.message);
+            console.error('Error en navegación humana:', error.message);
             navigationResult.error = error.message;
             return navigationResult;
         }
@@ -118,11 +118,11 @@ class HumanBehaviorSimulator {
         try {
             // Análisis inicial del contenido
             const contentMetrics = await this.contentAnalyzer.analyzePageContent(page);
-            console.log(`📊 Análisis: ${contentMetrics.wordCount} palabras, ${contentMetrics.images} imágenes`);
+            console.log(`Análisis: ${contentMetrics.wordCount} palabras, ${contentMetrics.images} imágenes`);
 
             // Calcular tiempo de lectura basado en contenido y fatiga
             const readingTime = this.calculateReadingTime(contentMetrics, pattern);
-            console.log(`⏱️ Tiempo de lectura estimado: ${Math.round(readingTime/1000)}s`);
+            console.log(`Tiempo de lectura estimado: ${Math.round(readingTime/1000)}s`);
 
             // Simular movimientos iniciales del mouse
             await this.mouseSimulator.performInitialMovements(page);
@@ -153,7 +153,7 @@ class HumanBehaviorSimulator {
             };
 
         } catch (error) {
-            console.warn('⚠️ Error simulando lectura:', error.message);
+            console.warn('Error simulando lectura:', error.message);
             return {
                 timeSpent: Date.now() - startTime,
                 interactions,
@@ -173,7 +173,7 @@ class HumanBehaviorSimulator {
         try {
             // Analizar enlaces disponibles
             const availableLinks = await this.linkSelector.analyzeAvailableLinks(page);
-            console.log(`🔗 Enlaces encontrados: ${availableLinks.length}`);
+            console.log(`Enlaces encontrados: ${availableLinks.length}`);
             
             if (availableLinks.length === 0) {
                 return null;
@@ -188,11 +188,11 @@ class HumanBehaviorSimulator {
             );
 
             if (!selectedLink) {
-                console.log('🚫 No hay enlaces válidos para visitar');
+                console.log('No hay enlaces válidos para visitar');
                 return null;
             }
 
-            console.log(`👆 Seleccionado: ${selectedLink.text} (${selectedLink.href})`);
+            console.log(`Seleccionado: ${selectedLink.text} (${selectedLink.href})`);
 
             // Intentar múltiples estrategias para hacer clic en el enlace
             const clickSuccess = await this.performRobustLinkClick(page, selectedLink);
@@ -200,12 +200,12 @@ class HumanBehaviorSimulator {
             if (clickSuccess) {
                 return selectedLink;
             } else {
-                console.warn('⚠️ No se pudo hacer clic en el enlace, continuando...');
+                console.warn('No se pudo hacer clic en el enlace, continuando...');
                 return null;
             }
 
         } catch (error) {
-            console.warn('⚠️ Error buscando siguiente enlace:', error.message);
+            console.warn('Error buscando siguiente enlace:', error.message);
             return null;
         }
     }
@@ -225,14 +225,14 @@ class HumanBehaviorSimulator {
 
         for (let i = 0; i < strategies.length; i++) {
             try {
-                console.log(`   📍 Intentando estrategia ${i + 1}/3...`);
+                console.log(`Intentando estrategia ${i + 1}/3...`);
                 const success = await strategies[i]();
                 if (success) {
-                    console.log(`   ✅ Estrategia ${i + 1} exitosa`);
+                    console.log(`Estrategia ${i + 1} exitosa`);
                     return true;
                 }
             } catch (error) {
-                console.warn(`   ⚠️ Estrategia ${i + 1} falló: ${error.message}`);
+                console.warn(`Estrategia ${i + 1} falló: ${error.message}`);
             }
         }
 
@@ -384,7 +384,7 @@ class HumanBehaviorSimulator {
             await this.mouseSimulator.performPageLoadMovement(page);
             
         } catch (error) {
-            console.warn('⚠️ Timeout esperando carga de página');
+            console.warn('Timeout esperando carga de página');
         }
     }
 

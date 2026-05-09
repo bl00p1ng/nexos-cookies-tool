@@ -1,3 +1,7 @@
+import { createLogger } from './Logger.js';
+
+const log = createLogger('RequestQueue');
+
 /**
  * Sistema de cola de requests con rate limiting para Ads Power API
  * Implementa patrón singleton para garantizar rate limiting global
@@ -292,24 +296,15 @@ class RequestQueue {
     }
 
     /**
-     * Log de debug para monitoreo
-     * @param {string} message - Mensaje a loggear
-     * @param {Object} data - Datos adicionales opcionales
+     * Log de debug. Delega al logger común que ya filtra por nivel.
+     * Se mantiene el método para compat con call sites internos.
      */
     logDebug(message, data = null) {
-        if (process.env.NODE_ENV === 'development' || this.config.debug) {
-            const timestamp = new Date().toISOString();
-            const queueInfo = `Queue: ${this.queue.length}`;
-            const statsInfo = `Success: ${this.stats.successfulRequests}/${this.stats.totalRequests}`;
-            
-            let logMessage = `[RequestQueue] ${timestamp} - ${message} | ${queueInfo} | ${statsInfo}`;
-            
-            if (data) {
-                logMessage += ` | Data: ${JSON.stringify(data)}`;
-            }
-            
-            console.log(logMessage);
-        }
+        log.debug(message, {
+            queueSize: this.queue.length,
+            success: `${this.stats.successfulRequests}/${this.stats.totalRequests}`,
+            ...(data && typeof data === 'object' ? data : {})
+        });
     }
 
     /**
