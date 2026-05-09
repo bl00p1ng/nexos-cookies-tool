@@ -27,11 +27,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Anclado a macos-13 (Intel/x64) en lugar de macos-latest (arm64)
-          # porque dmg-license declara "cpu": ["x64"] y npm lo omite en arm64,
-          # rompiendo el build del .dmg. Cross-compila tanto x64 como arm64
-          # del .dmg sin problema desde un runner Intel.
-          - os: macos-13
+          # macos-latest es arm64. dmg-license declara cpu: ['x64'] y npm
+          # lo omite en arm64; el step "Force-install dmg-license" más abajo
+          # lo instala manualmente bypassing la restricción (la herramienta
+          # es Node puro, no tiene código nativo, funciona en cualquier cpu).
+          - os: macos-latest
             name: macOS
             build_cmd: build-mac
           - os: windows-latest
@@ -53,6 +53,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # dmg-license declara cpu: ['x64'] en su package.json y npm lo omite
+      # en runners arm64. Pero la herramienta es Node puro (genera el SLA
+      # del .dmg), no tiene binario nativo, así que funciona en cualquier
+      # arquitectura. --force ignora el constraint de cpu/os.
+      - name: Force-install dmg-license (macOS arm64 workaround)
+        if: runner.os == 'macOS'
+        run: npm install --no-save --force dmg-license@^1.0.11
 
       - name: Build & publish (${{ matrix.name }})
         env:
