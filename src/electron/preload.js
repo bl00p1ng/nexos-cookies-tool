@@ -112,14 +112,15 @@ if (process.env.NODE_ENV === 'development') {
     });
 }
 
-// Prevenir navegación no autorizada
+// Prevenir navegación no autorizada y abrir enlaces externos en el navegador del sistema
 window.addEventListener('DOMContentLoaded', () => {
-    // Prevenir navegación con enlaces
+    // Cancela la navegación dentro de la ventana de Electron y delega al main
+    // process para que el OS abra la URL en el navegador por defecto.
     document.addEventListener('click', (event) => {
         const target = event.target.closest('a');
         if (target && target.href && target.href.startsWith('http')) {
             event.preventDefault();
-            // Los enlaces externos se manejan en el proceso principal
+            ipcRenderer.invoke('shell:open-external', target.href);
         }
     });
 

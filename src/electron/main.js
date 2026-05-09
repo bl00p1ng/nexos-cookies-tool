@@ -309,6 +309,15 @@ class ElectronApp {
         ipcMain.handle('system:export-logs', this.exportLogs.bind(this));
         ipcMain.handle('system:get-version', () => APP_VERSION);
 
+        // Abrir enlaces externos en el navegador del sistema (delegado desde
+        // el preload, que cancela la navegación interna y reenvía aquí).
+        ipcMain.handle('shell:open-external', (event, url) => {
+            if (typeof url !== 'string') return false;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+            shell.openExternal(url);
+            return true;
+        });
+
         // Portapapeles
         ipcMain.handle('clipboard:read-text', () => {
             const { clipboard } = require('electron');
