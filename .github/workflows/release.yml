@@ -27,7 +27,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
+          # Anclado a macos-13 (Intel/x64) en lugar de macos-latest (arm64)
+          # porque dmg-license declara "cpu": ["x64"] y npm lo omite en arm64,
+          # rompiendo el build del .dmg. Cross-compila tanto x64 como arm64
+          # del .dmg sin problema desde un runner Intel.
+          - os: macos-13
             name: macOS
             build_cmd: build-mac
           - os: windows-latest
