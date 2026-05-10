@@ -14,6 +14,7 @@
     "build-win": "electron-builder --win",
     "build-mac": "electron-builder --mac",
     "dist": "electron-builder --publish=never",
+    "postinstall": "node scripts/install-rollup-native.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
