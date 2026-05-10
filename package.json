@@ -13,7 +13,10 @@
     "build": "echo 'No build process needed for this app'",
     "build-win": "electron-builder --win",
     "build-mac": "electron-builder --mac",
-    "dist": "electron-builder --publish=never"
+    "dist": "electron-builder --publish=never",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "Hexzor Agencia <hexzoragencia@gmail.com>",
@@ -29,10 +32,12 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
     "concurrently": "^9.2.1",
     "electron": "^38.1.0",
     "electron-builder": "^26.0.12",
     "electronmon": "^2.0.4",
+    "vitest": "^2.1.8",
     "wait-on": "^8.0.5"
   },
   "optionalDependencies": {
