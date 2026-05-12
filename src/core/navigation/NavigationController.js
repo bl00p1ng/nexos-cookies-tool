@@ -67,6 +67,20 @@ class NavigationController extends EventEmitter {
         });
         return sessions;
     }
+    /**
+     * Devuelve el estado global agregado para consumo del renderer vía IPC.
+     * Reusa getActiveSessionsSnapshot para no duplicar la lógica de serialización
+     * y devuelve una copia superficial de globalStats para evitar mutación
+     * accidental del estado interno.
+     * @returns {{activeSessions: Array, globalStats: Object, isRunning: boolean}}
+     */
+    getGlobalStatus() {
+        return {
+            activeSessions: this.getActiveSessionsSnapshot(),
+            globalStats: { ...this.globalStats },
+            isRunning: this.activeSessions.size > 0
+        };
+    }
     //#endregion Public state queries
 
     //#region Starters
