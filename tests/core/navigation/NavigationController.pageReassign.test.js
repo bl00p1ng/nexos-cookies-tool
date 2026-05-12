@@ -10,10 +10,15 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Resuelve el directorio del test sin depender de `import.meta.dirname`
+// (disponible recién en Node 21+; CI corre Node 20).
+const here = dirname(fileURLToPath(import.meta.url));
 
 const SOURCE_PATH = join(
-    import.meta.dirname,
+    here,
     '../../../src/core/navigation/NavigationController.js'
 );
 
