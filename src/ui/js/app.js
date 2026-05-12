@@ -1,4 +1,19 @@
 /**
+ * Maneja eventos de teclado globales del renderer.
+ * Extraído como función pura para facilitar testing aislado.
+ * @param {KeyboardEvent} event
+ * @param {{closeAllModals: Function}} ctx - Contexto inyectado (la app instance).
+ */
+export function handleGlobalKeydown(event, ctx) {
+    if (event.key === 'Escape') {
+        ctx.closeAllModals();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+        event.preventDefault();
+    }
+}
+
+/**
  * Aplicación principal de Cookies Hexzor
  * Maneja la inicialización y coordinación de todos los módulos
  */
@@ -125,21 +140,7 @@ class HexzorApp {
      */
     setupGlobalEvents() {
         // Eventos de teclado globales
-        document.addEventListener('keydown', (event) => {
-            // Escape para cerrar modales
-            if (event.key === 'Escape') {
-                this.closeAllModals();
-            }
-
-            // Ctrl/Cmd + R para recargar (solo en desarrollo)
-            if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
-                if (process.env.NODE_ENV === 'development') {
-                    location.reload();
-                } else {
-                    event.preventDefault();
-                }
-            }
-        });
+        document.addEventListener('keydown', (event) => handleGlobalKeydown(event, this));
 
         // Prevenir navegación accidental
         window.addEventListener('beforeunload', (event) => {
@@ -527,7 +528,8 @@ class ToastManager {
 // Instancia global de la aplicación
 let app = null;
 
-// Inicializar cuando el DOM esté listo
+// Inicializar cuando el DOM esté listo (guard para entornos sin DOM, ej. Vitest)
+if (typeof document !== 'undefined') {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         app = new HexzorApp();
@@ -556,3 +558,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Exponer app globalmente para debugging
 window.app = app;
+} // end if (typeof document !== 'undefined')
