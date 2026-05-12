@@ -191,7 +191,8 @@ class NavigationController extends EventEmitter {
 
             // Iniciar navegador usando AdsPowerManager global
             browserInstance = await this.startProfile(profileId);
-            const { page } = browserInstance;
+            // SDD: must remain 'let' — page is reassigned in the reconnection path (line ~336).
+            let page = browserInstance.page;
             
             console.log(`[${profileId}] Navegador iniciado`);
 
