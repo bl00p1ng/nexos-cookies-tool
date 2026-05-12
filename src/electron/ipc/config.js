@@ -3,6 +3,12 @@ import { handle } from './_result.js';
 import AdsPowerManager from '../../core/adspower/AdsPowerManager.js';
 import { AuthService } from '../../core/auth/AuthService.js';
 import { ADSPOWER_BASE_URL, AUTH_BACKEND_URL } from '../../core/config/defaults.js';
+import {
+    BACKEND_HOSTNAMES,
+    BACKEND_PROTOCOLS,
+    ADSPOWER_HOSTNAMES,
+    ADSPOWER_PROTOCOLS
+} from '../../core/config/securityAllowlists.js';
 
 const log = createLogger('ipc:config');
 
@@ -82,31 +88,68 @@ export function registerConfigHandlers(ipcMain, deps) {
     log.debug('Handlers de configuración registrados');
 }
 
-function sanitizeAdsPowerUrl(url) {
+/**
+ * Valida y normaliza una URL de AdsPower antes de persistirla.
+ * Requiere que el hostname esté en ADSPOWER_HOSTNAMES, el protocolo en
+ * ADSPOWER_PROTOCOLS y que haya un puerto explícito.
+ * Stripea el sufijo `/api/v1` antes de validar.
+ *
+ * @param {string} url - URL a validar.
+ * @returns {string} URL normalizada sin trailing slash ni sufijo /api/v1.
+ * @throws {Error} Si la URL es inválida, el host no está permitido,
+ *   el protocolo no está permitido o falta el puerto.
+ */
+export function sanitizeAdsPowerUrl(url) {
     if (!url || typeof url !== 'string' || url.trim() === '') {
         throw new Error('La URL no puede estar vacía');
     }
     let clean = url.trim();
+    // Stripear sufijo /api/v1 ANTES de parsear para validar el host limpio
     if (clean.endsWith('/api/v1')) clean = clean.slice(0, -7);
     if (clean.endsWith('/')) clean = clean.slice(0, -1);
+    let parsed;
     try {
-        new URL(clean);
+        parsed = new URL(clean);
     } catch {
         throw new Error('URL inválida. Debe ser una URL completa (ej: http://host:puerto)');
+    }
+    if (!ADSPOWER_PROTOCOLS.has(parsed.protocol)) {
+        throw new Error(`Protocolo no permitido (${parsed.protocol}). Solo se aceptan: ${[...ADSPOWER_PROTOCOLS].join(', ')}`);
+    }
+    if (!ADSPOWER_HOSTNAMES.has(parsed.hostname)) {
+        throw new Error(`Dominio no permitido: ${parsed.hostname}. La URL de AdsPower debe apuntar a un host local.`);
+    }
+    if (parsed.port === '') {
+        throw new Error('Puerto requerido. La URL de AdsPower debe incluir un puerto explícito (ej: :50325)');
     }
     return clean;
 }
 
-function sanitizeBackendUrl(url) {
+/**
+ * Valida y normaliza una URL del backend de autenticación antes de persistirla.
+ * Requiere que el hostname esté en BACKEND_HOSTNAMES y el protocolo sea HTTPS.
+ *
+ * @param {string} url - URL a validar.
+ * @returns {string} URL normalizada con trailing slash garantizado.
+ * @throws {Error} Si la URL es inválida, el host no está permitido o el protocolo no es HTTPS.
+ */
+export function sanitizeBackendUrl(url) {
     if (!url || typeof url !== 'string' || url.trim() === '') {
         throw new Error('La URL no puede estar vacía');
     }
     let clean = url.trim();
     if (!clean.endsWith('/')) clean += '/';
+    let parsed;
     try {
-        new URL(clean);
+        parsed = new URL(clean);
     } catch {
         throw new Error('URL inválida. Debe ser una URL completa (ej: https://example.com/)');
+    }
+    if (!BACKEND_PROTOCOLS.has(parsed.protocol)) {
+        throw new Error(`Protocolo no permitido (${parsed.protocol}). Solo se acepta: https`);
+    }
+    if (!BACKEND_HOSTNAMES.has(parsed.hostname)) {
+        throw new Error(`Dominio no permitido: ${parsed.hostname}. El backend debe usar un dominio autorizado.`);
     }
     return clean;
 }
