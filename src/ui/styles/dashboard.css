@@ -1490,3 +1490,13 @@
         justify-content: center;
     }
 }
+
+/* Enlace externo en tabla de sitios — sin inline handlers */
+.external-link {
+    color: var(--hexzor-blue);
+    text-decoration: none;
+}
+
+.external-link:hover {
+    text-decoration: underline;
+}

@@ -187,9 +187,25 @@ class DashboardManager {
 
         const profileContainer = document.getElementById('profile-inputs');
         if (profileContainer) {
-            observer.observe(profileContainer, { 
-                childList: true, 
-                subtree: true 
+            observer.observe(profileContainer, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // Listener delegado para enlaces externos en la tabla de sitios.
+        // Se ancla UNA VEZ al contenedor padre estable (#sites-list) para que
+        // sobreviva al reemplazo de innerHTML en cada renderSitesTable().
+        const sitesContainer = document.getElementById('sites-list');
+        if (sitesContainer) {
+            sitesContainer.addEventListener('click', (e) => {
+                const link = e.target.closest('.external-link');
+                if (!link) return;
+                e.preventDefault();
+                const url = link.dataset.externalUrl;
+                if (url && window.electronAPI && window.electronAPI.system) {
+                    window.electronAPI.system.openExternal(url);
+                }
             });
         }
     }
@@ -811,9 +827,10 @@ class DashboardManager {
                     ${sites.map(site => `
                         <tr>
                             <td>
-                                <a href="#" onclick="window.electronAPI.system.openExternal('${site.url}')"
-                                   style="color: var(--notion-blue); text-decoration: none;">
-                                    ${site.url}
+                                <a href="#"
+                                   class="external-link"
+                                   data-external-url="${Utils.escapeAttr(site.url)}">
+                                    ${Utils.escapeAttr(site.url)}
                                 </a>
                             </td>
                             <td>${site.domain}</td>
