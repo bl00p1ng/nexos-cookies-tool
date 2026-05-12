@@ -32,13 +32,6 @@ export function registerConfigHandlers(ipcMain, deps) {
         config: services.configStore.getConfig()
     })));
 
-    ipcMain.handle('config:update', handle('config.update', (event, updates) => {
-        Object.entries(updates).forEach(([key, value]) => {
-            services.configStore.set(key, value);
-        });
-        return { success: true };
-    }));
-
     ipcMain.handle('config:get-adspower-url', handle('config.get-adspower-url', () => ({
         success: true,
         url: services.configStore.getAdsPowerUrl()
