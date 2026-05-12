@@ -53,6 +53,32 @@ class Utils {
     }
 
     /**
+     * Escapa un valor para usarlo de forma segura en atributos HTML quoted.
+     *
+     * Reemplaza los cinco caracteres especiales de HTML con sus entidades:
+     * `&`, `"`, `'`, `<`, `>`.
+     *
+     * Usar este método SIEMPRE que se interpole un valor dinámico en
+     * atributos HTML generados con template literals (ej: `data-url="${escapeAttr(val)}"`).
+     *
+     * NOTA: esta función es para contexto de *atributo HTML con valor quoted*.
+     * No es adecuada para JS strings inline ni para CSS; ambos contextos
+     * tienen sus propias reglas de escape y no deben usarse con `innerHTML`.
+     *
+     * @param {string|null|undefined} value - Valor a escapar.
+     * @returns {string} Valor escapado, seguro para insertar en un atributo HTML.
+     */
+    static escapeAttr(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    /**
      * Sanitiza texto para evitar XSS
      * @param {string} text - Texto a sanitizar
      * @returns {string} Texto sanitizado
