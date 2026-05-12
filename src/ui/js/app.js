@@ -1,10 +1,11 @@
 /**
  * Maneja eventos de teclado globales del renderer.
- * Extraído como función pura para facilitar testing aislado.
+ * Función pura definida en scope global del classic script (el HTML carga
+ * los .js sin type="module"; un `export` aquí rompería el parser).
  * @param {KeyboardEvent} event
  * @param {{closeAllModals: Function}} ctx - Contexto inyectado (la app instance).
  */
-export function handleGlobalKeydown(event, ctx) {
+function handleGlobalKeydown(event, ctx) {
     if (event.key === 'Escape') {
         ctx.closeAllModals();
     }
@@ -528,8 +529,7 @@ class ToastManager {
 // Instancia global de la aplicación
 let app = null;
 
-// Inicializar cuando el DOM esté listo (guard para entornos sin DOM, ej. Vitest)
-if (typeof document !== 'undefined') {
+// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         app = new HexzorApp();
@@ -558,4 +558,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Exponer app globalmente para debugging
 window.app = app;
-} // end if (typeof document !== 'undefined')
