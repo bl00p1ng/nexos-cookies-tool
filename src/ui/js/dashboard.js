@@ -833,16 +833,16 @@ class DashboardManager {
                                     ${Utils.escapeAttr(site.url)}
                                 </a>
                             </td>
-                            <td>${site.domain}</td>
+                            <td>${Utils.escapeAttr(site.domain)}</td>
                             <td>
-                                <span class="badge badge-neutral">${site.category || 'General'}</span>
+                                <span class="badge badge-neutral">${Utils.escapeAttr(site.category || 'General')}</span>
                             </td>
                             <td>
                                 <span class="badge ${site.status === 'active' ? 'badge-success' : 'badge-neutral'}">
-                                    ${site.status || 'Activo'}
+                                    ${Utils.escapeAttr(site.status || 'Activo')}
                                 </span>
                             </td>
-                            <td>${site.visit_count || 0}</td>
+                            <td>${Number(site.visit_count) || 0}</td>
                         </tr>
                     `).join('')}
                 </tbody>
