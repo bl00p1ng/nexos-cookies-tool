@@ -386,13 +386,33 @@
     transform: translateY(-1px) scale(0.99);
 }
 
-.promo-cta-arrow {
+.promo-cta-icon {
     width: 18px; height: 18px;
     transition: transform 0.25s ease;
+    flex-shrink: 0;
 }
 
-.promo-cta:hover .promo-cta-arrow {
-    transform: translateX(4px);
+.promo-cta:hover .promo-cta-icon {
+    transform: scale(1.12);
+}
+
+.promo-cta.is-copied {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow:
+        0 10px 24px rgba(16, 185, 129, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.promo-cta {
+    border: none;
+    outline: none;
+    font-family: inherit;
+}
+
+.promo-cta:focus-visible {
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.55),
+        0 0 0 6px rgba(37, 99, 235, 0.65);
 }
 
 /* Reduced motion */

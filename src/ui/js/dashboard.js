@@ -141,6 +141,14 @@ class DashboardManager {
             });
         }
 
+        // CTA de copia del link de afiliado de TikTok Ads
+        const copyAffiliateCta = document.getElementById('copy-affiliate-cta');
+        if (copyAffiliateCta) {
+            copyAffiliateCta.addEventListener('click', () => {
+                this.handleCopyAffiliateLink(copyAffiliateCta);
+            });
+        }
+
         // Listener para sincronización requerida desde el backend
         window.electronAPI.navigation.onSyncRequired((event, data) => {
             console.log('Sincronización requerida desde backend:', data);
@@ -939,6 +947,45 @@ class DashboardManager {
             console.error('Error durante logout:', error);
             this.app.showError('Error cerrando sesión');
         }
+    }
+
+    /**
+     * Copia al portapapeles el link de afiliado de TikTok Ads y entrega feedback
+     * inmediato sobre el botón + un toast de confirmación.
+     * @param {HTMLButtonElement} button - Botón CTA que dispara la acción
+     */
+    async handleCopyAffiliateLink(button) {
+        const url = button.dataset.affiliateUrl;
+        if (!url) {
+            this.app.showError('No se encontró el enlace de afiliado');
+            return;
+        }
+
+        const copied = await Utils.copyToClipboard(url);
+
+        if (!copied) {
+            this.app.showError('No se pudo copiar el enlace al portapapeles');
+            return;
+        }
+
+        const textEl = button.querySelector('.promo-cta-text');
+        const originalText = textEl ? textEl.textContent : null;
+
+        if (textEl) {
+            textEl.textContent = '¡Enlace copiado!';
+        }
+        button.classList.add('is-copied');
+        button.disabled = true;
+
+        this.app.showSuccess('Enlace de afiliado copiado al portapapeles', 'TikTok Ads');
+
+        setTimeout(() => {
+            if (textEl && originalText !== null) {
+                textEl.textContent = originalText;
+            }
+            button.classList.remove('is-copied');
+            button.disabled = false;
+        }, 1800);
     }
 
     /**
